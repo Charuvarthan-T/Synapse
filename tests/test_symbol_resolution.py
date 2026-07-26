@@ -143,8 +143,12 @@ def test_resolve_cross_file_raw_calls_real_edge_survives_test_mock() -> None:
     nodes = [
         {"id": "caller_run", "label": "run()", "file_type": "code", "source_file": "src/caller.py"},
         {"id": "src_save", "label": "save()", "file_type": "code", "source_file": "src/service.py"},
-        {"id": "mock_save", "label": "save()", "file_type": "code",
-         "source_file": "tests/test_service.py"},
+        {
+            "id": "mock_save",
+            "label": "save()",
+            "file_type": "code",
+            "source_file": "tests/test_service.py",
+        },
     ]
     resolved = resolve_cross_file_raw_calls(per_file, nodes, [])
     assert [(e["source"], e["target"]) for e in resolved] == [("caller_run", "src_save")]
@@ -195,11 +199,19 @@ def test_resolve_cross_file_raw_calls_call_site_is_test_prefers_test_local() -> 
         }
     ]
     nodes = [
-        {"id": "test_caller", "label": "test_it()", "file_type": "code",
-         "source_file": "tests/test_service.py"},
+        {
+            "id": "test_caller",
+            "label": "test_it()",
+            "file_type": "code",
+            "source_file": "tests/test_service.py",
+        },
         {"id": "src_save", "label": "save()", "file_type": "code", "source_file": "src/service.py"},
-        {"id": "test_save", "label": "save()", "file_type": "code",
-         "source_file": "tests/test_service.py"},
+        {
+            "id": "test_save",
+            "label": "save()",
+            "file_type": "code",
+            "source_file": "tests/test_service.py",
+        },
     ]
     resolved = resolve_cross_file_raw_calls(per_file, nodes, [])
     targets = [e["target"] for e in resolved]
@@ -326,11 +338,6 @@ def test_resolve_python_import_guided_calls_emits_extracted_edge(tmp_path: Path)
             },
         }
     ]
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ── Bash source edges resolver tests ──────────────────────────────────────────
-# ═══════════════════════════════════════════════════════════════════════════════
 
 
 def test_bash_call_resolver_emits_source_edges(tmp_path: Path) -> None:
@@ -568,7 +575,6 @@ def test_bash_call_resolver_skips_ambiguous_multiple_candidates(tmp_path: Path) 
     edges = resolve_bash_source_edges(per_file, [a_sh, b_sh, c_sh], tmp_path)
 
     calls = [e for e in edges if e["relation"] == "calls"]
-    # helper() is defined in both b.sh and c.sh → ambiguous → should be skipped
     assert len(calls) == 0, f"Should skip ambiguous callee but got: {calls}"
 
 
@@ -619,22 +625,14 @@ def test_bash_make_id_unicode_matches_make_id() -> None:
     """
     from graphify.extract import _make_id
 
-    # Accented letter: é is a Unicode word char that _make_id preserves
     assert _bash_make_id("café", "run") == _make_id("café", "run"), (
         "_bash_make_id must preserve Unicode word characters like _make_id"
     )
-    # German sharp s: casefold maps ß→ss, lower does not
     assert _bash_make_id("straße") == _make_id("straße"), (
         "_bash_make_id must use casefold not lower to match _make_id"
     )
 
 
-# ---------------------------------------------------------------------------
-# Cycle 2.5 v2 — Codex blocker fixes
-# ---------------------------------------------------------------------------
-
-
-# F1 — top-level imports only
 def test_parse_python_import_aliases_skips_function_local_imports(tmp_path):
     """A `from helper import transform` inside a function MUST NOT become
     file-wide evidence — function-local imports are only valid in their
@@ -668,7 +666,6 @@ def test_parse_python_import_aliases_accepts_top_level_import(tmp_path):
     assert aliases["transform"].module_stem == "helper"
 
 
-# F2 — only code nodes are resolvable
 def test_node_is_resolvable_symbol_requires_code_file_type():
     """Document/paper/image/concept nodes MUST NOT be indexed as call targets,
     even when their label looks like a callable identifier."""
@@ -701,7 +698,6 @@ def test_build_label_index_excludes_non_code_nodes():
     assert index.get("helper") == ["code_one"]
 
 
-# F3 — bash resolver defensive against malformed input
 def test_resolve_bash_source_edges_skips_malformed_source(tmp_path):
     """A `bash_sources` entry missing `target_path` must not raise KeyError."""
     from graphify.symbol_resolution import resolve_bash_source_edges
@@ -711,9 +707,9 @@ def test_resolve_bash_source_edges_skips_malformed_source(tmp_path):
             "nodes": [],
             "raw_calls": [],
             "bash_sources": [
-                {},  # missing target_path entirely
-                {"target_path": ""},  # empty target_path
-                {"target_path": None},  # non-string target_path
+                {},
+                {"target_path": ""},
+                {"target_path": None},
             ],
         }
     ]
@@ -738,7 +734,6 @@ def test_resolve_bash_source_edges_skips_bash_function_node_missing_id(tmp_path)
     ]
     a = tmp_path / "a.sh"
     a.write_text("# noop\n")
-    # Should not raise
     edges = resolve_bash_source_edges(per_file, [a], tmp_path)
     assert edges == []
 
@@ -755,7 +750,7 @@ def test_resolve_bash_source_edges_skips_raw_call_missing_caller_nid(tmp_path):
         {
             "nodes": [],
             "raw_calls": [
-                {"language": "bash", "callee": "helper"},  # missing caller_nid
+                {"language": "bash", "callee": "helper"},
             ],
             "bash_sources": [{"target_path": str(b)}],
         },
@@ -768,7 +763,6 @@ def test_resolve_bash_source_edges_skips_raw_call_missing_caller_nid(tmp_path):
         },
     ]
     edges = resolve_bash_source_edges(per_file, [a, b], tmp_path)
-    # No raw-call edge emitted because caller_nid was missing; source edge OK.
     assert all(e["relation"] != "calls" for e in edges)
 
 
@@ -791,7 +785,7 @@ def test_resolve_bash_source_edges_skips_non_dict_lists(tmp_path):
     per_file = [
         {
             "nodes": ["not a dict", 42, None],
-            "raw_calls": [None, "string entry", {"language": "bash"}],  # last is missing caller_nid
+            "raw_calls": [None, "string entry", {"language": "bash"}],
             "bash_sources": [None, "str", 99],
         }
     ]
@@ -799,7 +793,6 @@ def test_resolve_bash_source_edges_skips_non_dict_lists(tmp_path):
     assert edges == []
 
 
-# F4 — relative target_path resolves against source file directory
 def test_resolve_bash_source_edges_relative_path_resolves_against_source_dir(tmp_path):
     """`source ./helper.sh` from a/main.sh should resolve to a/helper.sh,
     not to ./helper.sh from the process CWD."""
@@ -816,7 +809,6 @@ def test_resolve_bash_source_edges_relative_path_resolves_against_source_dir(tmp
         {
             "nodes": [],
             "raw_calls": [],
-            # Relative path: should resolve to scripts/helper.sh (next to main.sh)
             "bash_sources": [{"target_path": "./helper.sh"}],
         },
         {
@@ -826,13 +818,10 @@ def test_resolve_bash_source_edges_relative_path_resolves_against_source_dir(tmp
         },
     ]
     edges = resolve_bash_source_edges(per_file, [main, helper], tmp_path)
-    # One imports_from edge from main → helper
     import_edges = [e for e in edges if e["relation"] == "imports_from"]
     assert len(import_edges) == 1
-    # Note: the actual node IDs are sha-hash-derived; just verify the edge exists.
 
 
-# F1 — malformed raw_calls in non-Bash resolvers
 def test_iter_raw_calls_skips_non_dict_per_file_entries():
     """A non-dict per_file entry (e.g. junk fragment) must be silently skipped."""
     from graphify.symbol_resolution import iter_raw_calls
@@ -861,9 +850,7 @@ def test_resolve_cross_file_raw_calls_survives_malformed_raw_calls():
     """The python cross-file resolver returns [] (not crash) on bad raw_calls."""
     from graphify.symbol_resolution import resolve_cross_file_raw_calls
 
-    # raw_calls is a string instead of a list
     assert resolve_cross_file_raw_calls([{"raw_calls": "abc"}], [], []) == []
-    # raw_calls list contains non-dict entries
     assert resolve_cross_file_raw_calls([{"raw_calls": ["not dict", 42]}], [], []) == []
 
 
@@ -883,12 +870,10 @@ def test_resolve_python_import_guided_calls_survives_malformed_raw_calls(tmp_pat
             "source_file": str(tmp_path / "helper.py"),
         }
     ]
-    # Should not raise; should return no edges since raw_calls isn't a list
     edges = resolve_python_import_guided_calls(per_file, paths, nodes, [])
     assert edges == []
 
 
-# F2 — unhashable callee in bash resolver
 def test_resolve_bash_source_edges_skips_unhashable_callee(tmp_path):
     """A bash raw_call with `callee: [list]` (unhashable for dict membership)
     must not raise TypeError — silently skip the call."""
@@ -916,21 +901,16 @@ def test_resolve_bash_source_edges_skips_unhashable_callee(tmp_path):
             "bash_sources": [],
         },
     ]
-    # Must not raise — non-string callees are skipped before dict membership.
     edges = resolve_bash_source_edges(per_file, [a, b], tmp_path)
-    # No call edges emitted (all malformed); imports_from edge from sourcing OK
     assert all(e["relation"] != "calls" for e in edges)
 
 
-# v3 Codex F1 — resolve_python_import_guided_calls hardened against
-# malformed per_file slots and length mismatches.
 def test_resolve_python_import_guided_calls_non_dict_per_file_slot(tmp_path):
     """A non-dict per_file slot (e.g. a string) must not raise AttributeError."""
     from graphify.symbol_resolution import resolve_python_import_guided_calls
 
     py = tmp_path / "caller.py"
     py.write_text("from helper import transform\n")
-    # per_file slot is a STRING, not a dict — used to crash with AttributeError
     edges = resolve_python_import_guided_calls(["not a dict"], [py], [], [])
     assert edges == []
 
@@ -943,7 +923,6 @@ def test_resolve_python_import_guided_calls_per_file_shorter_than_paths(tmp_path
     b = tmp_path / "b.py"
     a.write_text("from helper import transform\n")
     b.write_text("from helper import transform\n")
-    # Only ONE per_file entry but TWO paths — used to crash with IndexError
     edges = resolve_python_import_guided_calls([{}], [a, b], [], [])
     assert edges == []
 
@@ -965,10 +944,6 @@ def test_resolve_python_import_guided_calls_metadata_is_sanitized(tmp_path: Path
     cannot survive into the graph as raw markup."""
     caller = tmp_path / "caller.py"
     helper = tmp_path / "helper.py"
-    # Import alias that includes an angle bracket — pathological but defensive
-    # cover: the resolver itself does not parse names this aggressively, but a
-    # future extractor or upstream fragment could. The boundary is the cycle's
-    # stated policy: every edge metadata field goes through sanitize_metadata.
     caller.write_text(
         "from helper import transform as tx\n\ndef run(value):\n    return tx(value)\n",
         encoding="utf-8",
@@ -1002,12 +977,10 @@ def test_resolve_python_import_guided_calls_metadata_is_sanitized(tmp_path: Path
     edges = resolve_python_import_guided_calls(per_file, [caller, helper], nodes, [])
     assert len(edges) == 1
     metadata = edges[0]["metadata"]
-    # All values must be present and HTML/control-char safe after sanitisation.
     for value in metadata.values():
         if isinstance(value, str):
             assert "<" not in value
             assert "\x00" not in value
-    # And the structural shape is unchanged for benign inputs.
     assert metadata["resolver"] == "python_import_guided"
     assert metadata["local_name"] == "tx"
     assert metadata["imported_name"] == "transform"
@@ -1036,10 +1009,6 @@ def test_resolve_python_import_guided_calls_metadata_sanitizes_hostile_alias(
     )
     helper.write_text("def transform(value):\n    return value\n", encoding="utf-8")
 
-    # imported_name and module_stem are the lookup keys used to resolve the
-    # call target; they must match the real helper symbol or the edge will
-    # not fire. local_name and source_location are stored verbatim into
-    # metadata and are the surface that sanitize_metadata() must scrub.
     hostile_alias_key = "<script>tx</script>"
     hostile = sr.ImportedSymbol(
         local_name=hostile_alias_key,
@@ -1084,22 +1053,16 @@ def test_resolve_python_import_guided_calls_metadata_sanitizes_hostile_alias(
     assert len(edges) == 1
     metadata = edges[0]["metadata"]
 
-    # `local_name` carries the hostile alias key. Without sanitisation it
-    # would still contain `<script>`. With the wrap, only the entity escape
-    # survives. Removing the sanitize_metadata() wrap would fail BOTH asserts.
     local_name = metadata["local_name"]
     assert "<script>" not in local_name
     assert "&lt;script&gt;" in local_name
 
-    # `import_source_location` carries hostile markup + a NUL byte. Sanitised
-    # output strips the NUL and escapes the angle brackets.
     src_loc = metadata["import_source_location"]
     assert "<img" not in src_loc
     assert "&lt;img" in src_loc
     assert "\x00" not in src_loc
-    assert "trail" in src_loc  # tail content survives after NUL strip
+    assert "trail" in src_loc
 
-    # Resolution-side fields (used as lookup keys) are benign and unchanged.
     assert metadata["resolver"] == "python_import_guided"
     assert metadata["imported_name"] == "transform"
     assert metadata["module_stem"] == "helper"

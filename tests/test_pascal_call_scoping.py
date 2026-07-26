@@ -8,6 +8,7 @@ pattern -- property accessors, generated wrapper classes such as TLB import
 units) silently collapsed onto whichever declaration was inserted last,
 producing wrong cross-class `calls` edges. See `sample_scoped_calls.pas`.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -19,6 +20,7 @@ FIXTURE_PATH = FIXTURES / "sample_scoped_calls.pas"
 
 def _extractors():
     from graphify.extract import extract_pascal, _extract_pascal_regex
+
     return [extract_pascal, _extract_pascal_regex]
 
 
@@ -46,10 +48,13 @@ def _has_call(r, src_id, tgt_id):
     )
 
 
-@pytest.mark.parametrize("extract", [
-    pytest.param(0, id="tree-sitter"),
-    pytest.param(1, id="regex-fallback"),
-])
+@pytest.mark.parametrize(
+    "extract",
+    [
+        pytest.param(0, id="tree-sitter"),
+        pytest.param(1, id="regex-fallback"),
+    ],
+)
 def test_calls_scoped_to_own_class(extract):
     r = _extractors()[extract](FIXTURE_PATH)
     first_configure = _method_node_id(r, "TFirstWidget", "Configure()")
@@ -57,10 +62,13 @@ def test_calls_scoped_to_own_class(extract):
     assert _has_call(r, first_configure, first_reset)
 
 
-@pytest.mark.parametrize("extract", [
-    pytest.param(0, id="tree-sitter"),
-    pytest.param(1, id="regex-fallback"),
-])
+@pytest.mark.parametrize(
+    "extract",
+    [
+        pytest.param(0, id="tree-sitter"),
+        pytest.param(1, id="regex-fallback"),
+    ],
+)
 def test_calls_do_not_cross_unrelated_classes(extract):
     r = _extractors()[extract](FIXTURE_PATH)
     first_configure = _method_node_id(r, "TFirstWidget", "Configure()")
@@ -72,10 +80,13 @@ def test_calls_do_not_cross_unrelated_classes(extract):
     )
 
 
-@pytest.mark.parametrize("extract", [
-    pytest.param(0, id="tree-sitter"),
-    pytest.param(1, id="regex-fallback"),
-])
+@pytest.mark.parametrize(
+    "extract",
+    [
+        pytest.param(0, id="tree-sitter"),
+        pytest.param(1, id="regex-fallback"),
+    ],
+)
 def test_calls_scoped_other_direction(extract):
     r = _extractors()[extract](FIXTURE_PATH)
     second_configure = _method_node_id(r, "TSecondWidget", "Configure()")
@@ -83,15 +94,17 @@ def test_calls_scoped_other_direction(extract):
     first_reset = _method_node_id(r, "TFirstWidget", "Reset()")
     assert _has_call(r, second_configure, second_reset)
     assert not _has_call(r, second_configure, first_reset), (
-        "TSecondWidget.Configure must not resolve Reset() to the unrelated "
-        "TFirstWidget.Reset"
+        "TSecondWidget.Configure must not resolve Reset() to the unrelated TFirstWidget.Reset"
     )
 
 
-@pytest.mark.parametrize("extract", [
-    pytest.param(0, id="tree-sitter"),
-    pytest.param(1, id="regex-fallback"),
-])
+@pytest.mark.parametrize(
+    "extract",
+    [
+        pytest.param(0, id="tree-sitter"),
+        pytest.param(1, id="regex-fallback"),
+    ],
+)
 def test_calls_resolve_via_ancestor_chain(extract):
     r = _extractors()[extract](FIXTURE_PATH)
     derived_run = _method_node_id(r, "TDerivedWidget", "Run()")

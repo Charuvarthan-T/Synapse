@@ -1,5 +1,3 @@
-# Wiki export - Wikipedia-style markdown articles from the knowledge graph
-# Generates an agent-crawlable wiki: index.md + one article per community + god node articles
 from __future__ import annotations
 from collections import Counter
 from pathlib import Path
@@ -18,10 +16,11 @@ def _safe_filename(name: str) -> str:
     chars to stay well under common filesystem limits.
     """
     import re
+
     s = name.replace("/", "-").replace(" ", "_").replace(":", "-")
-    s = re.sub(r'[<>:"/\\|?*]', '_', s)
-    s = s.strip('. ')
-    return s[:200] if s else 'unnamed'
+    s = re.sub(r'[<>:"/\\|?*]', "_", s)
+    s = s.strip(". ")
+    return s[:200] if s else "unnamed"
 
 
 def _md_link(label: str, resolver: dict[str, str]) -> str:
@@ -48,7 +47,13 @@ def _md_link(label: str, resolver: dict[str, str]) -> str:
     return f"[{text}]({quote(f'{slug}.md')})"
 
 
-def _cross_community_links(G: nx.Graph, nodes: list[str], own_cid: int, labels: dict[int, str], node_community: dict[str, int]) -> list[tuple[str, int]]:
+def _cross_community_links(
+    G: nx.Graph,
+    nodes: list[str],
+    own_cid: int,
+    labels: dict[int, str],
+    node_community: dict[str, int],
+) -> list[tuple[str, int]]:
     """Return (community_label, edge_count) pairs for cross-community connections, sorted descending."""
     counts: dict[str, int] = Counter()
     for nid in nodes:
@@ -73,7 +78,6 @@ def _community_article(
     top_nodes = sorted(nodes, key=lambda n: G.degree(n), reverse=True)[:25]
     cross = _cross_community_links(G, nodes, cid, labels, node_community or {})
 
-    # Edge confidence breakdown
     conf_counts: Counter = Counter()
     for nid in nodes:
         for neighbor in G.neighbors(nid):
@@ -125,11 +129,21 @@ def _community_article(
         lines.append(f"- {conf}: {n} ({pct}%)")
     lines.append("")
 
-    lines += ["---", "", f"*Part of the graphify knowledge wiki. See {_md_link('index', resolver)} to navigate.*"]
+    lines += [
+        "---",
+        "",
+        f"*Part of the graphify knowledge wiki. See {_md_link('index', resolver)} to navigate.*",
+    ]
     return "\n".join(lines)
 
 
-def _god_node_article(G: nx.Graph, nid: str, labels: dict[int, str], node_community: dict[str, int] | None = None, resolver: dict[str, str] | None = None) -> str:
+def _god_node_article(
+    G: nx.Graph,
+    nid: str,
+    labels: dict[int, str],
+    node_community: dict[str, int] | None = None,
+    resolver: dict[str, str] | None = None,
+) -> str:
     resolver = resolver or {}
     d = G.nodes[nid]
     node_label = d.get("label", nid)
@@ -144,7 +158,6 @@ def _god_node_article(G: nx.Graph, nid: str, labels: dict[int, str], node_commun
     if community_name:
         lines += [f"**Community:** {_md_link(community_name, resolver)}", ""]
 
-    # Group neighbors by relation type
     by_relation: dict[str, list[str]] = {}
     for neighbor in sorted(G.neighbors(nid), key=lambda n: G.degree(n), reverse=True):
         nd = G.nodes[neighbor]
@@ -162,7 +175,11 @@ def _god_node_article(G: nx.Graph, nid: str, labels: dict[int, str], node_commun
             lines.append(f"- {t}")
         lines.append("")
 
-    lines += ["---", "", f"*Part of the graphify knowledge wiki. See {_md_link('index', resolver)} to navigate.*"]
+    lines += [
+        "---",
+        "",
+        f"*Part of the graphify knowledge wiki. See {_md_link('index', resolver)} to navigate.*",
+    ]
     return "\n".join(lines)
 
 
@@ -234,11 +251,8 @@ def to_wiki(
             "Run `graphify extract .` or `graphify cluster-only .` first."
         )
 
-    # Filter stale node IDs that exist in communities but not in G.
-    # Analysis JSON can drift from the graph after dedup / re-extract / update.
-    # NetworkX 3.x returns DegreeView({}) for missing nodes instead of raising,
-    # which crashes sorted() with TypeError; G.neighbors()/G.nodes[] also raise.
     import sys as _sys
+
     _g_nodes = set(G.nodes)
     _orig_total = sum(len(ns) for ns in communities.values())
     communities = {cid: [n for n in nodes if n in _g_nodes] for cid, nodes in communities.items()}
@@ -257,12 +271,6 @@ def to_wiki(
             "Re-run `graphify extract .` to regenerate .graphify_analysis.json."
         )
 
-    # Clear stale .md files from previous runs to prevent orphan accumulation.
-    # Community labels are LLM-generated (per skill.md Step 5) and non-deterministic
-    # across runs — the same conceptual community may be named differently each time
-    # (e.g. "AutoAgent Skills" → "AutoAgent Methodology"), leaving the previous file
-    # as an orphan. Since to_wiki() owns wiki/ entirely (always writes the full set),
-    # it can safely clear .md files at the start of each call.
     for old_article in out.glob("*.md"):
         old_article.unlink()
 
@@ -270,18 +278,12 @@ def to_wiki(
     cohesion = cohesion or {}
     god_nodes_data = god_nodes_data or []
 
-    # Build node->community lookup once; node attrs never carry community (it lives in
-    # the communities dict), so _cross_community_links and _god_node_article need this.
     node_community: dict[str, int] = {n: cid for cid, nodes in communities.items() for n in nodes}
 
     count = 0
     used_slugs: set[str] = set()
 
     def _unique_slug(base: str) -> str:
-        # Fold case in the collision check: two labels differing only by case
-        # (e.g. "Parser" vs "parser") resolve to one path on case-insensitive
-        # filesystems (macOS/APFS, Windows/NTFS), so they must dedup against each
-        # other while still emitting the original-case filename.
         slug = base
         n = 2
         while slug.lower() in used_slugs:
@@ -290,15 +292,6 @@ def to_wiki(
         used_slugs.add(slug.lower())
         return slug
 
-    # First pass: assign every article its slug before rendering any body, so the
-    # bodies can link to one another. A link's target is the on-disk filename (the
-    # slug), which differs from the label — _safe_filename turns spaces into
-    # underscores and substitutes reserved chars, and a slug may pick up a numeric
-    # suffix from collision dedup — so the final slug must be known up front.
-    # resolver maps display label -> slug; labels with no article are absent, so
-    # _md_link renders them as plain text. Communities are slugged before god nodes
-    # (and setdefault keeps the first), preserving the filename-assignment order
-    # the case-collision dedup relies on.
     resolver: dict[str, str] = {"index": "index"}
 
     community_slugs: dict[int, str] = {}
@@ -308,18 +301,19 @@ def to_wiki(
         community_slugs[cid] = slug
         resolver.setdefault(label, slug)
 
-    god_articles: list[tuple[str, str]] = []  # (node_id, slug)
+    god_articles: list[tuple[str, str]] = []
     for node_data in god_nodes_data:
         nid = node_data.get("id")
         if nid and nid in G:
-            slug = _unique_slug(_safe_filename(node_data['label']))
+            slug = _unique_slug(_safe_filename(node_data["label"]))
             god_articles.append((nid, slug))
-            resolver.setdefault(node_data['label'], slug)
+            resolver.setdefault(node_data["label"], slug)
 
-    # Second pass: render and write each article with the full resolver in hand.
     for cid, nodes in communities.items():
         label = labels.get(cid, f"Community {cid}")
-        article = _community_article(G, cid, nodes, label, labels, cohesion.get(cid), node_community, resolver)
+        article = _community_article(
+            G, cid, nodes, label, labels, cohesion.get(cid), node_community, resolver
+        )
         (out / f"{community_slugs[cid]}.md").write_text(article, encoding="utf-8")
         count += 1
 
@@ -328,9 +322,10 @@ def to_wiki(
         (out / f"{slug}.md").write_text(article, encoding="utf-8")
         count += 1
 
-    # Index
     (out / "index.md").write_text(
-        _index_md(communities, labels, god_nodes_data, G.number_of_nodes(), G.number_of_edges(), resolver),
+        _index_md(
+            communities, labels, god_nodes_data, G.number_of_nodes(), G.number_of_edges(), resolver
+        ),
         encoding="utf-8",
     )
 

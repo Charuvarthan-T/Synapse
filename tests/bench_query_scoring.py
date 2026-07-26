@@ -26,6 +26,7 @@ Run it manually; do NOT wire this into CI (wall-clock assertions are flaky):
         --query "what calls extract" --query "symbol resolution" \\
         --repeats 10
 """
+
 from __future__ import annotations
 
 import argparse
@@ -49,9 +50,28 @@ from graphify.serve import (
 
 
 SYLLABLES = [
-    "foo", "bar", "baz", "get", "set", "run", "user", "name", "path",
-    "build", "report", "extract", "router", "config", "service",
-    "handler", "token", "auth", "rate", "limit", "widget", "model",
+    "foo",
+    "bar",
+    "baz",
+    "get",
+    "set",
+    "run",
+    "user",
+    "name",
+    "path",
+    "build",
+    "report",
+    "extract",
+    "router",
+    "config",
+    "service",
+    "handler",
+    "token",
+    "auth",
+    "rate",
+    "limit",
+    "widget",
+    "model",
 ]
 
 QUERIES_BY_TERM_COUNT: dict[int, list[str]] = {
@@ -59,8 +79,18 @@ QUERIES_BY_TERM_COUNT: dict[int, list[str]] = {
     2: ["foo", "bar"],
     3: ["router", "service", "handler"],
     5: ["get", "user", "run", "name", "path"],
-    10: ["extract", "build", "report", "router", "config",
-         "service", "token", "rate", "limit", "widget"],
+    10: [
+        "extract",
+        "build",
+        "report",
+        "router",
+        "config",
+        "service",
+        "token",
+        "rate",
+        "limit",
+        "widget",
+    ],
 }
 
 
@@ -131,16 +161,12 @@ def _warm_caches(G, terms):
     legacy and optimized share these caches via the graph object, so warming
     once is fair to both."""
     _get_trigram_index(G)
-    # Touch the idf cache for the combined terms and every per-token singleton,
-    # matching exactly the calls the legacy path will make.
     _score_nodes(G, terms)
     for term in {tok for t in terms for tok in _search_tokens(t)}:
         _score_nodes(G, [term])
 
 
 def _bench(fn, *, repeats: int) -> list[float]:
-    # One uncounted warm-up — `_warm_caches` already populated caches, but
-    # this also amortizes any per-call code-path setup unique to `fn`.
     fn()
     times: list[float] = []
     for _ in range(repeats):
@@ -165,17 +191,25 @@ def _verify_equality(G, terms) -> tuple[int, int]:
     return len(leg_rank), len(leg_seeds)
 
 
-def _row(label: str, n_nodes: int, n_terms: int, times: list[float],
-         traversal_count: int, n_ranked: int, n_seeds: int) -> str:
+def _row(
+    label: str,
+    n_nodes: int,
+    n_terms: int,
+    times: list[float],
+    traversal_count: int,
+    n_ranked: int,
+    n_seeds: int,
+) -> str:
     med = statistics.median(times) * 1000
     mn = min(times) * 1000
-    return (f"{label:<10} | n={n_nodes:<7} | terms={n_terms:<3} | "
-            f"median={med:7.2f}ms | min={mn:7.2f}ms | "
-            f"passes={traversal_count:<3} | ranked={n_ranked:<6} seeds={n_seeds}")
+    return (
+        f"{label:<10} | n={n_nodes:<7} | terms={n_terms:<3} | "
+        f"median={med:7.2f}ms | min={mn:7.2f}ms | "
+        f"passes={traversal_count:<3} | ranked={n_ranked:<6} seeds={n_seeds}"
+    )
 
 
 def _legacy_traversal_count(terms) -> int:
-    # 1 combined pass + one per-token singleton pass.
     return 1 + len({tok for t in terms for tok in _search_tokens(t)})
 
 
@@ -188,26 +222,30 @@ def _run_scenario(G, terms, *, repeats: int) -> tuple[float, float]:
 
     n_nodes = G.number_of_nodes()
     n_terms = len(set(tok for t in terms for tok in _search_tokens(t)))
-    print(_row("legacy", n_nodes, n_terms, legacy_times,
-               _legacy_traversal_count(terms), n_ranked, n_seeds))
-    print(_row("optimized", n_nodes, n_terms, opt_times,
-               1, n_ranked, n_seeds))
+    print(
+        _row(
+            "legacy",
+            n_nodes,
+            n_terms,
+            legacy_times,
+            _legacy_traversal_count(terms),
+            n_ranked,
+            n_seeds,
+        )
+    )
+    print(_row("optimized", n_nodes, n_terms, opt_times, 1, n_ranked, n_seeds))
 
     med_legacy = statistics.median(legacy_times)
     med_opt = statistics.median(opt_times)
     speedup = med_legacy / med_opt if med_opt > 0 else float("inf")
-    print(f"speedup   | median: {speedup:.2f}x | "
-          f"min: {min(legacy_times) / min(opt_times):.2f}x")
+    print(f"speedup   | median: {speedup:.2f}x | min: {min(legacy_times) / min(opt_times):.2f}x")
     return med_legacy, med_opt
 
 
 def _resolve_scenarios(args) -> list[list[str]]:
     if args.graph:
-        # Real-graph mode: each --query is a natural-language sentence, tokenized
-        # using the same helper the production path uses.
         sentences = args.query or ["what calls extract"]
         scenarios = [_query_terms(s) for s in sentences]
-        # Dedupe identical token sets (multiple --query args may tokenize the same).
         seen: list[list[str]] = []
         for q in scenarios:
             if q not in seen:
@@ -227,17 +265,32 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         description="Microbenchmark single-pass query scoring vs legacy per-term rescoring.",
     )
-    p.add_argument("--nodes", type=int, default=100_000,
-                   help="node count for the synthetic benchmark graph (default: 100000)")
+    p.add_argument(
+        "--nodes",
+        type=int,
+        default=100_000,
+        help="node count for the synthetic benchmark graph (default: 100000)",
+    )
     p.add_argument("--seed", type=int, default=20260714, help="RNG seed for the synthetic graph")
-    p.add_argument("--term-counts", default="3,10",
-                   help="comma-separated list of term counts to benchmark (synthetic mode)")
-    p.add_argument("--repeats", type=int, default=5,
-                   help="timed iterations per scenario (after one warm-up)")
-    p.add_argument("--graph", default=None,
-                   help="optional path to a real graphify-out/graph.json; overrides --nodes")
-    p.add_argument("--query", action="append", default=None,
-                   help="natural-language query sentence (real-graph mode; repeat for multiple)")
+    p.add_argument(
+        "--term-counts",
+        default="3,10",
+        help="comma-separated list of term counts to benchmark (synthetic mode)",
+    )
+    p.add_argument(
+        "--repeats", type=int, default=5, help="timed iterations per scenario (after one warm-up)"
+    )
+    p.add_argument(
+        "--graph",
+        default=None,
+        help="optional path to a real graphify-out/graph.json; overrides --nodes",
+    )
+    p.add_argument(
+        "--query",
+        action="append",
+        default=None,
+        help="natural-language query sentence (real-graph mode; repeat for multiple)",
+    )
     args = p.parse_args(argv)
 
     if args.graph:
@@ -246,8 +299,7 @@ def main(argv: list[str] | None = None) -> int:
         G = _load_real_graph(args.graph)
         print(f"  loaded in {time.perf_counter() - t0:.2f}s", file=sys.stderr)
     else:
-        print(f"building synthetic graph: n={args.nodes} seed={args.seed} ...",
-              file=sys.stderr)
+        print(f"building synthetic graph: n={args.nodes} seed={args.seed} ...", file=sys.stderr)
         t0 = time.perf_counter()
         G = _build_random_graph(args.nodes, seed=args.seed)
         print(f"  built in {time.perf_counter() - t0:.2f}s", file=sys.stderr)
@@ -269,10 +321,12 @@ def main(argv: list[str] | None = None) -> int:
     print("summary:")
     for terms, med_legacy, med_opt in summaries:
         speedup = med_legacy / med_opt if med_opt > 0 else float("inf")
-        print(f"  terms={len(set(tok for t in terms for tok in _search_tokens(t))):>3} | "
-              f"median legacy={med_legacy*1000:>8.2f}ms | "
-              f"median optimized={med_opt*1000:>8.2f}ms | "
-              f"speedup={speedup:>5.2f}x")
+        print(
+            f"  terms={len(set(tok for t in terms for tok in _search_tokens(t))):>3} | "
+            f"median legacy={med_legacy * 1000:>8.2f}ms | "
+            f"median optimized={med_opt * 1000:>8.2f}ms | "
+            f"speedup={speedup:>5.2f}x"
+        )
     return 0
 
 

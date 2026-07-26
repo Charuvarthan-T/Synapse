@@ -1,4 +1,5 @@
 """Pascal_forms extractor. Moved verbatim from graphify/extract.py."""
+
 from __future__ import annotations
 
 
@@ -35,6 +36,7 @@ def extract_lazarus_form(path: Path) -> dict:
         return {"nodes": [], "edges": [], "error": str(e)}
 
     import re
+
     str_path = str(path)
     stem = _file_stem(path)
     nodes: list[dict] = []
@@ -45,13 +47,21 @@ def extract_lazarus_form(path: Path) -> dict:
     def add_node(nid: str, label: str, line: int) -> None:
         if nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({
-                "id": nid, "label": label, "file_type": "code",
-                "source_file": str_path, "source_location": f"L{line}",
-            })
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": "code",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                }
+            )
 
     def add_edge(
-        src: str, tgt: str, relation: str, line: int,
+        src: str,
+        tgt: str,
+        relation: str,
+        line: int,
         context: str | None = None,
     ) -> None:
         key = (src, tgt, relation)
@@ -59,9 +69,13 @@ def extract_lazarus_form(path: Path) -> dict:
             return
         seen_edge_pairs.add(key)
         edge: dict[str, Any] = {
-            "source": src, "target": tgt, "relation": relation,
-            "confidence": "EXTRACTED", "source_file": str_path,
-            "source_location": f"L{line}", "weight": 1.0,
+            "source": src,
+            "target": tgt,
+            "relation": relation,
+            "confidence": "EXTRACTED",
+            "source_file": str_path,
+            "source_location": f"L{line}",
+            "weight": 1.0,
         }
         if context:
             edge["context"] = context
@@ -74,7 +88,6 @@ def extract_lazarus_form(path: Path) -> dict:
     event_re = re.compile(r"^\s*On\w+\s*=\s*(\w+)", re.IGNORECASE)
     end_re = re.compile(r"^\s*end\s*$", re.IGNORECASE)
 
-    # Stack of node IDs representing the nesting of object...end blocks
     stack: list[str] = [file_nid]
 
     for lineno, line in enumerate(text.splitlines(), 1):
@@ -100,6 +113,7 @@ def extract_lazarus_form(path: Path) -> dict:
 
     return {"nodes": nodes, "edges": edges, "input_tokens": 0, "output_tokens": 0}
 
+
 def extract_delphi_form(path: Path) -> dict:
     """Extract component hierarchy from Delphi .dfm form files.
 
@@ -120,20 +134,20 @@ def extract_delphi_form(path: Path) -> dict:
     except Exception as e:
         return {"nodes": [], "edges": [], "error": str(e)}
 
-    # Detect binary DFM: Delphi binary resource streams start with FF 0A
     if raw[:2] == b"\xff\x0a":
         return {
-            "nodes": [], "edges": [],
+            "nodes": [],
+            "edges": [],
             "error": f"binary DFM (convert to text in Delphi IDE to index): {path.name}",
         }
 
-    # Text DFM — delegate to the shared form parser (same syntax as .lfm)
     try:
         text = raw.decode("utf-8", errors="replace")
     except Exception as e:
         return {"nodes": [], "edges": [], "error": str(e)}
 
     import re
+
     str_path = str(path)
     stem = _file_stem(path)
     nodes: list[dict] = []
@@ -144,13 +158,21 @@ def extract_delphi_form(path: Path) -> dict:
     def add_node(nid: str, label: str, line: int) -> None:
         if nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({
-                "id": nid, "label": label, "file_type": "code",
-                "source_file": str_path, "source_location": f"L{line}",
-            })
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": "code",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                }
+            )
 
     def add_edge(
-        src: str, tgt: str, relation: str, line: int,
+        src: str,
+        tgt: str,
+        relation: str,
+        line: int,
         context: str | None = None,
     ) -> None:
         key = (src, tgt, relation)
@@ -158,9 +180,13 @@ def extract_delphi_form(path: Path) -> dict:
             return
         seen_edge_pairs.add(key)
         edge: dict[str, Any] = {
-            "source": src, "target": tgt, "relation": relation,
-            "confidence": "EXTRACTED", "source_file": str_path,
-            "source_location": f"L{line}", "weight": 1.0,
+            "source": src,
+            "target": tgt,
+            "relation": relation,
+            "confidence": "EXTRACTED",
+            "source_file": str_path,
+            "source_location": f"L{line}",
+            "weight": 1.0,
         }
         if context:
             edge["context"] = context
@@ -169,9 +195,9 @@ def extract_delphi_form(path: Path) -> dict:
     file_nid = _make_id(str(path))
     add_node(file_nid, path.name, 1)
 
-    obj_re   = re.compile(r"^\s*object\s+\w+\s*:\s*(\w+)", re.IGNORECASE)
+    obj_re = re.compile(r"^\s*object\s+\w+\s*:\s*(\w+)", re.IGNORECASE)
     event_re = re.compile(r"^\s*On\w+\s*=\s*(\w+)", re.IGNORECASE)
-    end_re   = re.compile(r"^\s*end\s*$", re.IGNORECASE)
+    end_re = re.compile(r"^\s*end\s*$", re.IGNORECASE)
     stack: list[str] = [file_nid]
 
     for lineno, line in enumerate(text.splitlines(), 1):

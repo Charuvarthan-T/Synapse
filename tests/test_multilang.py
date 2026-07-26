@@ -1,4 +1,5 @@
 """Tests for multi-language AST extraction: JS/TS, Go, Rust, SQL."""
+
 from __future__ import annotations
 import shutil
 from pathlib import Path
@@ -8,17 +9,18 @@ from graphify.extract import extract_js, extract_go, extract_rust, extract, extr
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
-# ── helpers ──────────────────────────────────────────────────────────────────
-
 def _labels(result):
     return [n["label"] for n in result["nodes"]]
+
 
 def _call_pairs(result):
     node_by_id = {n["id"]: n["label"] for n in result["nodes"]}
     return {
         (node_by_id.get(e["source"], e["source"]), node_by_id.get(e["target"], e["target"]))
-        for e in result["edges"] if e["relation"] == "calls"
+        for e in result["edges"]
+        if e["relation"] == "calls"
     }
+
 
 def _confidences(result):
     return {e["confidence"] for e in result["edges"]}
@@ -44,12 +46,11 @@ def _edge_labels(result, relation, context=None):
     return pairs
 
 
-# ── TypeScript ────────────────────────────────────────────────────────────────
-
 def test_ts_finds_class():
     r = extract_js(FIXTURES / "sample.ts")
     assert "error" not in r
     assert "HttpClient" in _labels(r)
+
 
 def test_ts_finds_methods():
     r = extract_js(FIXTURES / "sample.ts")
@@ -57,15 +58,17 @@ def test_ts_finds_methods():
     assert any("get" in l for l in labels)
     assert any("post" in l for l in labels)
 
+
 def test_ts_finds_function():
     r = extract_js(FIXTURES / "sample.ts")
     assert any("buildHeaders" in l for l in _labels(r))
 
+
 def test_ts_emits_calls():
     r = extract_js(FIXTURES / "sample.ts")
     calls = _call_pairs(r)
-    # .post() calls .get()
     assert any("post" in src and "get" in tgt for src, tgt in calls)
+
 
 def test_ts_calls_are_extracted():
     r = extract_js(FIXTURES / "sample.ts")
@@ -87,6 +90,7 @@ def test_ts_call_edges_have_call_context():
     assert call_edges
     assert all(e.get("context") == "call" for e in call_edges)
 
+
 def test_ts_no_dangling_edges():
     r = extract_js(FIXTURES / "sample.ts")
     node_ids = {n["id"] for n in r["nodes"]}
@@ -95,12 +99,11 @@ def test_ts_no_dangling_edges():
             assert e["source"] in node_ids
 
 
-# ── Go ────────────────────────────────────────────────────────────────────────
-
 def test_go_finds_struct():
     r = extract_go(FIXTURES / "sample.go")
     assert "error" not in r
     assert "Server" in _labels(r)
+
 
 def test_go_finds_methods():
     r = extract_go(FIXTURES / "sample.go")
@@ -108,14 +111,16 @@ def test_go_finds_methods():
     assert any("Start" in l for l in labels)
     assert any("Stop" in l for l in labels)
 
+
 def test_go_finds_constructor():
     r = extract_go(FIXTURES / "sample.go")
     assert any("NewServer" in l for l in _labels(r))
 
+
 def test_go_emits_calls():
     r = extract_go(FIXTURES / "sample.go")
-    # main() calls NewServer and Start
     assert len(_call_pairs(r)) > 0
+
 
 def test_go_has_extracted_calls():
     r = extract_go(FIXTURES / "sample.go")
@@ -134,6 +139,7 @@ def test_go_call_edges_have_call_context():
     call_edges = _edges_with_relation(r, "calls")
     assert call_edges
     assert all(e.get("context") == "call" for e in call_edges)
+
 
 def test_go_no_dangling_edges():
     r = extract_go(FIXTURES / "sample.go")
@@ -181,13 +187,15 @@ def test_go_method_declaration_emits_refs_only_when_name_present():
     def _find_branch(root: ast.AST, type_literal: str) -> ast.If | None:
         """Return the `if t == '<type_literal>':` branch inside the walk function."""
         for child in ast.walk(root):
-            if (isinstance(child, ast.If)
-                    and isinstance(child.test, ast.Compare)
-                    and isinstance(child.test.left, ast.Name)
-                    and child.test.left.id == "t"
-                    and len(child.test.comparators) == 1
-                    and isinstance(child.test.comparators[0], ast.Constant)
-                    and child.test.comparators[0].value == type_literal):
+            if (
+                isinstance(child, ast.If)
+                and isinstance(child.test, ast.Compare)
+                and isinstance(child.test.left, ast.Name)
+                and child.test.left.id == "t"
+                and len(child.test.comparators) == 1
+                and isinstance(child.test.comparators[0], ast.Constant)
+                and child.test.comparators[0].value == type_literal
+            ):
                 return child
         return None
 
@@ -241,13 +249,13 @@ def test_go_method_declaration_emits_refs_only_when_name_present():
         def _is_guarded(use: ast.AST) -> bool:
             for stmt, siblings in _stmt_chain(use):
                 parent = parents.get(id(stmt))
-                # Case 1: lexically nested under `if name_node:` body
-                if (isinstance(parent, ast.If)
-                        and isinstance(parent.test, ast.Name)
-                        and parent.test.id == "name_node"
-                        and stmt in parent.body):
+                if (
+                    isinstance(parent, ast.If)
+                    and isinstance(parent.test, ast.Name)
+                    and parent.test.id == "name_node"
+                    and stmt in parent.body
+                ):
                     return True
-                # Case 2: a preceding sibling is `if not name_node: return`
                 idx = siblings.index(stmt)
                 if any(_is_early_return_on_falsy_name_node(s) for s in siblings[:idx]):
                     return True
@@ -266,9 +274,6 @@ def test_go_method_declaration_emits_refs_only_when_name_present():
         "func_nid use is not guarded by a name_node check in function_declaration branch"
     )
 
-    # Negative control: confirm the checker would actually reject the buggy
-    # layout the reviewer described. A `method_nid` reference dangling without
-    # any name_node guard must be caught.
     bad_source = (
         "def walk(node):\n"
         "    if t == 'method_declaration':\n"
@@ -286,12 +291,11 @@ def test_go_method_declaration_emits_refs_only_when_name_present():
     )
 
 
-# ── Rust ──────────────────────────────────────────────────────────────────────
-
 def test_rust_finds_struct():
     r = extract_rust(FIXTURES / "sample.rs")
     assert "error" not in r
     assert "Graph" in _labels(r)
+
 
 def test_rust_finds_impl_methods():
     r = extract_rust(FIXTURES / "sample.rs")
@@ -299,14 +303,17 @@ def test_rust_finds_impl_methods():
     assert any("add_node" in l for l in labels)
     assert any("add_edge" in l for l in labels)
 
+
 def test_rust_finds_function():
     r = extract_rust(FIXTURES / "sample.rs")
     assert any("build_graph" in l for l in _labels(r))
+
 
 def test_rust_emits_calls():
     r = extract_rust(FIXTURES / "sample.rs")
     calls = _call_pairs(r)
     assert any("build_graph" in src for src, _ in calls)
+
 
 def test_rust_calls_are_extracted():
     r = extract_rust(FIXTURES / "sample.rs")
@@ -327,6 +334,7 @@ def test_rust_call_edges_have_call_context():
     call_edges = _edges_with_relation(r, "calls")
     assert call_edges
     assert all(e.get("context") == "call" for e in call_edges)
+
 
 def test_rust_no_dangling_edges():
     r = extract_rust(FIXTURES / "sample.rs")
@@ -389,24 +397,19 @@ def test_rust_no_cross_crate_spurious_edges():
     """Scoped calls (Type::method) and blocklisted names must not produce
     INFERRED cross-crate calls edges (#908)."""
     from graphify.extract import extract
+
     crate_a = FIXTURES / "crate_a" / "src" / "lib.rs"
     crate_b = FIXTURES / "crate_b" / "src" / "lib.rs"
     r = extract([crate_a, crate_b])
     node_ids_a = {n["id"] for n in r["nodes"] if "crate_a" in (n.get("source_file") or "")}
     node_ids_b = {n["id"] for n in r["nodes"] if "crate_b" in (n.get("source_file") or "")}
-    # No calls edge should cross from crate_b into crate_a
     cross_crate_calls = [
-        e for e in r["edges"]
-        if e["relation"] == "calls"
-        and e["source"] in node_ids_b
-        and e["target"] in node_ids_a
+        e
+        for e in r["edges"]
+        if e["relation"] == "calls" and e["source"] in node_ids_b and e["target"] in node_ids_a
     ]
-    assert cross_crate_calls == [], (
-        f"Spurious cross-crate edges: {cross_crate_calls}"
-    )
+    assert cross_crate_calls == [], f"Spurious cross-crate edges: {cross_crate_calls}"
 
-
-# ── extract() dispatch ────────────────────────────────────────────────────────
 
 def test_extract_dispatches_all_languages():
     files = [
@@ -417,14 +420,11 @@ def test_extract_dispatches_all_languages():
     ]
     r = extract(files)
     source_files = {n["source_file"] for n in r["nodes"] if n["source_file"]}
-    # All four files should contribute nodes
     assert any("sample.py" in f for f in source_files)
     assert any("sample.ts" in f for f in source_files)
     assert any("sample.go" in f for f in source_files)
     assert any("sample.rs" in f for f in source_files)
 
-
-# ── Cache ─────────────────────────────────────────────────────────────────────
 
 def test_cache_hit_returns_same_result(tmp_path):
     src = FIXTURES / "sample.py"
@@ -436,6 +436,7 @@ def test_cache_hit_returns_same_result(tmp_path):
     assert len(r1["nodes"]) == len(r2["nodes"])
     assert len(r1["edges"]) == len(r2["edges"])
 
+
 def test_cache_miss_after_file_change(tmp_path):
     dst = tmp_path / "a.py"
     dst.write_text("def foo(): pass\n")
@@ -443,12 +444,9 @@ def test_cache_miss_after_file_change(tmp_path):
 
     dst.write_text("def foo(): pass\ndef bar(): pass\n")
     r2 = extract([dst])
-    # bar() should appear in the second result
     labels2 = [n["label"] for n in r2["nodes"]]
     assert any("bar" in l for l in labels2)
 
-
-# ── SQL ───────────────────────────────────────────────────────────────────────
 
 def _extract_sql_or_skip(fixture: str = "sample.sql"):
     pytest.importorskip("tree_sitter_sql")
@@ -461,31 +459,37 @@ def test_sql_finds_tables():
     assert any("users" in l for l in labels)
     assert any("organizations" in l for l in labels)
 
+
 def test_sql_finds_view():
     r = _extract_sql_or_skip()
     labels = [n["label"] for n in r["nodes"]]
     assert any("active_users" in l for l in labels)
+
 
 def test_sql_finds_function():
     r = _extract_sql_or_skip()
     labels = [n["label"] for n in r["nodes"]]
     assert any("get_user" in l for l in labels)
 
+
 def test_sql_emits_foreign_key_edge():
     r = _extract_sql_or_skip()
     relations = {e["relation"] for e in r["edges"]}
     assert "references" in relations
+
 
 def test_sql_emits_reads_from_edge():
     r = _extract_sql_or_skip()
     relations = {e["relation"] for e in r["edges"]}
     assert "reads_from" in relations
 
+
 def test_sql_no_dangling_edges():
     r = _extract_sql_or_skip()
     node_ids = {n["id"] for n in r["nodes"]}
     for e in r["edges"]:
         assert e["source"] in node_ids, f"dangling source: {e['source']}"
+
 
 def test_sql_alter_table_fk_edge():
     """ALTER TABLE ... FOREIGN KEY ... REFERENCES produces a references edge."""
@@ -497,12 +501,14 @@ def test_sql_alter_table_fk_edge():
         assert e["source"] in node_ids, f"dangling source: {e['source']}"
         assert e["target"] in node_ids, f"dangling target: {e['target']}"
 
+
 def test_sql_schema_qualified_names():
     """Schema-qualified table names (Schema.Table) are preserved."""
     r = _extract_sql_or_skip("sample_schema_qualified.sql")
     labels = [n["label"] for n in r["nodes"]]
     assert any("Sales.Customer" in l for l in labels)
     assert any("Sales.SalesOrder" in l for l in labels)
+
 
 def test_sql_schema_qualified_alter_fk():
     """ALTER TABLE with schema-qualified names produces correct edges."""
@@ -514,34 +520,32 @@ def test_sql_schema_qualified_alter_fk():
         assert e["source"] in node_ids, f"dangling source: {e['source']}"
         assert e["target"] in node_ids, f"dangling target: {e['target']}"
 
+
 def test_sql_plpgsql_functions_survive_parse_errors():
     """PL/pgSQL bodies make tree-sitter-sql emit ERROR nodes; the functions
     must still be extracted (#1910), without cascading into later statements."""
     r = _extract_sql_or_skip("sample_plpgsql.sql")
     labels = [n["label"] for n in r["nodes"]]
-    # Both PL/pgSQL functions extracted, schema-qualified name kept whole
     assert "exposed.important_function()" in labels
     assert "tagged_quote_fn()" in labels
-    # Tables before and after the broken functions still extract
     assert any("accounts" in l for l in labels)
     assert any("audit_log" in l for l in labels)
-    # No spurious or empty nodes from the error recovery
     for l in labels:
         assert l, "empty node label"
         assert l != "ERROR"
-    # Every function got a contains edge from the file node
     contains_targets = {e["target"] for e in r["edges"] if e["relation"] == "contains"}
     fn_ids = {n["id"] for n in r["nodes"] if n["label"].endswith("()")}
     assert fn_ids <= contains_targets
+
 
 def test_sql_plpgsql_clean_function_not_double_emitted():
     """A cleanly-parsed LANGUAGE sql function in the same file is emitted once."""
     r = _extract_sql_or_skip("sample_plpgsql.sql")
     labels = [n["label"] for n in r["nodes"]]
     assert labels.count("plain_sql_fn()") == 1
-    # And nothing else is duplicated either
     ids = [n["id"] for n in r["nodes"]]
     assert len(ids) == len(set(ids))
+
 
 def test_sql_quoted_plpgsql_routines_are_recovered():
     """#2180: quoted identifiers must not defeat the ERROR-node name recovery.
@@ -567,22 +571,19 @@ def test_sql_quoted_plpgsql_routines_are_recovered():
     ):
         assert f'"public"."{name}"()' in labels, f"{name} dropped from a quoted-DDL file (#2180)"
 
+
 def test_sql_quoted_plpgsql_file_stays_clean():
     """The #2180 recovery must not add junk, duplicates, or drop the tables."""
     r = _extract_sql_or_skip("sample_plpgsql_quoted.sql")
     labels = [n["label"] for n in r["nodes"]]
-    # Tables before and after the unparseable routines still extract.
     assert any("accounts" in l for l in labels)
     assert any("audit_log" in l for l in labels)
-    # No empty or ERROR labels leaked out of the recovery.
     for l in labels:
         assert l, "empty node label"
         assert l != "ERROR"
-    # Nothing emitted twice (a routine must not come from both paths).
     ids = [n["id"] for n in r["nodes"]]
     assert len(ids) == len(set(ids)), "duplicate node ids"
     assert len(labels) == len(set(labels)), f"duplicate labels: {labels}"
-    # Every recovered routine is reachable from the file node.
     contains_targets = {e["target"] for e in r["edges"] if e["relation"] == "contains"}
     fn_ids = {n["id"] for n in r["nodes"] if n["label"].endswith("()")}
     assert fn_ids <= contains_targets

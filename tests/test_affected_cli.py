@@ -12,13 +12,21 @@ def _write_graph(tmp_path):
     graph = nx.DiGraph()
     graph.add_node("target", label="Foo", source_file="pkg/foo.py", source_location="L1")
     graph.add_node("caller", label="X()", source_file="app.py", source_location="L4")
-    graph.add_node("barrel", label="__init__.py", source_file="pkg/__init__.py", source_location=None)
+    graph.add_node(
+        "barrel", label="__init__.py", source_file="pkg/__init__.py", source_location=None
+    )
     graph.add_node("consumer", label="app.py", source_file="app.py", source_location=None)
     graph.add_edge("caller", "target", relation="calls", context="call", confidence="EXTRACTED")
-    graph.add_edge("barrel", "target", relation="re_exports", context="export", confidence="EXTRACTED")
-    graph.add_edge("consumer", "target", relation="imports", context="import", confidence="EXTRACTED")
+    graph.add_edge(
+        "barrel", "target", relation="re_exports", context="export", confidence="EXTRACTED"
+    )
+    graph.add_edge(
+        "consumer", "target", relation="imports", context="import", confidence="EXTRACTED"
+    )
     graph_path = tmp_path / "graph.json"
-    graph_path.write_text(json.dumps(json_graph.node_link_data(graph, edges="links")), encoding="utf-8")
+    graph_path.write_text(
+        json.dumps(json_graph.node_link_data(graph, edges="links")), encoding="utf-8"
+    )
     return graph_path
 
 
@@ -72,7 +80,6 @@ def test_affected_cli_forces_directed_on_undirected_graph(monkeypatch, tmp_path,
     graph.add_edge("A", "B", relation="calls", context="call", confidence="EXTRACTED")
 
     data = json_graph.node_link_data(graph, edges="links")
-    # Persist as undirected on disk to reproduce the bug condition.
     data["directed"] = False
     graph_path = tmp_path / "graph.json"
     graph_path.write_text(json.dumps(data), encoding="utf-8")
@@ -87,10 +94,8 @@ def test_affected_cli_forces_directed_on_undirected_graph(monkeypatch, tmp_path,
     mainmod.main()
 
     out = capsys.readouterr().out
-    # A (the caller) is affected by a change to B (the callee).
     assert "caller_fn" in out
     assert "calls" in out
-    # B is the query node, not an affected node, and the result is not empty.
     assert "No affected nodes found." not in out
 
 
@@ -103,7 +108,6 @@ def test_affected_cli_loads_edges_keyed_graph(monkeypatch, tmp_path, capsys):
     graph.add_node("caller", label="X()", source_file="app.py", source_location="L4")
     graph.add_edge("caller", "target", relation="calls", context="call", confidence="EXTRACTED")
 
-    # Emulate graphify extract output: top-level "edges" key instead of "links".
     data = json_graph.node_link_data(graph, edges="links")
     data["edges"] = data.pop("links")
     graph_path = tmp_path / "graph.json"
@@ -252,7 +256,9 @@ def test_affected_cli_source_file_path_uses_file_level_node(monkeypatch, tmp_pat
         confidence="EXTRACTED",
     )
     graph_path = tmp_path / "graph.json"
-    graph_path.write_text(json.dumps(json_graph.node_link_data(graph, edges="links")), encoding="utf-8")
+    graph_path.write_text(
+        json.dumps(json_graph.node_link_data(graph, edges="links")), encoding="utf-8"
+    )
 
     monkeypatch.setattr(mainmod, "_check_skill_version", lambda _: None)
     monkeypatch.setattr(
@@ -270,19 +276,27 @@ def test_affected_cli_source_file_path_uses_file_level_node(monkeypatch, tmp_pat
     assert "No unique node matched" not in out
 
 
-# ── BUG1: caller lists must show the call-SITE line, not the caller def line ──
-
 def _write_callsite_graph(tmp_path):
     """A caller whose call site (L158) differs from its own def line (L90)."""
     g = nx.DiGraph()
-    g.add_node("loader", label="_load_apollo_app_state()",
-               source_file="apollo_pipeline_status.py", source_location="L90")
-    g.add_node("transition", label="transition_state()",
-               source_file="state.py", source_location="L56")
-    # The call happens at line 158 inside the caller's file.
-    g.add_edge("loader", "transition", relation="calls", context="call",
-               confidence="EXTRACTED", source_file="apollo_pipeline_status.py",
-               source_location="L158")
+    g.add_node(
+        "loader",
+        label="_load_apollo_app_state()",
+        source_file="apollo_pipeline_status.py",
+        source_location="L90",
+    )
+    g.add_node(
+        "transition", label="transition_state()", source_file="state.py", source_location="L56"
+    )
+    g.add_edge(
+        "loader",
+        "transition",
+        relation="calls",
+        context="call",
+        confidence="EXTRACTED",
+        source_file="apollo_pipeline_status.py",
+        source_location="L158",
+    )
     gp = tmp_path / "graph.json"
     gp.write_text(json.dumps(json_graph.node_link_data(g, edges="links")), encoding="utf-8")
     return gp
@@ -291,8 +305,9 @@ def _write_callsite_graph(tmp_path):
 def test_affected_reports_call_site_line_not_def_line(monkeypatch, tmp_path, capsys):
     gp = _write_callsite_graph(tmp_path)
     monkeypatch.setattr(mainmod, "_check_skill_version", lambda _: None)
-    monkeypatch.setattr(mainmod.sys, "argv",
-                        ["graphify", "affected", "transition_state", "--graph", str(gp)])
+    monkeypatch.setattr(
+        mainmod.sys, "argv", ["graphify", "affected", "transition_state", "--graph", str(gp)]
+    )
     mainmod.main()
     out = capsys.readouterr().out
     assert "apollo_pipeline_status.py:L158" in out, "must report the call SITE line (BUG1)"
@@ -304,7 +319,7 @@ def test_affected_falls_back_to_def_line_when_edge_has_no_location(monkeypatch, 
     g = nx.DiGraph()
     g.add_node("loader", label="load()", source_file="a.py", source_location="L90")
     g.add_node("t", label="target()", source_file="b.py", source_location="L5")
-    g.add_edge("loader", "t", relation="calls", confidence="INFERRED")  # no source_location
+    g.add_edge("loader", "t", relation="calls", confidence="INFERRED")
     gp = tmp_path / "graph.json"
     gp.write_text(json.dumps(json_graph.node_link_data(g, edges="links")), encoding="utf-8")
     monkeypatch.setattr(mainmod, "_check_skill_version", lambda _: None)

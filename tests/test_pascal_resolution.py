@@ -20,6 +20,7 @@ files, other tests' leftover fixtures) -- the walk-up then escalates past the
 test's own directory and picks up unrelated files. tests/fixtures/ has no
 such siblings above it, so it is a stable project root for these tests.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -66,10 +67,6 @@ def test_single_file_extraction_reports_unresolved_inherited_call():
 
 
 def test_calls_resolve_across_files_via_inherits_chain(tmp_path):
-    # cache_root only controls where graphify-out/cache/ is written -- it has
-    # no bearing on the Pascal cross-file class lookup, which is keyed off
-    # each source path's own project root (see module docstring). Using
-    # tmp_path here just keeps cache artifacts out of the repo.
     graph = extract([BASE, DERIVED], cache_root=tmp_path, parallel=False)
     edge = _call_edge(graph, "Run()", "Prepare()")
     assert edge is not None
@@ -91,5 +88,6 @@ def test_cross_file_calls_do_not_cross_unrelated_classes(tmp_path):
 
 def test_pascal_resolver_registered():
     from graphify.resolver_registry import registered_resolvers
+
     names = {r.name for r in registered_resolvers()}
     assert "pascal_inherited_calls" in names

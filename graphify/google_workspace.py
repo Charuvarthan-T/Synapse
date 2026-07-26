@@ -5,6 +5,7 @@ shortcut files (.gdoc, .gsheet, .gslides). Those files are pointers, not the
 document content. This module exports them to Markdown sidecars via the
 googleworkspace CLI (`gws`) so Graphify can extract their actual contents.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -91,7 +92,9 @@ def read_google_shortcut(path: Path) -> dict[str, str | None]:
     }
 
 
-def _run_gws_export(file_id: str, mime_type: str, output: Path, resource_key: str | None = None) -> None:
+def _run_gws_export(
+    file_id: str, mime_type: str, output: Path, resource_key: str | None = None
+) -> None:
     exe = shutil.which("gws")
     if not exe:
         raise RuntimeError(
@@ -100,9 +103,6 @@ def _run_gws_export(file_id: str, mime_type: str, output: Path, resource_key: st
         )
 
     params: dict[str, str] = {"fileId": file_id, "mimeType": mime_type}
-    # Drive resource keys are sent via X-Goog-Drive-Resource-Keys. The current
-    # gws export command has no custom-header flag, so do not pass resourceKey
-    # as an unsupported query parameter.
     _ = resource_key
     output = output.resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -122,13 +122,8 @@ def _run_gws_export(file_id: str, mime_type: str, output: Path, resource_key: st
 
 
 def _sidecar_path(path: Path, out_dir: Path, root: "Path | None" = None) -> Path:
-    # Hash the scan-root-relative, NFC-normalized path — not the absolute path.
-    # The absolute form salts the sidecar name with the checkout location, so the
-    # same shortcut in two clones/worktrees emits differently-named byte-identical
-    # sidecars, each ingested as a distinct source doc when graphify-out/ is
-    # committed (#2059; mirrors convert_office_file). NFC guards macOS NFD drift
-    # (#1226). The relative path still disambiguates same-stem files.
     import unicodedata
+
     if root is None:
         root = out_dir.parent.parent
     try:
@@ -139,7 +134,9 @@ def _sidecar_path(path: Path, out_dir: Path, root: "Path | None" = None) -> Path
     return out_dir / f"{path.stem}_{name_hash}.md"
 
 
-def _with_frontmatter(path: Path, shortcut: dict[str, str | None], body: str, exported_mime_type: str) -> str:
+def _with_frontmatter(
+    path: Path, shortcut: dict[str, str | None], body: str, exported_mime_type: str
+) -> str:
     source_url = shortcut.get("url") or ""
     account = shortcut.get("account") or ""
     account_line = ""
@@ -184,20 +181,26 @@ def convert_google_workspace_file(
         with tempfile.NamedTemporaryFile("w+b", suffix=".md", delete=False, dir=out_dir) as tmp:
             tmp_path = Path(tmp.name)
         try:
-            _run_gws_export(shortcut["file_id"] or "", "text/markdown", tmp_path, shortcut.get("resource_key"))
+            _run_gws_export(
+                shortcut["file_id"] or "", "text/markdown", tmp_path, shortcut.get("resource_key")
+            )
             body = tmp_path.read_text(encoding="utf-8", errors="replace")
         finally:
             tmp_path.unlink(missing_ok=True)
         if not body.strip():
             return None
-        out_path.write_text(_with_frontmatter(path, shortcut, body, "text/markdown"), encoding="utf-8")
+        out_path.write_text(
+            _with_frontmatter(path, shortcut, body, "text/markdown"), encoding="utf-8"
+        )
         return out_path
 
     if ext == ".gslides":
         with tempfile.NamedTemporaryFile("w+b", suffix=".txt", delete=False, dir=out_dir) as tmp:
             tmp_path = Path(tmp.name)
         try:
-            _run_gws_export(shortcut["file_id"] or "", "text/plain", tmp_path, shortcut.get("resource_key"))
+            _run_gws_export(
+                shortcut["file_id"] or "", "text/plain", tmp_path, shortcut.get("resource_key")
+            )
             body = tmp_path.read_text(encoding="utf-8", errors="replace")
         finally:
             tmp_path.unlink(missing_ok=True)
@@ -208,7 +211,9 @@ def convert_google_workspace_file(
 
     if ext == ".gsheet":
         if xlsx_to_markdown is None:
-            raise RuntimeError("Google Sheets export requires the office extra: pip install graphifyy[office,google]")
+            raise RuntimeError(
+                "Google Sheets export requires the office extra: pip install graphifyy[office,google]"
+            )
         with tempfile.NamedTemporaryFile("w+b", suffix=".xlsx", delete=False, dir=out_dir) as tmp:
             tmp_path = Path(tmp.name)
         try:

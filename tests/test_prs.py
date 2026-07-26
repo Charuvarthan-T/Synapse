@@ -1,4 +1,5 @@
 """Tests for graphify/prs.py."""
+
 from __future__ import annotations
 
 import json
@@ -23,8 +24,6 @@ from graphify.prs import (
     _detect_default_branch,
 )
 
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def make_pr(
     number: int = 1,
@@ -55,8 +54,6 @@ def make_pr(
     )
 
 
-# ── _classify ─────────────────────────────────────────────────────────────────
-
 class TestClassify:
     def test_ready(self):
         pr = make_pr(ci_status="SUCCESS", review_decision="", is_draft=False)
@@ -80,7 +77,6 @@ class TestClassify:
         assert _classify(pr, base="v8") == "STALE"
 
     def test_draft_not_marked_stale(self):
-        # Drafts show as DRAFT even when old — stale-detection only applies to non-drafts
         old = datetime.now(timezone.utc) - timedelta(days=20)
         pr = make_pr(ci_status="SUCCESS", updated_at=old, is_draft=True)
         assert _classify(pr, base="v8") == "DRAFT"
@@ -90,12 +86,9 @@ class TestClassify:
         assert _classify(pr, base="v8") == "PENDING"
 
     def test_wrong_base(self):
-        # WRONG-BASE takes precedence over everything else
         pr = make_pr(base_branch="master", ci_status="FAILURE")
         assert _classify(pr, base="v8") == "WRONG-BASE"
 
-
-# ── _parse_ci ─────────────────────────────────────────────────────────────────
 
 class TestParseCi:
     def test_empty_rollup_returns_none(self):
@@ -129,29 +122,21 @@ class TestParseCi:
         assert _parse_ci(rollup) == "FAILURE"
 
 
-# ── _path_match ───────────────────────────────────────────────────────────────
-
 class TestPathMatch:
     def test_exact_match(self):
         assert _path_match("src/auth/api.py", "src/auth/api.py") is True
 
     def test_graph_path_longer_with_boundary(self):
-        # graph_src is longer, ends with "/" + pr_file
         assert _path_match("src/auth/api.py", "api.py") is True
 
     def test_no_false_positive_on_partial_filename(self):
-        # "config.py" should NOT match "g.py" — must be at path boundary
         assert _path_match("config.py", "g.py") is False
         assert _path_match("g.py", "config.py") is False
 
     def test_both_directions_work(self):
-        # pr_file longer than graph_src
         assert _path_match("api.py", "src/auth/api.py") is True
-        # graph_src longer than pr_file
         assert _path_match("src/auth/api.py", "api.py") is True
 
-
-# ── compute_pr_impact ─────────────────────────────────────────────────────────
 
 class TestComputePrImpact:
     def _make_graph(self) -> nx.Graph:
@@ -170,9 +155,7 @@ class TestComputePrImpact:
 
     def test_matching_both_files(self):
         G = self._make_graph()
-        comms, nodes = compute_pr_impact(
-            ["src/auth/api.py", "src/utils/helpers.py"], G
-        )
+        comms, nodes = compute_pr_impact(["src/auth/api.py", "src/utils/helpers.py"], G)
         assert comms == [0, 1]
         assert nodes == 3
 
@@ -189,27 +172,21 @@ class TestComputePrImpact:
         assert nodes == 0
 
     def test_no_double_counting_when_basename_matches_multiple_paths(self):
-        # "api.py" should NOT match both src/auth/api.py AND src/admin/api.py
         G = nx.Graph()
         G.add_node("a1", source_file="src/auth/api.py", community=0)
         G.add_node("a2", source_file="src/admin/api.py", community=1)
         comms, nodes = compute_pr_impact(["src/auth/api.py"], G)
-        # Only src/auth/api.py matches by exact path — not src/admin/api.py
         assert nodes == 1
         assert comms == [0]
 
     def test_no_double_counting_same_graph_file_matched_by_two_pr_files(self):
-        # If PR diff lists both "api.py" and "src/auth/api.py", the graph node
-        # for src/auth/api.py should only be counted once
         G = nx.Graph()
         G.add_node("n1", source_file="src/auth/api.py", community=0)
         G.add_node("n2", source_file="src/auth/api.py", community=0)
         comms, nodes = compute_pr_impact(["src/auth/api.py", "api.py"], G)
-        assert nodes == 2  # 2 nodes in that file, counted once
+        assert nodes == 2
         assert comms == [0]
 
-
-# ── fetch_worktrees ───────────────────────────────────────────────────────────
 
 class TestFetchWorktrees:
     def test_normal_case_maps_branch_to_path(self):
@@ -251,7 +228,6 @@ class TestFetchWorktrees:
         mock_result.stdout = porcelain
         with patch("graphify.prs.subprocess.run", return_value=mock_result):
             mapping = fetch_worktrees()
-        # Only feature-x should be mapped, and it should point to its own worktree
         assert mapping == {"feature-x": "/home/user/proj-feature"}
         assert "/home/user/detached" not in mapping.values()
 
@@ -280,8 +256,6 @@ class TestFetchWorktrees:
         assert mapping == {}
 
 
-# ── format_prs_text ───────────────────────────────────────────────────────────
-
 class TestFormatPrsText:
     def test_contains_pr_metadata_and_count_header(self):
         prs = [
@@ -308,21 +282,17 @@ class TestFormatPrsText:
         ]
         out = format_prs_text(prs, base="v8")
 
-        # Count header: 2 actionable, 1 on wrong base
         assert "Open PRs targeting v8: 2" in out
         assert "(1 on wrong base, not shown)" in out
 
-        # PR numbers and titles included
         assert "#101" in out
         assert "Add awesome feature" in out
         assert "#102" in out
         assert "Fix flaky test" in out
 
-        # Statuses included
         assert "[READY]" in out
         assert "[CI-FAIL]" in out
 
-        # Wrong-base PR should be filtered out of body
         assert "#103" not in out
 
     def test_empty_pr_list(self):
@@ -330,8 +300,6 @@ class TestFormatPrsText:
         assert "Open PRs targeting v8: 0" in out
         assert "(0 on wrong base, not shown)" in out
 
-
-# ── _detect_default_branch ────────────────────────────────────────────────────
 
 class TestDetectDefaultBranch:
     def test_gh_returns_main(self):
@@ -345,8 +313,9 @@ class TestDetectDefaultBranch:
         mock_result = MagicMock()
         mock_result.returncode = 0
         mock_result.stdout = "refs/remotes/origin/develop\n"
-        with patch("graphify.prs._gh", return_value=None), patch(
-            "graphify.prs.subprocess.run", return_value=mock_result
+        with (
+            patch("graphify.prs._gh", return_value=None),
+            patch("graphify.prs.subprocess.run", return_value=mock_result),
         ):
             assert _detect_default_branch() == "develop"
 
@@ -354,8 +323,9 @@ class TestDetectDefaultBranch:
         mock_result = MagicMock()
         mock_result.returncode = 1
         mock_result.stdout = ""
-        with patch("graphify.prs._gh", return_value=None), patch(
-            "graphify.prs.subprocess.run", return_value=mock_result
+        with (
+            patch("graphify.prs._gh", return_value=None),
+            patch("graphify.prs.subprocess.run", return_value=mock_result),
         ):
             assert _detect_default_branch() == "main"
 
@@ -364,27 +334,29 @@ class TestDetectDefaultBranch:
         mock_result = MagicMock()
         mock_result.returncode = 0
         mock_result.stdout = "refs/remotes/origin/trunk\n"
-        with patch("graphify.prs._gh", return_value={}), patch(
-            "graphify.prs.subprocess.run", return_value=mock_result
+        with (
+            patch("graphify.prs._gh", return_value={}),
+            patch("graphify.prs.subprocess.run", return_value=mock_result),
         ):
             assert _detect_default_branch() == "trunk"
 
     def test_git_timeout_returns_main(self):
-        with patch("graphify.prs._gh", return_value=None), patch(
-            "graphify.prs.subprocess.run",
-            side_effect=subprocess.TimeoutExpired("git", 5),
+        with (
+            patch("graphify.prs._gh", return_value=None),
+            patch(
+                "graphify.prs.subprocess.run",
+                side_effect=subprocess.TimeoutExpired("git", 5),
+            ),
         ):
             assert _detect_default_branch() == "main"
 
-
-# ── build_community_labels ─────────────────────────────────────────────────────
 
 class TestBuildCommunityLabels:
     def test_basic_grouping(self):
         data = {
             "nodes": [
                 {"id": "a", "label": "Alpha", "community": 0},
-                {"id": "b", "label": "Beta",  "community": 0},
+                {"id": "b", "label": "Beta", "community": 0},
                 {"id": "c", "label": "Gamma", "community": 1},
             ]
         }
@@ -405,8 +377,6 @@ class TestBuildCommunityLabels:
         assert build_community_labels({}) == {}
         assert build_community_labels({"nodes": []}) == {}
 
-
-# ── Windows cp1252 subprocess-decode hardening (decode-side sibling of #1505) ──
 
 class TestSubprocessOutputEncoding:
     """prs.py reads gh/git/claude output via subprocess.run(text=True). Without an
@@ -455,10 +425,11 @@ class TestSubprocessOutputEncoding:
         assert kwargs.get("encoding") == "utf-8"
 
     def test_detect_default_branch_decodes_output_as_utf8(self):
-        # Force the git symbolic-ref fallback: gh returns None -> git subprocess runs.
         completed = MagicMock(returncode=0, stdout="refs/remotes/origin/v8\n", stderr="")
-        with patch("graphify.prs._gh", return_value=None), \
-             patch("subprocess.run", return_value=completed) as mock_run:
+        with (
+            patch("graphify.prs._gh", return_value=None),
+            patch("subprocess.run", return_value=completed) as mock_run,
+        ):
             _detect_default_branch()
         _args, kwargs = mock_run.call_args
         assert kwargs.get("encoding") == "utf-8"

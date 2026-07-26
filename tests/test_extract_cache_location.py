@@ -12,6 +12,7 @@ XAML scan boundary, so keys stay relative and portable even when the corpus
 lives outside CWD. (An earlier one-line fix that pointed the anchor itself at
 CWD would have made keys absolute and machine-specific for out-of-CWD corpora.)
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -48,9 +49,6 @@ def test_default_cache_lands_in_cwd_not_source_tree(tmp_path, monkeypatch):
     result = ex.extract([corpus / "a.py", corpus / "b.py"], parallel=False)
 
     assert result["nodes"], "extraction should still produce nodes"
-    # Nothing at all in the source tree — not the AST cache, and not the
-    # stat-index.json the hash fastpath writes (which file_hash used to anchor on
-    # the key-root, leaving a stray graphify-out/ in a writable corpus, #1774).
     assert not (corpus / "graphify-out").exists(), (
         "cache/stat-index written into the analyzed source tree (#1774)"
     )
@@ -68,8 +66,6 @@ def test_default_cache_does_not_leave_stat_index_in_source_tree(tmp_path, monkey
     monkeypatch.chdir(work)
 
     ex.extract([corpus / "a.py", corpus / "b.py"], parallel=False)
-    # The stat index is buffered in memory and flushed at interpreter exit; force
-    # the flush now so we can assert WHERE it lands.
     cache._flush_stat_index()
 
     assert not (corpus / "graphify-out").exists(), "stat-index leaked into the corpus"
@@ -103,8 +99,6 @@ def test_default_cache_round_trips_via_extract(tmp_path, monkeypatch):
     monkeypatch.chdir(work)
 
     ex.extract([corpus / "a.py"], parallel=False)
-    # Look up with the same anchor extract() uses (the corpus dir) and the CWD
-    # cache location — this must hit.
     hit = load_cached(corpus / "a.py", corpus.resolve(), cache_root=Path(".").resolve())
     assert hit is not None, "second run should hit the CWD cache written by the first"
 
@@ -134,8 +128,6 @@ def test_cache_keys_stay_relative_for_out_of_cwd_corpus(tmp_path, monkeypatch):
         h.update(anchor_rel.encode())
         return h.hexdigest()
 
-    # Portable: keyed on the relative path within the corpus...
     assert key == _key_with("a.py")
-    # ...not on the absolute path (which the CWD-anchor one-liner would produce).
     abs_rel = str((corpus / "a.py").resolve()).lower()
     assert key != _key_with(abs_rel)

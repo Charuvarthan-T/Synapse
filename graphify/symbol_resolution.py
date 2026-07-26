@@ -15,7 +15,6 @@ from graphify.paths import disambiguate_ambiguous_candidates
 from graphify.security import sanitize_metadata
 
 
-
 @dataclass(frozen=True)
 class ImportedSymbol:
     """A Python imported name that can be used as deterministic resolution evidence."""
@@ -143,11 +142,6 @@ def parse_python_import_aliases(path: Path) -> dict[str, ImportedSymbol]:
     aliases: dict[str, ImportedSymbol] = {}
     source_file = str(path)
 
-    # Only top-level `from ... import ...` statements count as file-wide
-    # evidence. Nested/function-local imports do NOT — they're only valid
-    # inside their lexical scope, and our raw-call records don't currently
-    # carry enough scope info to match the import site safely. Walking
-    # ast.walk(tree) would incorrectly justify calls in other scopes.
     for node in tree.body:
         if not isinstance(node, ast.ImportFrom):
             continue
@@ -235,11 +229,6 @@ def resolve_python_import_guided_calls(
 
     symbol_index = build_python_symbol_index(all_nodes)
     known_pairs = existing_edge_pairs(all_edges)
-    # Build result_by_file defensively:
-    #   - skip indices past the end of per_file (paths shorter than per_file
-    #     also OK; the zip-like behavior is what callers expect)
-    #   - non-dict per_file slots fall back to the empty fragment so the
-    #     downstream `.get("raw_calls", [])` lookup never raises
     result_by_file: dict[str, dict[str, Any]] = {}
     for index, path in enumerate(paths):
         if path.suffix != ".py":
@@ -291,13 +280,15 @@ def resolve_python_import_guided_calls(
                     "source_file": raw_call.get("source_file", source_file),
                     "source_location": raw_call.get("source_location") or imported.source_location,
                     "weight": 1.0,
-                    "metadata": sanitize_metadata({
-                        "resolver": "python_import_guided",
-                        "local_name": imported.local_name,
-                        "imported_name": imported.imported_name,
-                        "module_stem": imported.module_stem,
-                        "import_source_location": imported.source_location,
-                    }),
+                    "metadata": sanitize_metadata(
+                        {
+                            "resolver": "python_import_guided",
+                            "local_name": imported.local_name,
+                            "imported_name": imported.imported_name,
+                            "module_stem": imported.module_stem,
+                            "import_source_location": imported.source_location,
+                        }
+                    ),
                 }
             )
 
@@ -320,12 +311,8 @@ def resolve_cross_file_raw_calls(
 
     label_index = build_label_index(all_nodes)
     known_pairs = existing_edge_pairs(all_edges)
-    # nid -> source_file, for the shared god-node tie-breakers (#1553) so a
-    # same-named test mock no longer erases a real cross-file call.
     nid_to_source_file = {
-        str(n.get("id")): str(n.get("source_file", ""))
-        for n in all_nodes
-        if n.get("id")
+        str(n.get("id")): str(n.get("source_file", "")) for n in all_nodes if n.get("id")
     }
     resolved: list[dict[str, Any]] = []
 
@@ -341,9 +328,6 @@ def resolve_cross_file_raw_calls(
         if len(candidates) == 1:
             target: str | None = candidates[0]
         else:
-            # Ambiguous bare name. Apply the shared tie-breakers (non-test
-            # preference, then path proximity); resolve only if exactly one
-            # candidate survives, else preserve the god-node guard and skip.
             target = disambiguate_ambiguous_candidates(
                 candidates,
                 {c: nid_to_source_file.get(c, "") for c in candidates},
@@ -386,18 +370,14 @@ def _bash_make_id(*parts: str) -> str:
     return _shared_make_id(*parts)
 
 
-from graphify.extractors.base import _file_stem as _bash_file_stem  # canonical recipe (no import cycle: base imports only graphify.ids)
+from graphify.extractors.base import _file_stem as _bash_file_stem
 
 
 def _file_node_id_for_path(path: Path, root: Path) -> str:
-    # Produce the canonical {parent_dir}_{stem} file-node ID that extract()'s
-    # id_remap generates (#1033), so bash `source` edges land on the real file
-    # node instead of an orphan. _bash_make_id / _bash_file_stem are exact copies
-    # of extract._make_id / extract._file_stem, so IDs match.
     try:
         rel = path.resolve().relative_to(root.resolve())
     except ValueError:
-        return _bash_make_id(str(path))  # path outside root: hash absolute path as fallback
+        return _bash_make_id(str(path))
     return _bash_make_id(_bash_file_stem(rel))
 
 
@@ -428,7 +408,7 @@ def resolve_bash_source_edges(
           Anything else is silently skipped.
     """
     path_by_index = [Path(p).resolve() for p in paths]
-    file_nid_by_path = {p: _file_node_id_for_path(p, root) for p in path_by_index}  # resolved paths only
+    file_nid_by_path = {p: _file_node_id_for_path(p, root) for p in path_by_index}
 
     functions_by_file: dict[str, dict[str, str]] = {}
     for result, path in zip(per_file, path_by_index):
@@ -469,11 +449,6 @@ def resolve_bash_source_edges(
             raw_target = source.get("target_path")
             if not isinstance(raw_target, (str, Path)) or not str(raw_target).strip():
                 continue
-            # Relative paths resolve against the source file's directory —
-            # Graphify static-analysis policy (NOT bash runtime semantics;
-            # at runtime `source ./X` is CWD-relative, but static analysis
-            # can't know the future CWD, so we resolve relative to the
-            # file being analyzed for deterministic, reproducible edges).
             candidate = Path(raw_target)
             if not candidate.is_absolute():
                 candidate = path.parent / candidate
@@ -520,9 +495,6 @@ def resolve_bash_source_edges(
                 continue
             callee = raw_call.get("callee")
             caller_nid = raw_call.get("caller_nid")
-            # callee must be a non-empty string — anything else (list, dict,
-            # int, None, …) is silently skipped to avoid TypeError on the
-            # `in functions_by_file[...]` membership check below.
             if not isinstance(callee, str) or not callee or not caller_nid:
                 continue
             matches = [

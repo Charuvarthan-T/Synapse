@@ -1,4 +1,5 @@
 """pascal — moved verbatim from graphify/extract.py."""
+
 from __future__ import annotations
 
 import re
@@ -54,34 +55,102 @@ _PAS_IMPL_HEADER_RE = re.compile(
     re.IGNORECASE,
 )
 
-_PAS_BEGIN_END_TOKEN_RE = re.compile(
-    r"\b(begin|end|case|try|asm|record)\b", re.IGNORECASE
-)
+_PAS_BEGIN_END_TOKEN_RE = re.compile(r"\b(begin|end|case|try|asm|record)\b", re.IGNORECASE)
 
 _PAS_CALL_RE = re.compile(r"\b([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*[(;]")
 
-_PAS_KEYWORDS = frozenset({
-    "begin", "end", "if", "then", "else", "while", "do", "for", "to",
-    "downto", "repeat", "until", "case", "of", "try", "finally", "except",
-    "with", "inherited", "result", "var", "const", "type", "nil", "true",
-    "false", "exit", "break", "continue", "uses", "unit", "program",
-    "library", "interface", "implementation", "initialization", "finalization",
-    "procedure", "function", "constructor", "destructor", "class", "record",
-    "object", "array", "string", "integer", "boolean", "real", "char",
-    "writeln", "write", "readln", "read", "assigned", "length", "high",
-    "low", "inc", "dec", "new", "dispose", "setlength", "copy", "pos",
-    "trim", "format", "inttostr", "strtoint", "ord", "chr", "sizeof",
-    "create", "free", "destroy",
-})
+_PAS_KEYWORDS = frozenset(
+    {
+        "begin",
+        "end",
+        "if",
+        "then",
+        "else",
+        "while",
+        "do",
+        "for",
+        "to",
+        "downto",
+        "repeat",
+        "until",
+        "case",
+        "of",
+        "try",
+        "finally",
+        "except",
+        "with",
+        "inherited",
+        "result",
+        "var",
+        "const",
+        "type",
+        "nil",
+        "true",
+        "false",
+        "exit",
+        "break",
+        "continue",
+        "uses",
+        "unit",
+        "program",
+        "library",
+        "interface",
+        "implementation",
+        "initialization",
+        "finalization",
+        "procedure",
+        "function",
+        "constructor",
+        "destructor",
+        "class",
+        "record",
+        "object",
+        "array",
+        "string",
+        "integer",
+        "boolean",
+        "real",
+        "char",
+        "writeln",
+        "write",
+        "readln",
+        "read",
+        "assigned",
+        "length",
+        "high",
+        "low",
+        "inc",
+        "dec",
+        "new",
+        "dispose",
+        "setlength",
+        "copy",
+        "pos",
+        "trim",
+        "format",
+        "inttostr",
+        "strtoint",
+        "ord",
+        "chr",
+        "sizeof",
+        "create",
+        "free",
+        "destroy",
+    }
+)
+
 
 def _pascal_strip_comments(text: str) -> str:
     """Strip Pascal comments ({}, (* *), //) while preserving newlines."""
+
     def _sub(m: re.Match) -> str:
         tok = m.group(0)
         if tok.startswith("'"):
             return tok
         return "".join(c if c == "\n" else " " for c in tok)
+
     return _PAS_TOKEN_RE.sub(_sub, text)
+
 
 def _pascal_split_sections(text: str) -> tuple[str, int, str, int]:
     """Split into (iface_text, iface_offset, impl_text, impl_offset).
@@ -93,12 +162,11 @@ def _pascal_split_sections(text: str) -> tuple[str, int, str, int]:
     if iface_m and impl_m:
         iface_off = iface_m.end()
         impl_off = impl_m.end()
-        end_m = re.search(
-            r"\b(initialization|finalization)\b", text[impl_off:], re.IGNORECASE
-        )
+        end_m = re.search(r"\b(initialization|finalization)\b", text[impl_off:], re.IGNORECASE)
         impl_end = impl_off + end_m.start() if end_m else len(text)
-        return text[iface_off:impl_m.start()], iface_off, text[impl_off:impl_end], impl_off
+        return text[iface_off : impl_m.start()], iface_off, text[impl_off:impl_end], impl_off
     return "", 0, text, 0
+
 
 def _pascal_split_uses(s: str) -> list[str]:
     """Split a uses list string, handling 'Foo in ''bar.pas''' syntax."""
@@ -109,6 +177,7 @@ def _pascal_split_uses(s: str) -> list[str]:
         if name and re.match(r"[A-Za-z_][\w.]*$", name):
             out.append(name)
     return out
+
 
 def _pascal_split_bases(s: str) -> list[str]:
     """Split inheritance list, handling generics like TList<T, U>."""
@@ -132,6 +201,7 @@ def _pascal_split_bases(s: str) -> list[str]:
         out.append(name)
     return [n for n in out if re.match(r"[A-Za-z_]\w*$", n)]
 
+
 def _pascal_find_body(text: str, start: int) -> tuple[int, int]:
     """Find balanced begin..end after start. Returns (body_start, body_end).
     Returns (0, 0) if no begin found.
@@ -150,6 +220,7 @@ def _pascal_find_body(text: str, start: int) -> tuple[int, int]:
             if depth == 0:
                 return (body_start, tok.start())
     return (body_start, len(text))
+
 
 def _resolve_pascal_callee_factory(
     records: list[tuple],
@@ -248,19 +319,17 @@ def _extract_pascal_regex(path: Path) -> dict:
     def _add_node(nid: str, label: str, line: int) -> None:
         if nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({
-                "id": nid,
-                "label": label,
-                "file_type": "code",
-                "source_file": str_path,
-                "source_location": f"L{line}",
-            })
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": "code",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                }
+            )
 
     def _add_edge(src: str, tgt: str, relation: str, line: int, context: str | None = None) -> None:
-        # A class method declared in the interface section and defined in the
-        # implementation section both emit a `method` edge to the same node, so
-        # dedup on (src, tgt, relation) to keep the graph from carrying doubled
-        # method/contains/inherits edges (mirrors _add_node's seen_ids guard).
         key = (src, tgt, relation)
         if key in seen_edges:
             return
@@ -286,7 +355,6 @@ def _extract_pascal_regex(path: Path) -> dict:
 
     stripped = _pascal_strip_comments(raw)
 
-    # Module header
     module_nid = file_nid
     mod_m = _PAS_MODULE_RE.search(stripped)
     if mod_m:
@@ -297,7 +365,6 @@ def _extract_pascal_regex(path: Path) -> dict:
 
     iface_text, iface_off, impl_text, impl_off = _pascal_split_sections(stripped)
 
-    # Uses clauses
     for section_text, section_off in ((iface_text, iface_off), (impl_text, impl_off)):
         for um in _PAS_USES_RE.finditer(section_text):
             line = _lineno(stripped, section_off + um.start())
@@ -305,7 +372,6 @@ def _extract_pascal_regex(path: Path) -> dict:
                 tgt_nid = _pascal_resolve_unit(path, unit_name)
                 _add_edge(module_nid, tgt_nid, "imports", line, context="import")
 
-    # Type declarations (classes / interfaces) in interface section
     search_text = iface_text if iface_text else stripped
     search_off = iface_off if iface_text else 0
     pos = 0
@@ -323,22 +389,10 @@ def _extract_pascal_regex(path: Path) -> dict:
         for base_name in _pascal_split_bases(bases_raw):
             same_file_nid = _make_id(stem, base_name)
             if same_file_nid in seen_ids:
-                # Base class already declared earlier in this same file --
-                # reuse its real node instead of the cross-file/stub lookup
-                # below (which assumes one-class-per-file and would create a
-                # duplicate node for a base class that shares this file).
                 base_nid = same_file_nid
             else:
                 resolved = _pascal_resolve_class(path, base_name)
                 if resolved:
-                    # Cross-file base class found on disk -- its real node
-                    # arrives via THAT file's own extraction. Do not add a
-                    # duplicate stub here: it would carry this file's
-                    # source_file (wrong -- it belongs to the base class's
-                    # own file) and collide with the real node under
-                    # cross-file id disambiguation, producing two different
-                    # salted ids for what should be one class (breaks
-                    # cross-file `inherits`-chain resolution downstream).
                     base_nid = resolved
                 else:
                     base_nid = _make_id(base_name)
@@ -346,12 +400,10 @@ def _extract_pascal_regex(path: Path) -> dict:
                         _add_node(base_nid, base_name, line)
             _add_edge(cls_nid, base_nid, "inherits", line)
 
-        # Find class body (up to next end;)
         end_m = _PAS_END_SEMI_RE.search(search_text, hm.end())
-        body_text = search_text[hm.end():end_m.start()] if end_m else ""
+        body_text = search_text[hm.end() : end_m.start()] if end_m else ""
         body_off = search_off + hm.end()
 
-        # Forward method declarations inside the class body
         for mm in _PAS_METHOD_DECL_RE.finditer(body_text):
             mname = mm.group("name")
             mline = _lineno(stripped, body_off + mm.start())
@@ -361,9 +413,7 @@ def _extract_pascal_regex(path: Path) -> dict:
 
         pos = end_m.end() if end_m else len(search_text)
 
-    # Implementation headers (procedure/function/constructor/destructor)
     impl_records: list[tuple[str, int, str, str, str]] = []
-    # (proc_nid, line, body_text, container, name_lower)
     for fm in _PAS_IMPL_HEADER_RE.finditer(impl_text):
         qualified = fm.group("qual")
         line = _lineno(stripped, impl_off + fm.start())
@@ -386,13 +436,6 @@ def _extract_pascal_regex(path: Path) -> dict:
         body_text = impl_text[body_start:body_end] if body_start else ""
         impl_records.append((proc_nid, line, body_text, container, name_lower))
 
-    # Intra-file call edges, scoped by the caller's own class, then its
-    # ancestor chain (via `inherits` edges already emitted above), then
-    # file-level free functions; fall back to a global by-name match only
-    # when it is unambiguous (single owner across the file). Prevents
-    # same-named methods on unrelated classes (property accessors, generated
-    # wrapper classes such as TLB import units, etc. -- a common Pascal/Delphi
-    # pattern) from collapsing into an arbitrary cross-class edge.
     callee_nid = _resolve_pascal_callee_factory(impl_records, edges, module_nid)
     raw_calls: list[dict] = []
     for caller_nid, caller_line, body_text, _container, _name_lower in impl_records:
@@ -405,16 +448,14 @@ def _extract_pascal_regex(path: Path) -> dict:
             if target_nid == caller_nid:
                 continue
             if not target_nid:
-                # Not resolvable within this file (e.g. inherited from a base
-                # class declared in another file) -- report for the
-                # cross-file resolver (graphify.pascal_resolution) instead of
-                # guessing or dropping it silently.
-                raw_calls.append({
-                    "source_file": str_path,
-                    "source_location": f"L{call_line}",
-                    "caller_nid": caller_nid,
-                    "callee": callee_name,
-                })
+                raw_calls.append(
+                    {
+                        "source_file": str_path,
+                        "source_location": f"L{call_line}",
+                        "caller_nid": caller_nid,
+                        "callee": callee_name,
+                    }
+                )
                 continue
             pair = (caller_nid, target_nid)
             if pair in seen_call_pairs:
@@ -423,9 +464,13 @@ def _extract_pascal_regex(path: Path) -> dict:
             _add_edge(caller_nid, target_nid, "calls", call_line, context="call")
 
     return {
-        "nodes": nodes, "edges": edges, "input_tokens": 0, "output_tokens": 0,
+        "nodes": nodes,
+        "edges": edges,
+        "input_tokens": 0,
+        "output_tokens": 0,
         "raw_calls": raw_calls,
     }
+
 
 def extract_pascal(path: Path) -> dict:
     """Extract units, classes, procedures, uses-imports, and calls from Pascal/Delphi files.
@@ -470,36 +515,44 @@ def extract_pascal(path: Path) -> dict:
     seen_ids: set[str] = set()
     seen_edges: set[tuple[str, str, str]] = set()
     proc_bodies: list[tuple[str, Any, str, str]] = []
-    # (proc_nid, body_node, container, name_lower)
 
     def _read(node) -> str:  # type: ignore[no-untyped-def]
-        return source[node.start_byte:node.end_byte].decode("utf-8", errors="replace")
+        return source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
 
     def add_node(nid: str, label: str, line: int) -> None:
         if nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({
-                "id": nid, "label": label, "file_type": "code",
-                "source_file": str_path, "source_location": f"L{line}",
-            })
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": "code",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                }
+            )
 
     def add_edge(
-        src: str, tgt: str, relation: str, line: int,
-        confidence: str = "EXTRACTED", weight: float = 1.0,
+        src: str,
+        tgt: str,
+        relation: str,
+        line: int,
+        confidence: str = "EXTRACTED",
+        weight: float = 1.0,
         context: str | None = None,
     ) -> None:
-        # A class method declared in the interface section and defined in the
-        # implementation section both emit a `method` edge to the same node, so
-        # dedup on (src, tgt, relation) to keep the graph from carrying doubled
-        # method/contains/inherits edges (mirrors add_node's seen_ids guard).
         key = (src, tgt, relation)
         if key in seen_edges:
             return
         seen_edges.add(key)
         edge: dict[str, Any] = {
-            "source": src, "target": tgt, "relation": relation,
-            "confidence": confidence, "source_file": str_path,
-            "source_location": f"L{line}", "weight": weight,
+            "source": src,
+            "target": tgt,
+            "relation": relation,
+            "confidence": confidence,
+            "source_file": str_path,
+            "source_location": f"L{line}",
+            "weight": weight,
         }
         if context:
             edge["context"] = context
@@ -559,22 +612,12 @@ def extract_pascal(path: Path) -> dict:
                         base_name = _read(child)
                         base_nid = _make_id(stem, base_name)
                         if base_nid not in seen_ids:
-                            # Try cross-file resolution (TFooBar → FooBar.pas)
                             resolved = _pascal_resolve_class(path, base_name)
                             if resolved:
-                                # Cross-file base class found on disk -- its
-                                # real node arrives via THAT file's own
-                                # extraction. Do not add a duplicate stub
-                                # here: it would carry this file's
-                                # source_file (wrong) and collide with the
-                                # real node under cross-file id
-                                # disambiguation, producing two different
-                                # salted ids for what should be one class.
                                 base_nid = resolved
                             else:
                                 base_nid = _make_id(base_name)
                                 if base_nid not in seen_ids:
-                                    # Stub for RTL/external base classes.
                                     add_node(base_nid, base_name, line)
                         add_edge(cls_nid, base_nid, "inherits", line)
                 for child in kind_node.children:
@@ -618,12 +661,15 @@ def extract_pascal(path: Path) -> dict:
             proc_nid = _make_id(stem, name)
             add_node(proc_nid, label, line)
             add_edge(
-                container, proc_nid,
+                container,
+                proc_nid,
                 "method" if container != parent_nid else "contains",
                 line,
             )
             if body_node:
-                proc_bodies.append((proc_nid, body_node, container, label.removesuffix("()").lower()))
+                proc_bodies.append(
+                    (proc_nid, body_node, container, label.removesuffix("()").lower())
+                )
             return
 
         for child in node.children:
@@ -631,10 +677,6 @@ def extract_pascal(path: Path) -> dict:
 
     walk(root, file_nid)
 
-    # Second pass: resolve calls inside procedure/function bodies, scoped by
-    # the caller's own class, then its ancestor chain, then file-level free
-    # functions, falling back to an unambiguous global match (see
-    # _resolve_pascal_callee_factory).
     resolve_callee = _resolve_pascal_callee_factory(proc_bodies, edges, module_nid)
     seen_call_pairs: set[tuple[str, str]] = set()
     raw_calls: list[dict] = []
@@ -644,16 +686,14 @@ def extract_pascal(path: Path) -> dict:
         if target == caller_nid:
             return
         if not target:
-            # Not resolvable within this file (e.g. inherited from a base
-            # class declared in another file) -- report for the cross-file
-            # resolver (graphify.pascal_resolution) instead of guessing or
-            # dropping it silently.
-            raw_calls.append({
-                "source_file": str_path,
-                "source_location": f"L{line}",
-                "caller_nid": caller_nid,
-                "callee": name_lower,
-            })
+            raw_calls.append(
+                {
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                    "caller_nid": caller_nid,
+                    "callee": name_lower,
+                }
+            )
             return
         pair = (caller_nid, target)
         if pair not in seen_call_pairs:
@@ -670,8 +710,6 @@ def extract_pascal(path: Path) -> dict:
             if callee_text:
                 _emit_or_report(caller_nid, callee_text.lower(), node.start_point[0] + 1)
         elif node.type == "statement":
-            # Pascal bare procedure calls with no args: `Reset;`
-            # tree-sitter represents these as statement → identifier (no exprCall wrapper)
             named = [c for c in node.children if c.is_named]
             if len(named) == 1 and named[0].type == "identifier":
                 callee_text = _read(named[0])
@@ -683,6 +721,9 @@ def extract_pascal(path: Path) -> dict:
         walk_calls(body_node, proc_nid)
 
     return {
-        "nodes": nodes, "edges": edges, "input_tokens": 0, "output_tokens": 0,
+        "nodes": nodes,
+        "edges": edges,
+        "input_tokens": 0,
+        "output_tokens": 0,
         "raw_calls": raw_calls,
     }

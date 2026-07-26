@@ -10,17 +10,17 @@ skill.md spec (line ~390):
         match/script/pipeline_step.py (file node) -> script_pipeline_step
         setup.py (top-level) -> setup
 """
+
 from pathlib import Path
 
 from graphify.extract import extract
 
 
 def _file_nodes(extraction: dict) -> list[dict]:
-    # File-level nodes carry a label equal to the file's basename.
     return [
-        n for n in extraction["nodes"]
-        if n.get("source_file", "").endswith(n.get("label", "\0"))
-        and n.get("file_type") == "code"
+        n
+        for n in extraction["nodes"]
+        if n.get("source_file", "").endswith(n.get("label", "\0")) and n.get("file_type") == "code"
     ]
 
 
@@ -38,7 +38,6 @@ def test_file_node_id_uses_parent_dir_and_stem_no_extension(tmp_path):
     assert "match_script_pipeline_step" in ids, (
         f"expected full-path file id 'match_script_pipeline_step', got {sorted(ids)}"
     )
-    # The old buggy full-path-with-extension id must be gone.
     assert "match_script_pipeline_step_py" not in ids
     assert not any(i.endswith("_py") for i in ids if "pipeline_step" in i)
 
@@ -68,15 +67,12 @@ def test_top_level_file_SYMBOL_ids_use_bare_stem(tmp_path):
     ids = {n["id"] for n in extraction["nodes"]}
 
     assert "main_run" in ids, f"expected bare-stem symbol 'main_run', got {sorted(ids)}"
-    # The root directory name must NOT appear in any symbol id.
     rootname = tmp_path.name.lower().replace("-", "_")
-    assert not any(rootname in i for i in ids), (
-        f"root dir name leaked into ids: {sorted(ids)}"
-    )
+    assert not any(rootname in i for i in ids), f"root dir name leaked into ids: {sorted(ids)}"
 
-    # contains edge file -> symbol must connect with the canonical ids.
-    contains = [e for e in extraction["edges"]
-                if e["relation"] == "contains" and e["target"] == "main_run"]
+    contains = [
+        e for e in extraction["edges"] if e["relation"] == "contains" and e["target"] == "main_run"
+    ]
     assert contains and contains[0]["source"] == "main"
 
 
@@ -105,12 +101,12 @@ def test_symbol_and_file_ids_share_the_same_stem(tmp_path):
     extraction = extract([f], cache_root=tmp_path)
     ids = {n["id"] for n in extraction["nodes"]}
 
-    assert "match_script_pipeline_step" in ids          # file node
-    assert "match_script_pipeline_step_stage" in ids     # class symbol shares stem
+    assert "match_script_pipeline_step" in ids
+    assert "match_script_pipeline_step_stage" in ids
 
-    # The file -> class 'contains' edge must reference the real file node id.
     contains = [
-        e for e in extraction["edges"]
+        e
+        for e in extraction["edges"]
         if e["relation"] == "contains" and e["target"] == "match_script_pipeline_step_stage"
     ]
     assert contains, "no 'contains' edge to the class symbol"
@@ -126,10 +122,7 @@ def test_cross_file_import_edges_stay_connected(tmp_path):
     pkg.mkdir()
     (pkg / "models.py").write_text("class User:\n    pass\n")
     (pkg / "auth.py").write_text(
-        "from models import User\n\n"
-        "class Session:\n"
-        "    def check(self):\n"
-        "        return User()\n"
+        "from models import User\n\nclass Session:\n    def check(self):\n        return User()\n"
     )
 
     files = [pkg / "models.py", pkg / "auth.py"]
@@ -139,14 +132,11 @@ def test_cross_file_import_edges_stay_connected(tmp_path):
     assert "pkg_models" in ids
     assert "pkg_auth" in ids
 
-    # Every edge endpoint that looks like a file node must point at a real node
-    # (no dangling '*_py' ghosts left behind by the old format).
     node_ids = ids
     for e in extraction["edges"]:
         for endpoint in (e["source"], e["target"]):
             assert not endpoint.endswith("_py"), (
                 f"edge endpoint {endpoint!r} kept the old extension-suffixed format"
             )
-        # imports_from edges between files must land on a known node.
         if e["relation"] == "imports_from" and e["source"] == "pkg_auth":
             assert e["target"] in node_ids or "models" in e["target"]

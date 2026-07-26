@@ -1,4 +1,5 @@
 """Verilog extractor. Moved verbatim from graphify/extract.py."""
+
 from __future__ import annotations
 
 import re
@@ -24,6 +25,7 @@ def _sv_first_identifier(node, source: bytes) -> str | None:
             return found
     return None
 
+
 def _sv_child(node, type_name: str) -> object | None:
     if node is None:
         return None
@@ -32,16 +34,51 @@ def _sv_child(node, type_name: str) -> object | None:
             return child
     return None
 
-_SV_BUILTIN_TYPES = frozenset({
-    "bit", "logic", "reg", "wire", "int", "integer", "shortint", "longint",
-    "byte", "time", "real", "shortreal", "void", "string", "type", "event",
-    "mailbox", "semaphore", "process", "chandle",
-})
 
-_SV_NON_TYPE_WORDS = frozenset({
-    "return", "if", "else", "for", "foreach", "while", "case", "begin", "end",
-    "function", "task", "class", "endclass", "endfunction", "endtask",
-})
+_SV_BUILTIN_TYPES = frozenset(
+    {
+        "bit",
+        "logic",
+        "reg",
+        "wire",
+        "int",
+        "integer",
+        "shortint",
+        "longint",
+        "byte",
+        "time",
+        "real",
+        "shortreal",
+        "void",
+        "string",
+        "type",
+        "event",
+        "mailbox",
+        "semaphore",
+        "process",
+        "chandle",
+    }
+)
+
+_SV_NON_TYPE_WORDS = frozenset(
+    {
+        "return",
+        "if",
+        "else",
+        "for",
+        "foreach",
+        "while",
+        "case",
+        "begin",
+        "end",
+        "function",
+        "task",
+        "class",
+        "endclass",
+        "endfunction",
+        "endtask",
+    }
+)
 
 _SV_PARENS_INNER = r"(?:[^()]|\([^()]*\))*"
 
@@ -58,9 +95,11 @@ _SV_PARAM_RE = re.compile(
     r"([A-Za-z_]\w*(?:\s*#\s*" + _SV_PARENS + r")?)\s+\w+"
 )
 
+
 def _sv_strip_comments(text: str) -> str:
     text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
     return re.sub(r"//.*", "", text)
+
 
 def _sv_split_type_list(text: str) -> list[str]:
     parts: list[str] = []
@@ -81,8 +120,10 @@ def _sv_split_type_list(text: str) -> list[str]:
         parts.append(item)
     return parts
 
-def _sv_collect_type_refs(type_text: str, generic: bool = False,
-                          skip: frozenset[str] = frozenset()) -> list[tuple[str, str]]:
+
+def _sv_collect_type_refs(
+    type_text: str, generic: bool = False, skip: frozenset[str] = frozenset()
+) -> list[tuple[str, str]]:
     refs: list[tuple[str, str]] = []
     text = type_text.strip()
     if not text:
@@ -90,8 +131,6 @@ def _sv_collect_type_refs(type_text: str, generic: bool = False,
     head = re.match(r"([A-Za-z_]\w*)", text)
     if head:
         name = head.group(1)
-        # `skip` carries the enclosing class's `#(type T = ...)` parameters so
-        # they are not mistaken for referenced types.
         if name not in _SV_BUILTIN_TYPES and name not in _SV_NON_TYPE_WORDS and name not in skip:
             refs.append((name, "generic_arg" if generic else "type"))
     params = re.search(r"#\s*\((" + _SV_PARENS_INNER + r")\)", text)
@@ -99,6 +138,7 @@ def _sv_collect_type_refs(type_text: str, generic: bool = False,
         for arg in _sv_split_type_list(params.group(1)):
             refs.extend(_sv_collect_type_refs(arg, generic=True, skip=skip))
     return refs
+
 
 def _augment_systemverilog_semantics(
     raw: str,
@@ -117,9 +157,16 @@ def _augment_systemverilog_semantics(
     def add_node(nid: str, label: str, line: int) -> None:
         if nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({"id": nid, "label": label, "file_type": "code",
-                          "source_file": str_path, "source_location": f"L{line}",
-                          "confidence_score": 1.0})
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": "code",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                    "confidence_score": 1.0,
+                }
+            )
         label_to_nid[label] = nid
 
     def ensure_type(label: str, line: int) -> str:
@@ -129,18 +176,25 @@ def _augment_systemverilog_semantics(
         add_node(nid, label, line)
         return nid
 
-    def add_edge(src: str, target_label: str, relation: str, line: int, context: str | None = None) -> None:
+    def add_edge(
+        src: str, target_label: str, relation: str, line: int, context: str | None = None
+    ) -> None:
         tgt = ensure_type(target_label, line)
-        edge = {"source": src, "target": tgt, "relation": relation,
-                "confidence": "EXTRACTED", "confidence_score": 1.0,
-                "source_file": str_path, "source_location": f"L{line}", "weight": 1.0}
+        edge = {
+            "source": src,
+            "target": tgt,
+            "relation": relation,
+            "confidence": "EXTRACTED",
+            "confidence_score": 1.0,
+            "source_file": str_path,
+            "source_location": f"L{line}",
+            "weight": 1.0,
+        }
         if context:
             edge["context"] = context
         edges.append(edge)
 
     text = _sv_strip_comments(raw)
-    # Consuming `endclass` (rather than a lookahead) makes each match own its
-    # terminator, so back-to-back or malformed classes cannot bleed bodies.
     class_re = re.compile(
         r"\b(?:(interface)\s+)?class\s+(\w+)([^;{]*)\s*;(.*?)\bendclass\b",
         re.DOTALL,
@@ -150,14 +204,21 @@ def _augment_systemverilog_semantics(
         header = match.group(3) or ""
         body = match.group(4) or ""
         line = line_for(match.start())
-        # `#(type T = Payload)` declares `T` as a class type parameter, not a
-        # referenced type — collect these to skip below.
         type_params = frozenset(re.findall(r"\btype\s+(\w+)", header))
         class_nid = _make_id(stem, class_name)
         add_node(class_nid, class_name, line)
-        edges.append({"source": file_nid, "target": class_nid, "relation": "defines",
-                      "confidence": "EXTRACTED", "confidence_score": 1.0,
-                      "source_file": str_path, "source_location": f"L{line}", "weight": 1.0})
+        edges.append(
+            {
+                "source": file_nid,
+                "target": class_nid,
+                "relation": "defines",
+                "confidence": "EXTRACTED",
+                "confidence_score": 1.0,
+                "source_file": str_path,
+                "source_location": f"L{line}",
+                "weight": 1.0,
+            }
+        )
 
         ext = re.search(r"\bextends\s+(\w+)", header)
         if ext:
@@ -173,34 +234,59 @@ def _augment_systemverilog_semantics(
             body,
             flags=re.DOTALL,
         )
-        # Optional leading class-property qualifiers (rand/local/protected/etc.)
-        # must be consumed: otherwise a qualified field like `rand Config x;`
-        # (three tokens) fails the `<type> <name>;` shape and its type reference
-        # is silently dropped.
-        for field in re.finditer(r"^\s*(?:(?:rand|randc|local|protected|static|const|automatic|var)\s+)*([A-Za-z_]\w*(?:\s*#\s*\([^;]+?\))?)\s+\w+\s*;", body_without_functions, re.MULTILINE):
-            # Count to the start of the type token (group 1), not the match
-            # start: `^\s*` consumes the leading newline(s), so field.start()
-            # would resolve to the class's line instead of the field's.
+        for field in re.finditer(
+            r"^\s*(?:(?:rand|randc|local|protected|static|const|automatic|var)\s+)*([A-Za-z_]\w*(?:\s*#\s*\([^;]+?\))?)\s+\w+\s*;",
+            body_without_functions,
+            re.MULTILINE,
+        ):
             field_line = line + body_without_functions.count("\n", 0, field.start(1))
             for ref_name, role in _sv_collect_type_refs(field.group(1), skip=type_params):
-                add_edge(class_nid, ref_name, "references", field_line, "generic_arg" if role == "generic_arg" else "field")
+                add_edge(
+                    class_nid,
+                    ref_name,
+                    "references",
+                    field_line,
+                    "generic_arg" if role == "generic_arg" else "field",
+                )
 
         for fm in _SV_FUNC_RE.finditer(body):
             return_type, func_name, params = fm.group(1), fm.group(2), fm.group(3)
             func_line = line + body.count("\n", 0, fm.start())
             func_nid = _make_id(class_nid, func_name)
             add_node(func_nid, func_name, func_line)
-            edges.append({"source": class_nid, "target": func_nid, "relation": "method",
-                          "confidence": "EXTRACTED", "confidence_score": 1.0,
-                          "source_file": str_path, "source_location": f"L{func_line}", "weight": 1.0})
+            edges.append(
+                {
+                    "source": class_nid,
+                    "target": func_nid,
+                    "relation": "method",
+                    "confidence": "EXTRACTED",
+                    "confidence_score": 1.0,
+                    "source_file": str_path,
+                    "source_location": f"L{func_line}",
+                    "weight": 1.0,
+                }
+            )
             for ref_name, role in _sv_collect_type_refs(return_type, skip=type_params):
-                add_edge(func_nid, ref_name, "references", func_line, "generic_arg" if role == "generic_arg" else "return_type")
+                add_edge(
+                    func_nid,
+                    ref_name,
+                    "references",
+                    func_line,
+                    "generic_arg" if role == "generic_arg" else "return_type",
+                )
             for param in _sv_split_type_list(params):
                 pm = _SV_PARAM_RE.match(param)
                 if not pm:
                     continue
                 for ref_name, role in _sv_collect_type_refs(pm.group(1), skip=type_params):
-                    add_edge(func_nid, ref_name, "references", func_line, "generic_arg" if role == "generic_arg" else "parameter_type")
+                    add_edge(
+                        func_nid,
+                        ref_name,
+                        "references",
+                        func_line,
+                        "generic_arg" if role == "generic_arg" else "parameter_type",
+                    )
+
 
 def extract_verilog(path: Path) -> dict:
     """Extract modules, functions, tasks, package imports, instantiations, and
@@ -230,15 +316,37 @@ def extract_verilog(path: Path) -> dict:
     def add_node(nid: str, label: str, line: int) -> None:
         if nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({"id": nid, "label": label, "file_type": "code",
-                          "source_file": str_path, "source_location": f"L{line}",
-                          "confidence_score": 1.0})
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": "code",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                    "confidence_score": 1.0,
+                }
+            )
 
-    def add_edge(src: str, tgt: str, relation: str, line: int,
-                 confidence: str = "EXTRACTED", score: float = 1.0) -> None:
-        edges.append({"source": src, "target": tgt, "relation": relation,
-                      "confidence": confidence, "confidence_score": score,
-                      "source_file": str_path, "source_location": f"L{line}", "weight": 1.0})
+    def add_edge(
+        src: str,
+        tgt: str,
+        relation: str,
+        line: int,
+        confidence: str = "EXTRACTED",
+        score: float = 1.0,
+    ) -> None:
+        edges.append(
+            {
+                "source": src,
+                "target": tgt,
+                "relation": relation,
+                "confidence": confidence,
+                "confidence_score": score,
+                "source_file": str_path,
+                "source_location": f"L{line}",
+                "weight": 1.0,
+            }
+        )
 
     file_nid = _make_id(str(path))
     add_node(file_nid, path.name, 1)
@@ -246,9 +354,6 @@ def extract_verilog(path: Path) -> dict:
     def walk(node, module_nid: str | None = None) -> None:
         t = node.type
 
-        # SystemVerilog class bodies are handled by _augment_systemverilog_semantics
-        # (regex over source text). Skip their subtrees so in-class methods are not
-        # double-emitted here — and with the wrong, return-type-derived name.
         if t in ("class_declaration", "interface_class_declaration"):
             return
 
@@ -263,9 +368,6 @@ def extract_verilog(path: Path) -> dict:
                     walk(child, nid)
                 return
 
-        # `function_prototype` only appears inside class/interface-class bodies
-        # (skipped above) and nests its name differently; it is intentionally not
-        # handled here.
         elif t == "function_declaration":
             fn_body = _sv_child(node, "function_body_declaration")
             func_name = _sv_first_identifier(_sv_child(fn_body, "function_identifier"), source)
@@ -299,14 +401,13 @@ def extract_verilog(path: Path) -> dict:
                         add_edge(src_nid, tgt_nid, "imports_from", line)
 
         elif t in ("module_instantiation", "checker_instantiation"):
-            # `leaf u_leaf();` parses as checker_instantiation in 1.0.3;
-            # module_instantiation (when it occurs) exposes a `module_type` field.
-            # Both reduce to the first identifier under the node — the instantiated
-            # type, not the instance name (which appears later).
             if module_nid:
                 type_node = node.child_by_field_name("module_type")
-                inst_type = (_read_text(type_node, source).strip() if type_node
-                             else _sv_first_identifier(node, source))
+                inst_type = (
+                    _read_text(type_node, source).strip()
+                    if type_node
+                    else _sv_first_identifier(node, source)
+                )
                 if inst_type:
                     line = node.start_point[0] + 1
                     tgt_nid = _make_id(inst_type)

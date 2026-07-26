@@ -1,4 +1,5 @@
 """julia — moved verbatim from graphify/extract.py."""
+
 from __future__ import annotations
 
 from graphify.extractors.base import _file_stem, _make_id, _read_text
@@ -33,17 +34,25 @@ def extract_julia(path: Path) -> dict:
     def add_node(nid: str, label: str, line: int) -> None:
         if nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({
-                "id": nid,
-                "label": label,
-                "file_type": "code",
-                "source_file": str_path,
-                "source_location": f"L{line}",
-            })
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": "code",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                }
+            )
 
-    def add_edge(src: str, tgt: str, relation: str, line: int,
-                 confidence: str = "EXTRACTED", weight: float = 1.0,
-                 context: str | None = None) -> None:
+    def add_edge(
+        src: str,
+        tgt: str,
+        relation: str,
+        line: int,
+        confidence: str = "EXTRACTED",
+        weight: float = 1.0,
+        context: str | None = None,
+    ) -> None:
         edge = {
             "source": src,
             "target": tgt,
@@ -66,22 +75,17 @@ def extract_julia(path: Path) -> dict:
             return nid
         nid = _make_id(name)
         if nid not in seen_ids:
-            # The name isn't defined in this file, so this is a cross-file reference
-            # (e.g. a `Thing` type annotation imported from another module). Emit a
-            # SOURCELESS stub — like the inheritance-base path below — so the
-            # corpus-level rewire can collapse it onto the real definition. A sourced
-            # stub here makes _disambiguate_colliding_node_ids bake the referencing
-            # file's path (with extension) into the id and blocks the rewire, which is
-            # the phantom-duplicate-node bug (#1402).
             seen_ids.add(nid)
-            nodes.append({
-                "id": nid,
-                "label": name,
-                "file_type": "code",
-                "source_file": "",
-                "source_location": "",
-                "origin_file": str_path,
-            })
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": name,
+                    "file_type": "code",
+                    "source_file": "",
+                    "source_location": "",
+                    "origin_file": str_path,
+                }
+            )
         return nid
 
     def _func_name_from_signature(sig_node) -> str | None:
@@ -101,26 +105,35 @@ def extract_julia(path: Path) -> dict:
             return
         if t == "call_expression" and body_node.children:
             callee = body_node.children[0]
-            # Direct call: foo(...)
             if callee.type == "identifier":
                 callee_name = _read_text(callee, source)
                 target_nid = _make_id(stem, callee_name)
-                add_edge(func_nid, target_nid, "calls", body_node.start_point[0] + 1,
-                         confidence="EXTRACTED", context="call")
-            # Method call: obj.method(...)
+                add_edge(
+                    func_nid,
+                    target_nid,
+                    "calls",
+                    body_node.start_point[0] + 1,
+                    confidence="EXTRACTED",
+                    context="call",
+                )
             elif callee.type == "field_expression" and len(callee.children) >= 3:
                 method_node = callee.children[-1]
                 method_name = _read_text(method_node, source)
                 target_nid = _make_id(stem, method_name)
-                add_edge(func_nid, target_nid, "calls", body_node.start_point[0] + 1,
-                         confidence="EXTRACTED", context="call")
+                add_edge(
+                    func_nid,
+                    target_nid,
+                    "calls",
+                    body_node.start_point[0] + 1,
+                    confidence="EXTRACTED",
+                    context="call",
+                )
         for child in body_node.children:
             walk_calls(child, func_nid)
 
     def walk(node, scope_nid: str) -> None:
         t = node.type
 
-        # Module
         if t == "module_definition":
             name_node = next((c for c in node.children if c.type == "identifier"), None)
             if name_node:
@@ -133,9 +146,7 @@ def extract_julia(path: Path) -> dict:
                     walk(child, mod_nid)
             return
 
-        # Struct (struct / mutable struct — both map to struct_definition in tree-sitter-julia)
         if t == "struct_definition":
-            # type_head may contain: identifier (simple) or binary_expression (Foo <: Bar)
             type_head = next((c for c in node.children if c.type == "type_head"), None)
             if not type_head:
                 return
@@ -159,9 +170,13 @@ def extract_julia(path: Path) -> dict:
             add_node(struct_nid, struct_name, line)
             add_edge(scope_nid, struct_nid, "defines", line)
             if super_name:
-                add_edge(struct_nid, ensure_named_node(super_name, line),
-                         "inherits", line, confidence="EXTRACTED")
-            # Field types: each `name::Type` lowers to a typed_expression child of struct_definition
+                add_edge(
+                    struct_nid,
+                    ensure_named_node(super_name, line),
+                    "inherits",
+                    line,
+                    confidence="EXTRACTED",
+                )
             for child in node.children:
                 if child.type == "typed_expression":
                     type_ids = [c for c in child.children if c.type == "identifier"]
@@ -169,13 +184,14 @@ def extract_julia(path: Path) -> dict:
                         field_line = child.start_point[0] + 1
                         type_name = _read_text(type_ids[-1], source)
                         type_nid = ensure_named_node(type_name, field_line)
-                        edges.append(_semantic_reference_edge(
-                            struct_nid, type_nid, "field", str_path, field_line))
+                        edges.append(
+                            _semantic_reference_edge(
+                                struct_nid, type_nid, "field", str_path, field_line
+                            )
+                        )
             return
 
-        # Abstract type
         if t == "abstract_definition":
-            # type_head > identifier
             type_head = next((c for c in node.children if c.type == "type_head"), None)
             if type_head:
                 name_node = next((c for c in type_head.children if c.type == "identifier"), None)
@@ -187,7 +203,6 @@ def extract_julia(path: Path) -> dict:
                     add_edge(scope_nid, abs_nid, "defines", line)
             return
 
-        # Function: function foo(...) ... end
         if t == "function_definition":
             sig_node = next((c for c in node.children if c.type == "signature"), None)
             if sig_node:
@@ -200,7 +215,6 @@ def extract_julia(path: Path) -> dict:
                     function_bodies.append((func_nid, node))
             return
 
-        # Short function: foo(x) = expr
         if t == "assignment":
             lhs = node.children[0] if node.children else None
             if lhs and lhs.type == "call_expression" and lhs.children:
@@ -211,21 +225,15 @@ def extract_julia(path: Path) -> dict:
                     line = node.start_point[0] + 1
                     add_node(func_nid, f"{func_name}()", line)
                     add_edge(scope_nid, func_nid, "defines", line)
-                    # Only walk the RHS (index 2 after lhs and operator) to avoid self-loops
                     rhs = node.children[-1] if len(node.children) >= 3 else None
                     if rhs:
                         function_bodies.append((func_nid, rhs))
             return
 
-        # Using / Import
         if t in ("using_statement", "import_statement"):
             line = node.start_point[0] + 1
 
             def _julia_mod_name(n):
-                # identifier (`Foo`), scoped_identifier (`Base.Threads`), or
-                # import_path (relative `..Sibling`) -> the module name. Only bare
-                # identifiers were handled, so qualified/relative imports — and the
-                # scoped package of a `selected_import` — were silently dropped.
                 if n.type == "import_path":
                     ids = [c for c in n.children if c.type == "identifier"]
                     return _read_text(ids[-1], source) if ids else None
@@ -244,11 +252,12 @@ def extract_julia(path: Path) -> dict:
                 if child.type in ("identifier", "scoped_identifier", "import_path"):
                     _emit_import(_julia_mod_name(child))
                 elif child.type == "selected_import":
-                    # `import Base.Threads: nthreads` — the package (first named
-                    # child) may itself be a scoped_identifier/import_path.
                     pkg = next(
-                        (c for c in child.children
-                         if c.type in ("identifier", "scoped_identifier", "import_path")),
+                        (
+                            c
+                            for c in child.children
+                            if c.type in ("identifier", "scoped_identifier", "import_path")
+                        ),
                         None,
                     )
                     if pkg is not None:
@@ -261,10 +270,6 @@ def extract_julia(path: Path) -> dict:
     walk(root, file_nid)
 
     for func_nid, body_node in function_bodies:
-        # For function_definition nodes, walk children directly to avoid
-        # the boundary check returning early on the top-level node itself.
-        # Skip the "signature" child — it contains the function's own call_expression
-        # which would create a self-loop.
         if body_node.type == "function_definition":
             for child in body_node.children:
                 if child.type != "signature":

@@ -12,6 +12,7 @@ item's source_file (backslashes -> forward slashes, relativize when in-root)
 before persisting, so a fragment carrying an absolute path (Windows detect()
 output) cannot poison the cache.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -84,7 +85,6 @@ def test_cache_hits_survive_corpus_move(tmp_path, monkeypatch):
         assert "\\" not in k, f"non-portable separator in key: {k}"
     assert set(on_disk) == {"f1.py", "sub/f2.md"}
 
-    # Move the corpus (graphify-out/ rides along; copy2 preserves mtime_ns).
     b = tmp_path / "b"
     shutil.copytree(a, b, copy_function=shutil.copy2)
 
@@ -111,7 +111,6 @@ def test_deleted_entries_are_pruned_on_flush(tmp_path):
 
     f2.unlink()
     _reset_stat_index()
-    # Bump f1's mtime so the re-hash dirties the index and a flush is written.
     os.utime(f1, ns=(f1.stat().st_atime_ns, f1.stat().st_mtime_ns + 1_000_000))
     cache.file_hash(f1, a)
     cache._flush_stat_index()
@@ -134,10 +133,13 @@ def test_legacy_absolute_index_migrates_gracefully(tmp_path, monkeypatch):
     salt = "f1.py"
     digest = hashlib.sha256(f1.read_bytes() + b"\x00" + salt.encode()).hexdigest()
 
-    dead = tmp_path / "dead"  # never created
+    dead = tmp_path / "dead"
     legacy = {
-        str(f1.resolve()): {"size": st.st_size, "mtime_ns": st.st_mtime_ns,
-                            "hashes": {salt: digest}},
+        str(f1.resolve()): {
+            "size": st.st_size,
+            "mtime_ns": st.st_mtime_ns,
+            "hashes": {salt: digest},
+        },
         str(dead / "x.py"): {"size": 1, "mtime_ns": 1, "hashes": {"x.py": "aa"}},
         str(dead / "y.py"): {"size": 2, "mtime_ns": 2, "hashes": {"y.py": "bb"}},
     }
@@ -149,8 +151,6 @@ def test_legacy_absolute_index_migrates_gracefully(tmp_path, monkeypatch):
     assert cache.file_hash(f1, a) == digest
     assert reads["n"] == 0, "legacy absolute key should still serve a warm hit"
 
-    # Force a write so the self-heal is observable (a pure warm run leaves the
-    # index clean and flush is a no-op by design).
     cache._stat_index_dirty = True
     cache._flush_stat_index()
 
@@ -188,10 +188,15 @@ def test_relative_key_wins_over_colliding_legacy_absolute(tmp_path):
     f1.write_text("x = 1\n")
     p = _stat_index_path(a)
     p.parent.mkdir(parents=True)
-    p.write_text(json.dumps({
-        str(f1.resolve()): {"size": 1, "mtime_ns": 1, "hashes": {"f1.py": "legacy"}},
-        "f1.py": {"size": 2, "mtime_ns": 2, "hashes": {"f1.py": "fresh"}},
-    }), encoding="utf-8")
+    p.write_text(
+        json.dumps(
+            {
+                str(f1.resolve()): {"size": 1, "mtime_ns": 1, "hashes": {"f1.py": "legacy"}},
+                "f1.py": {"size": 2, "mtime_ns": 2, "hashes": {"f1.py": "fresh"}},
+            }
+        ),
+        encoding="utf-8",
+    )
 
     cache._ensure_stat_index(a)
     assert cache._stat_index[str(f1.resolve())]["hashes"]["f1.py"] == "fresh"
@@ -216,7 +221,6 @@ def test_semantic_cache_normalizes_absolute_source_file(tmp_path):
     persisted = json.loads(entries[0].read_text(encoding="utf-8"))
     assert persisted["nodes"][0]["source_file"] == "m.py"
 
-    # Replay resolves back to the same absolute shape a fresh extraction has.
     _, _, _, uncached = cache.check_semantic_cache([str(f)], root=root)
     assert uncached == []
 

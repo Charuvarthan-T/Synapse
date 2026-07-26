@@ -5,6 +5,7 @@ Since #522 it runs as the shell-agnostic `graphify hook-guard search` subcommand
 with crafted stdin JSON and assert it nudges only for a search command when a
 graph exists, and otherwise stays silent and fails open.
 """
+
 import json
 import os
 import subprocess
@@ -31,7 +32,11 @@ def _run(command, cwd, *, graph: bool):
     stdin = json.dumps({"tool_input": {"command": command}})
     return subprocess.run(
         [sys.executable, "-m", "graphify", "hook-guard", "search"],
-        input=stdin, capture_output=True, text=True, cwd=cwd, env=_env(),
+        input=stdin,
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+        env=_env(),
     )
 
 
@@ -43,22 +48,21 @@ def _run_grep_tool(tool_input, cwd, *, graph: bool):
     stdin = json.dumps({"tool_name": "Grep", "tool_input": tool_input})
     return subprocess.run(
         [sys.executable, "-m", "graphify", "hook-guard", "search"],
-        input=stdin, capture_output=True, text=True, cwd=cwd, env=_env(),
+        input=stdin,
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+        env=_env(),
     )
 
 
 def test_matcher_targets_bash_and_grep():
-    # #1986: content search goes through Claude Code's dedicated Grep tool, so
-    # the matcher must cover it alongside Bash.
     assert _search_matcher()["matcher"] == "Bash|Grep"
 
 
 def test_hook_command_has_no_backslashes(monkeypatch):
-    # On Windows the resolved exe is a backslash path; Claude Code runs command
-    # hooks through Git Bash by default, which treats an unquoted backslash as an
-    # escape character and strips it (C:\Users\me\graphify.EXE -> C:Usersme...),
-    # breaking every guard. The emitted command must use forward slashes.
     from graphify.__main__ import _resolve_graphify_exe
+
     monkeypatch.setattr("shutil.which", lambda _name: r"C:\Users\me\graphify.EXE")
     assert _resolve_graphify_exe() == "C:/Users/me/graphify.EXE"
     for h in _claude_pretooluse_hooks():
@@ -66,7 +70,6 @@ def test_hook_command_has_no_backslashes(monkeypatch):
 
 
 def test_command_has_no_shell_syntax():
-    # #522: no POSIX bash that Windows cmd.exe/PowerShell can't parse.
     cmd = _search_matcher()["hooks"][0]["command"]
     for token in ("$(", "case ", "[ -f", "&&", "||", ";;", "echo '"):
         assert token not in cmd, f"shell syntax {token!r} leaked into the hook"
@@ -110,7 +113,11 @@ def test_fails_open_on_malformed_stdin(tmp_path):
     (tmp_path / "graphify-out" / "graph.json").write_text("{}", encoding="utf-8")
     r = subprocess.run(
         [sys.executable, "-m", "graphify", "hook-guard", "search"],
-        input="not json", capture_output=True, text=True, cwd=tmp_path, env=_env(),
+        input="not json",
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env=_env(),
     )
     assert r.returncode == 0
     assert r.stdout.strip() == ""
@@ -132,14 +139,13 @@ def test_honors_graphify_out_override(tmp_path):
     stdin = json.dumps({"tool_input": {"command": "grep -rn foo ."}})
     r = subprocess.run(
         [sys.executable, "-m", "graphify", "hook-guard", "search"],
-        input=stdin, capture_output=True, text=True, cwd=tmp_path, env=env,
+        input=stdin,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env=env,
     )
     assert "graphify query" in r.stdout
-
-
-# ---------------------------------------------------------------------------
-# #1986: the dedicated Grep tool (pattern/path/glob, no command) must nudge too
-# ---------------------------------------------------------------------------
 
 
 def test_grep_tool_input_nudges_with_graph(tmp_path):
@@ -180,6 +186,10 @@ def test_bash_non_search_with_stray_pattern_key_does_not_nudge(tmp_path):
     stdin = json.dumps({"tool_input": {"command": "ls -la", "pattern": "x"}})
     r = subprocess.run(
         [sys.executable, "-m", "graphify", "hook-guard", "search"],
-        input=stdin, capture_output=True, text=True, cwd=tmp_path, env=_env(),
+        input=stdin,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env=_env(),
     )
     assert r.stdout.strip() == ""

@@ -10,6 +10,7 @@ Covers the exact MinHash/MinHashLSH API surface used by dedup.py.
 Hash family (Mersenne-prime permutations) and LSH band structure are
 equivalent to datasketch so dedup quality is unchanged.
 """
+
 from __future__ import annotations
 import hashlib
 import struct
@@ -17,10 +18,9 @@ import struct
 import numpy as np
 
 
-_MP = np.uint64((1 << 61) - 1)  # Mersenne prime for the hash family
-_MH = np.uint64(0xFFFF_FFFF)    # mask to 32-bit values
+_MP = np.uint64((1 << 61) - 1)
+_MH = np.uint64(0xFFFF_FFFF)
 
-# One (a, b) coefficient array per num_perm, shared across all instances.
 _MH_COEFFS: dict[int, tuple[np.ndarray, np.ndarray]] = {}
 
 
@@ -67,12 +67,14 @@ def _optimal_lsh_params(threshold: float, num_perm: int) -> tuple[int, int]:
     for b in range(1, num_perm + 1):
         for r in range(1, num_perm // b + 1):
             fp = _lsh_integrate(
-                lambda s, _b=float(b), _r=float(r): 1 - (1 - s ** _r) ** _b,
-                0.0, threshold,
+                lambda s, _b=float(b), _r=float(r): 1 - (1 - s**_r) ** _b,
+                0.0,
+                threshold,
             )
             fn = _lsh_integrate(
-                lambda s, _b=float(b), _r=float(r): 1 - (1 - (1 - s ** _r) ** _b),
-                threshold, 1.0,
+                lambda s, _b=float(b), _r=float(r): 1 - (1 - (1 - s**_r) ** _b),
+                threshold,
+                1.0,
             )
             err = 0.5 * fp + 0.5 * fn
             if err < best_err:

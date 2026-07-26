@@ -15,6 +15,7 @@ Originally proposed by @Cekaru in #1721 as a per-language check; generalized
 here to sweep the whole registry so a future move that forgets the facade
 re-export (or re-exports a different object) fails loudly.
 """
+
 from __future__ import annotations
 
 import graphify.extract as facade
@@ -36,8 +37,6 @@ def test_every_registry_extractor_is_reexported_from_facade():
 
 
 def test_terraform_migrated():
-    # The concrete anchor from #1721: extract_terraform lives in its own module,
-    # and both the facade and the registry point at that one object.
     from graphify.extractors.terraform import extract_terraform
 
     assert facade.extract_terraform is extract_terraform

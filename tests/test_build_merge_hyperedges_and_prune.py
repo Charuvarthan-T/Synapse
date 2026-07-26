@@ -10,6 +10,7 @@ build_merge backs `graphify --update`. Two regressions covered here:
   prune_sources never relativized to match the stored relative source_file keys, so
   deleted files' nodes survived as ghosts. build_merge now infers a fallback root.
 """
+
 from __future__ import annotations
 
 import json
@@ -33,8 +34,6 @@ def _he_ids(G) -> set[str]:
     return {h["id"] for h in G.graph.get("hyperedges", [])}
 
 
-# ── #1574: hyperedge preservation ─────────────────────────────────────────────
-
 def _seed_two_file_graph(tmp_path):
     root = tmp_path / "corpus"
     root.mkdir()
@@ -46,7 +45,7 @@ def _seed_two_file_graph(tmp_path):
     hyperedges = [
         {"id": "he_a", "label": "flow A", "source_file": "a.md", "nodes": ["a1"]},
         {"id": "he_b", "label": "flow B", "source_file": "b.md", "nodes": ["b1"]},
-        {"id": "he_global", "label": "cross-file flow", "nodes": ["a1", "b1"]},  # no source_file
+        {"id": "he_global", "label": "cross-file flow", "nodes": ["a1", "b1"]},
     ]
     _write_graph(graph_path, nodes, [], hyperedges)
     return root, graph_path
@@ -54,18 +53,19 @@ def _seed_two_file_graph(tmp_path):
 
 def test_update_preserves_hyperedges_of_unchanged_files(tmp_path):
     root, graph_path = _seed_two_file_graph(tmp_path)
-    # Re-extract only b.md, with a fresh hyperedge for it.
     new_chunk = {
         "nodes": [{"id": "b1", "label": "b1", "file_type": "document", "source_file": "b.md"}],
         "edges": [],
-        "hyperedges": [{"id": "he_b_v2", "label": "flow B v2", "source_file": "b.md", "nodes": ["b1"]}],
+        "hyperedges": [
+            {"id": "he_b_v2", "label": "flow B v2", "source_file": "b.md", "nodes": ["b1"]}
+        ],
     }
     G = build_merge([new_chunk], graph_path, dedup=False, root=root)
     ids = _he_ids(G)
-    assert "he_a" in ids           # unchanged file's hyperedge preserved (the bug)
-    assert "he_global" in ids      # source_file-less hyperedge preserved
-    assert "he_b_v2" in ids        # re-extracted file's new hyperedge present
-    assert "he_b" not in ids       # re-extracted file's OLD hyperedge replaced
+    assert "he_a" in ids
+    assert "he_global" in ids
+    assert "he_b_v2" in ids
+    assert "he_b" not in ids
 
 
 def test_update_without_root_still_preserves_hyperedges(tmp_path):
@@ -76,7 +76,7 @@ def test_update_without_root_still_preserves_hyperedges(tmp_path):
         "edges": [],
         "hyperedges": [{"id": "he_b_v2", "source_file": "b.md", "nodes": ["b1"]}],
     }
-    G = build_merge([new_chunk], graph_path, dedup=False)  # no root
+    G = build_merge([new_chunk], graph_path, dedup=False)
     ids = _he_ids(G)
     assert {"he_a", "he_global", "he_b_v2"} <= ids
     assert "he_b" not in ids
@@ -87,14 +87,11 @@ def test_deleted_file_hyperedges_are_pruned(tmp_path):
     deleted_abs = [str(root / "a.md")]
     G = build_merge([], graph_path, prune_sources=deleted_abs, dedup=False, root=root)
     ids = _he_ids(G)
-    assert "he_a" not in ids        # deleted file's hyperedge pruned
-    assert "he_b" in ids            # untouched file's hyperedge kept
-    assert "he_global" in ids       # global hyperedge kept
-    # and its node is gone too
+    assert "he_a" not in ids
+    assert "he_b" in ids
+    assert "he_global" in ids
     assert "a1" not in set(G.nodes)
 
-
-# ── #1571: root-less prune (absolute deleted paths vs relative node keys) ──────
 
 def test_prune_without_root_removes_ghost_nodes_via_grandparent_fallback(tmp_path):
     root = tmp_path / "corpus"
@@ -105,7 +102,6 @@ def test_prune_without_root_removes_ghost_nodes_via_grandparent_fallback(tmp_pat
         {"id": "k1", "label": "keep", "file_type": "document", "source_file": "KEEP.md"},
     ]
     _write_graph(graph_path, nodes, [], [])
-    # Runbook-style call: absolute prune path, NO root passed.
     deleted_abs = [str(root / "HANDOFF.md")]
     G = build_merge([], graph_path, prune_sources=deleted_abs, dedup=False)
     labels = {d["label"] for _, d in G.nodes(data=True)}
@@ -114,8 +110,6 @@ def test_prune_without_root_removes_ghost_nodes_via_grandparent_fallback(tmp_pat
 
 
 def test_prune_without_root_uses_graphify_root_marker(tmp_path):
-    # graph.json not under a <root>/graphify-out layout, so grandparent wouldn't
-    # help — the committed .graphify_root marker must be honored instead.
     out = tmp_path / "out"
     out.mkdir()
     graph_path = out / "graph.json"
@@ -140,13 +134,22 @@ def test_prune_matches_across_symlinked_root(tmp_path):
     link = tmp_path / "link"
     os.symlink(real, link)
     graph_path = real / "graphify-out" / "graph.json"
-    _write_graph(graph_path, [
-        {"id": "h1", "label": "handoff", "file_type": "document", "source_file": "HANDOFF.md"},
-        {"id": "k1", "label": "keep", "file_type": "document", "source_file": "KEEP.md"},
-    ], [], [])
-    # prune path addressed via the SYMLINK, root resolved to the real dir
-    G = build_merge([], graph_path=graph_path,
-                    prune_sources=[str(link / "HANDOFF.md")], root=str(real), dedup=False)
+    _write_graph(
+        graph_path,
+        [
+            {"id": "h1", "label": "handoff", "file_type": "document", "source_file": "HANDOFF.md"},
+            {"id": "k1", "label": "keep", "file_type": "document", "source_file": "KEEP.md"},
+        ],
+        [],
+        [],
+    )
+    G = build_merge(
+        [],
+        graph_path=graph_path,
+        prune_sources=[str(link / "HANDOFF.md")],
+        root=str(real),
+        dedup=False,
+    )
     labels = {d["label"] for _, d in G.nodes(data=True)}
     assert "handoff" not in labels and "keep" in labels
 
@@ -161,22 +164,40 @@ def test_reextracted_file_in_prune_sources_is_not_deleted(tmp_path):
     _write_graph(
         graph_path,
         nodes=[
-            {"id": "foo_widget_cache", "label": "Widget Cache Design",
-             "file_type": "concept", "source_file": "docs/foo.md", "source_location": "L1"},
-            {"id": "bar_other", "label": "Other",
-             "file_type": "concept", "source_file": "docs/bar.md", "source_location": "L1"},
+            {
+                "id": "foo_widget_cache",
+                "label": "Widget Cache Design",
+                "file_type": "concept",
+                "source_file": "docs/foo.md",
+                "source_location": "L1",
+            },
+            {
+                "id": "bar_other",
+                "label": "Other",
+                "file_type": "concept",
+                "source_file": "docs/bar.md",
+                "source_location": "L1",
+            },
         ],
         edges=[],
         hyperedges=[],
     )
-    # foo.md edited: same-label node re-extracted (new content/line)
-    new_chunk = {"nodes": [
-        {"id": "foo_widget_cache", "label": "Widget Cache Design",
-         "file_type": "concept", "source_file": "docs/foo.md", "source_location": "L2"}
-    ], "edges": []}
+    new_chunk = {
+        "nodes": [
+            {
+                "id": "foo_widget_cache",
+                "label": "Widget Cache Design",
+                "file_type": "concept",
+                "source_file": "docs/foo.md",
+                "source_location": "L2",
+            }
+        ],
+        "edges": [],
+    }
 
-    G = build_merge([new_chunk], graph_path=str(graph_path),
-                    prune_sources=["docs/foo.md"], root=str(tmp_path))
+    G = build_merge(
+        [new_chunk], graph_path=str(graph_path), prune_sources=["docs/foo.md"], root=str(tmp_path)
+    )
     labels = {G.nodes[n].get("label") for n in G.nodes()}
     assert "Widget Cache Design" in labels, "re-extracted node was wrongly pruned"
 
@@ -189,27 +210,43 @@ def test_genuine_deletion_still_prunes(tmp_path):
     _write_graph(
         graph_path,
         nodes=[
-            {"id": "foo_widget_cache", "label": "Widget Cache Design",
-             "file_type": "concept", "source_file": "docs/foo.md", "source_location": "L1"},
-            {"id": "bar_other", "label": "Other",
-             "file_type": "concept", "source_file": "docs/bar.md", "source_location": "L1"},
+            {
+                "id": "foo_widget_cache",
+                "label": "Widget Cache Design",
+                "file_type": "concept",
+                "source_file": "docs/foo.md",
+                "source_location": "L1",
+            },
+            {
+                "id": "bar_other",
+                "label": "Other",
+                "file_type": "concept",
+                "source_file": "docs/bar.md",
+                "source_location": "L1",
+            },
         ],
         edges=[],
         hyperedges=[],
     )
-    new_chunk = {"nodes": [
-        {"id": "foo_widget_cache", "label": "Widget Cache Design",
-         "file_type": "concept", "source_file": "docs/foo.md", "source_location": "L2"}
-    ], "edges": []}
-    # bar.md genuinely deleted (not re-extracted)
-    G = build_merge([new_chunk], graph_path=str(graph_path),
-                    prune_sources=["docs/bar.md"], root=str(tmp_path))
+    new_chunk = {
+        "nodes": [
+            {
+                "id": "foo_widget_cache",
+                "label": "Widget Cache Design",
+                "file_type": "concept",
+                "source_file": "docs/foo.md",
+                "source_location": "L2",
+            }
+        ],
+        "edges": [],
+    }
+    G = build_merge(
+        [new_chunk], graph_path=str(graph_path), prune_sources=["docs/bar.md"], root=str(tmp_path)
+    )
     labels = {G.nodes[n].get("label") for n in G.nodes()}
     assert "Other" not in labels, "genuinely deleted file's node should be pruned"
     assert "Widget Cache Design" in labels
 
-
-# ── #2012: form-insensitive prune (absolute node vs relative prune, and back) ──
 
 def test_prune_matches_node_stored_absolute_against_relative_delete(tmp_path):
     """#2012: a node whose source_file survived in ABSOLUTE form must still be
@@ -223,20 +260,13 @@ def test_prune_matches_node_stored_absolute_against_relative_delete(tmp_path):
     (root / "graphify-out").mkdir(parents=True)
     graph_path = root / "graphify-out" / "graph.json"
     nodes = [
-        # gone.py's node kept an ABSOLUTE source_file (a semantic subagent wrote
-        # it that way, #932); keep.py's is relative.
-        {"id": "g1", "label": "gone", "file_type": "code",
-         "source_file": str(root / "gone.py")},
+        {"id": "g1", "label": "gone", "file_type": "code", "source_file": str(root / "gone.py")},
         {"id": "k1", "label": "keep", "file_type": "code", "source_file": "keep.py"},
     ]
     edges = [
-        {"source": "g1", "target": "k1", "type": "calls",
-         "source_file": str(root / "gone.py")},
+        {"source": "g1", "target": "k1", "type": "calls", "source_file": str(root / "gone.py")},
     ]
     _write_graph(graph_path, nodes, edges, [])
-    # Runbook-style: NO root passed (eff_root inferred from the graphify-out
-    # grandparent), so build() leaves the absolute node form intact. Deletion is
-    # expressed RELATIVE — a third form vs the stored absolute node.
     G = build_merge([], graph_path, prune_sources=["gone.py"], dedup=False)
     labels = {d["label"] for _, d in G.nodes(data=True)}
     assert "gone" not in labels, "absolute-stored node not pruned by relative delete (#2012)"
@@ -252,15 +282,22 @@ def test_prune_reextracted_absolute_node_not_deleted(tmp_path):
     root = tmp_path / "corpus"
     (root / "graphify-out").mkdir(parents=True)
     graph_path = root / "graphify-out" / "graph.json"
-    _write_graph(graph_path, [
-        {"id": "g1", "label": "gone", "file_type": "code",
-         "source_file": str(root / "mod.py")},
-    ], [], [])
-    # Re-extracted with a RELATIVE source_file; prune lists it RELATIVE too.
-    # No root passed (runbook), so the stored absolute node is not re-normalized.
-    new_chunk = {"nodes": [
-        {"id": "g1", "label": "gone", "file_type": "code", "source_file": "mod.py"},
-    ], "edges": []}
+    _write_graph(
+        graph_path,
+        [
+            {"id": "g1", "label": "gone", "file_type": "code", "source_file": str(root / "mod.py")},
+        ],
+        [],
+        [],
+    )
+    new_chunk = {
+        "nodes": [
+            {"id": "g1", "label": "gone", "file_type": "code", "source_file": "mod.py"},
+        ],
+        "edges": [],
+    }
     G = build_merge([new_chunk], graph_path, prune_sources=["mod.py"], dedup=False)
     labels = {d["label"] for _, d in G.nodes(data=True)}
-    assert "gone" in labels, "re-extracted file wrongly pruned across mismatched forms (#2012/#1796)"
+    assert "gone" in labels, (
+        "re-extracted file wrongly pruned across mismatched forms (#2012/#1796)"
+    )

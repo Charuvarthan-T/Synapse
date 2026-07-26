@@ -5,6 +5,7 @@ that depended on a bare `python` on PATH and embedded PowerShell-hostile
 backticks). It always returns {"decision":"allow"} so a tool is never blocked,
 and appends additionalContext only when a graph exists.
 """
+
 import json
 import os
 import subprocess
@@ -25,7 +26,11 @@ def _run(cwd, *, graph: bool):
         (cwd / "graphify-out" / "graph.json").write_text("{}", encoding="utf-8")
     return subprocess.run(
         [sys.executable, "-m", "graphify", "hook-guard", "gemini"],
-        input="", capture_output=True, text=True, cwd=cwd, env=_env(),
+        input="",
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+        env=_env(),
     )
 
 
@@ -33,7 +38,6 @@ def test_matcher_and_command_shape():
     h = _gemini_hook()
     assert h["matcher"] == "read_file|list_directory"
     cmd = h["hooks"][0]["command"]
-    # #522: no bare `python` dependency, no embedded quote/backtick soup.
     assert "python -c" not in cmd
     assert "graphify" in cmd and "hook-guard gemini" in cmd
 
@@ -66,6 +70,10 @@ def test_honors_graphify_out_override(tmp_path):
     env = dict(os.environ, GRAPHIFY_OUT=str(custom))
     r = subprocess.run(
         [sys.executable, "-m", "graphify", "hook-guard", "gemini"],
-        input="", capture_output=True, text=True, cwd=tmp_path, env=env,
+        input="",
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env=env,
     )
     assert "graphify query" in json.loads(r.stdout).get("additionalContext", "")

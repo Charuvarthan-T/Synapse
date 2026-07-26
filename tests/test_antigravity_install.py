@@ -5,6 +5,7 @@ went through the skill-only branch (grouped with copilot/pi/kimi), so it copied
 the SKILL.md but never wrote `.agents/rules/graphify.md` or
 `.agents/workflows/graphify.md` - even though the uninstall path removes them.
 """
+
 import graphify.__main__ as m
 
 
@@ -16,7 +17,6 @@ def test_antigravity_project_install_writes_rules_and_workflows(tmp_path):
     assert skill.exists(), "skill should be installed under .agents/skills/"
     assert rules.exists(), "antigravity rules (always-on) must be written"
     assert workflow.exists(), "antigravity workflow must be written"
-    # native tool-discovery frontmatter is injected into the skill
     assert skill.read_text(encoding="utf-8").startswith("---\n")
 
 

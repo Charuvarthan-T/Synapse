@@ -13,6 +13,7 @@ these tests exercise the actual on-disk layout an end user gets. Only Path.home
 and the cwd are redirected into tmp_path so nothing touches the developer's home
 directory.
 """
+
 from __future__ import annotations
 
 import os
@@ -29,9 +30,6 @@ import graphify.__main__ as mainmod
 
 PKG_DIR = Path(graphify.__file__).parent
 
-# Every platform in the config plus the scope each is exercised at. The
-# destination is resolved from _platform_skill_destination so the assertions
-# track the real install map (including amp's corrected .agents path).
 ALL_CONFIG_PLATFORMS = sorted(mainmod._PLATFORM_CONFIG)
 
 
@@ -62,16 +60,12 @@ def test_skill_roundtrip_at_real_destination(platform, project, tmp_path, monkey
         dst = mainmod._platform_skill_destination(
             platform, project=project, project_dir=project_dir
         )
-        # Sanity: a user-scope install must not write under the project dir, and
-        # vice versa, so the two scopes never collide in this test.
         if project:
             assert str(dst).startswith(str(project_dir))
         else:
             assert str(dst).startswith(str(home))
 
-        returned = mainmod._copy_skill_file(
-            platform, project=project, project_dir=project_dir
-        )
+        returned = mainmod._copy_skill_file(platform, project=project, project_dir=project_dir)
         assert returned == dst
         assert dst.exists(), f"{platform} ({'project' if project else 'user'}) skill not installed"
         assert (dst.parent / ".graphify_version").read_text() == mainmod.__version__
@@ -82,12 +76,9 @@ def test_skill_roundtrip_at_real_destination(platform, project, tmp_path, monkey
             assert (refs / "extraction-spec.md").exists()
         else:
             assert not refs.exists(), f"{platform} is monolith but references/ appeared"
-        # No staging dir is ever left behind.
         assert not (dst.parent / "references.tmp").exists()
 
-        removed = mainmod._remove_skill_file(
-            platform, project=project, project_dir=project_dir
-        )
+        removed = mainmod._remove_skill_file(platform, project=project, project_dir=project_dir)
         assert removed
         assert not dst.exists()
         assert not (dst.parent / ".graphify_version").exists()
@@ -103,7 +94,6 @@ def test_amp_user_install_at_corrected_agents_path(tmp_path, monkeypatch):
         dst = mainmod._copy_skill_file("amp", project=False)
         assert dst == home / ".config" / "agents" / "skills" / "graphify" / "SKILL.md"
         assert dst.exists()
-        # The legacy ~/.amp/skills location is not written.
         assert not (home / ".amp" / "skills").exists()
         mainmod._remove_skill_file("amp", project=False)
         assert not dst.exists()
@@ -140,9 +130,7 @@ def test_vscode_install_uninstall_roundtrip(tmp_path, monkeypatch):
 
         mainmod.vscode_uninstall(project_dir=project_dir)
         assert not skill.exists()
-        # The skill dir tree is walked away.
         assert not (home / ".copilot" / "skills").exists()
-        # The graphify section is stripped from the instructions file.
         if instructions.exists():
             assert "## graphify" not in instructions.read_text(encoding="utf-8")
 
@@ -192,9 +180,6 @@ def test_install_entrypoint_roundtrip_for_progressive_and_monolith(tmp_path):
         assert not (skill_dir / "SKILL.md").exists()
 
 
-# --- monolith -> progressive upgrade path --------------------------------------
-
-
 @pytest.fixture()
 def fake_progressive_bundle():
     """Stage a controllable references bundle in claude's slot.
@@ -235,13 +220,11 @@ def test_monolith_to_progressive_upgrade(tmp_path, fake_progressive_bundle):
     platform, bundle_dir, _ = fake_progressive_bundle
     skill_dir = tmp_path / ".claude" / "skills" / "graphify"
 
-    # Simulate the old on-disk state: a monolithic SKILL.md with no sidecar.
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text("old monolith body\n", encoding="utf-8")
     (skill_dir / ".graphify_version").write_text("0.0.1", encoding="utf-8")
     assert not (skill_dir / "references").exists()
 
-    # Upgrade: the platform now ships a bundle, so install adds references/.
     _copy_in_tmp(tmp_path, platform)
 
     refs = skill_dir / "references"
@@ -256,19 +239,14 @@ def test_progressive_to_monolith_downgrade_clears_references(tmp_path, fake_prog
     platform, bundle_dir, _ = fake_progressive_bundle
     skill_dir = tmp_path / ".claude" / "skills" / "graphify"
 
-    # First install: progressive, references/ present.
     _copy_in_tmp(tmp_path, platform)
     assert (skill_dir / "references").is_dir()
 
-    # The bundle disappears (downgrade / build without this wave).
     shutil.rmtree(bundle_dir)
     _copy_in_tmp(tmp_path, platform)
 
     assert (skill_dir / "SKILL.md").exists()
     assert not (skill_dir / "references").exists(), "orphan references/ was not cleared"
-
-
-# --- crash safety --------------------------------------------------------------
 
 
 def test_interrupted_references_staging_self_heals(tmp_path, fake_progressive_bundle):
@@ -278,7 +256,6 @@ def test_interrupted_references_staging_self_heals(tmp_path, fake_progressive_bu
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text("body\n", encoding="utf-8")
 
-    # Simulate a crash mid-stage: a half-written references.tmp is on disk.
     staged = skill_dir / "references.tmp"
     staged.mkdir()
     (staged / "garbage.md").write_text("partial\n", encoding="utf-8")
@@ -288,7 +265,6 @@ def test_interrupted_references_staging_self_heals(tmp_path, fake_progressive_bu
     refs = skill_dir / "references"
     assert refs.is_dir()
     assert (refs / "extraction-spec.md").exists()
-    # The stale staging dir and its garbage are gone.
     assert not staged.exists()
     assert not (refs / "garbage.md").exists()
 
@@ -301,7 +277,6 @@ def test_failed_copytree_leaves_no_partial_references(tmp_path, fake_progressive
     skill_dst = skill_dir / "SKILL.md"
     skill_dst.write_text("body\n", encoding="utf-8")
 
-    # A pre-existing good references/ that must survive a failed upgrade attempt.
     good = skill_dir / "references"
     good.mkdir()
     (good / "keep.md").write_text("keep\n", encoding="utf-8")
@@ -309,10 +284,10 @@ def test_failed_copytree_leaves_no_partial_references(tmp_path, fake_progressive
     boom = RuntimeError("disk full")
     with patch("graphify.__main__.shutil.copytree", side_effect=boom):
         with pytest.raises(RuntimeError):
-            mainmod._install_skill_references(skill_dst, PKG_DIR / "skills" / "claude" / "references")
+            mainmod._install_skill_references(
+                skill_dst, PKG_DIR / "skills" / "claude" / "references"
+            )
 
-    # The staging dir is cleaned up and the existing references/ is untouched
-    # (the swap only happens after a successful copytree).
     assert not (skill_dir / "references.tmp").exists()
     assert good.is_dir()
     assert (good / "keep.md").read_text() == "keep\n"

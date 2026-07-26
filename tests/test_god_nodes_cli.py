@@ -5,6 +5,7 @@ but was never wired as a CLI subcommand, so `graphify god_nodes` errored with
 "unknown command". These tests pin the subcommand (both spellings), its flags,
 and that file nodes are excluded from the ranking.
 """
+
 from __future__ import annotations
 
 import json
@@ -18,11 +19,16 @@ import graphify.__main__ as mainmod
 
 def _write_graph(tmp_path):
     g = nx.DiGraph()
-    # A high-degree real entity (not a file/concept node): label != basename.
     g.add_node("hub", label="Auth", file_type="code", source_file="auth.py", source_location="L1")
     g.add_node("f", label="auth.py", file_type="code", source_file="auth.py", source_location=None)
     for i in range(4):
-        g.add_node(f"caller{i}", label=f"c{i}()", file_type="code", source_file=f"m{i}.py", source_location="L1")
+        g.add_node(
+            f"caller{i}",
+            label=f"c{i}()",
+            file_type="code",
+            source_file=f"m{i}.py",
+            source_location="L1",
+        )
         g.add_edge(f"caller{i}", "hub", relation="calls", confidence="EXTRACTED")
     g.add_edge("f", "hub", relation="contains", confidence="EXTRACTED")
     gp = tmp_path / "graph.json"
@@ -43,11 +49,10 @@ def test_god_nodes_cli_text_output(monkeypatch, tmp_path, capsys):
     assert "God nodes (most connected):" in out
     assert "Auth" in out
     assert "edges" in out
-    assert "auth.py" not in out  # file node excluded from the ranking
+    assert "auth.py" not in out
 
 
 def test_god_nodes_cli_underscore_alias(monkeypatch, tmp_path, capsys):
-    # The exact spelling from the issue title.
     gp = _write_graph(tmp_path)
     _run(monkeypatch, ["graphify", "god_nodes", "--graph", str(gp)])
     assert "Auth" in capsys.readouterr().out

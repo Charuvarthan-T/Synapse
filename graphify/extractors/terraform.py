@@ -1,4 +1,5 @@
 """Terraform extractor. Moved verbatim from graphify/extract.py."""
+
 from __future__ import annotations
 
 
@@ -7,6 +8,7 @@ from graphify.extractors.base import _make_id
 
 
 _TF_META_HEADS = frozenset({"count", "each", "self", "path", "terraform"})
+
 
 def extract_terraform(path: Path) -> dict:
     """Extract Terraform/HCL blocks and the references between them via tree-sitter.
@@ -26,7 +28,11 @@ def extract_terraform(path: Path) -> dict:
         import tree_sitter_hcl as tshcl
         from tree_sitter import Language, Parser
     except ImportError:
-        return {"nodes": [], "edges": [], "error": "tree_sitter_hcl not installed. Run: pip install tree-sitter-hcl"}
+        return {
+            "nodes": [],
+            "edges": [],
+            "error": "tree_sitter_hcl not installed. Run: pip install tree-sitter-hcl",
+        }
 
     try:
         language = Language(tshcl.language())
@@ -41,14 +47,21 @@ def extract_terraform(path: Path) -> dict:
     file_nid = _make_id(str_path)
     scope = path.parent.name or "tf"
 
-    nodes: list[dict] = [{"id": file_nid, "label": path.name, "file_type": "code",
-                          "source_file": str_path, "source_location": None}]
+    nodes: list[dict] = [
+        {
+            "id": file_nid,
+            "label": path.name,
+            "file_type": "code",
+            "source_file": str_path,
+            "source_location": None,
+        }
+    ]
     edges: list[dict] = []
     seen_ids: set[str] = {file_nid}
     seen_edges: set[tuple[str, str, str]] = set()
 
     def _read(n) -> str:
-        return source[n.start_byte:n.end_byte].decode("utf-8", errors="replace")
+        return source[n.start_byte : n.end_byte].decode("utf-8", errors="replace")
 
     def _label_text(n) -> str:
         return _read(n).strip().strip('"')
@@ -57,11 +70,26 @@ def extract_terraform(path: Path) -> dict:
         nid = _make_id(scope, address)
         if nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({"id": nid, "label": label, "file_type": "code",
-                          "source_file": str_path, "source_location": f"L{line}"})
-            edges.append({"source": file_nid, "target": nid, "relation": "contains",
-                          "confidence": "EXTRACTED", "source_file": str_path,
-                          "source_location": f"L{line}", "weight": 1.0})
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": "code",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                }
+            )
+            edges.append(
+                {
+                    "source": file_nid,
+                    "target": nid,
+                    "relation": "contains",
+                    "confidence": "EXTRACTED",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                    "weight": 1.0,
+                }
+            )
         return nid
 
     def _add_edge(src: str, address: str, relation: str, line: int) -> None:
@@ -72,9 +100,17 @@ def extract_terraform(path: Path) -> dict:
         if key in seen_edges:
             return
         seen_edges.add(key)
-        edges.append({"source": src, "target": tgt, "relation": relation,
-                      "confidence": "EXTRACTED", "source_file": str_path,
-                      "source_location": f"L{line}", "weight": 1.0})
+        edges.append(
+            {
+                "source": src,
+                "target": tgt,
+                "relation": relation,
+                "confidence": "EXTRACTED",
+                "source_file": str_path,
+                "source_location": f"L{line}",
+                "weight": 1.0,
+            }
+        )
 
     def _block_parts(block) -> tuple:
         btype = None
@@ -153,7 +189,9 @@ def extract_terraform(path: Path) -> dict:
         if btype == "resource" and len(labels) >= 2:
             owner = _add_node(f"{labels[0]}.{labels[1]}", f"{labels[0]}.{labels[1]}", line)
         elif btype == "data" and len(labels) >= 2:
-            owner = _add_node(f"data.{labels[0]}.{labels[1]}", f"data.{labels[0]}.{labels[1]}", line)
+            owner = _add_node(
+                f"data.{labels[0]}.{labels[1]}", f"data.{labels[0]}.{labels[1]}", line
+            )
         elif btype == "module" and labels:
             owner = _add_node(f"module.{labels[0]}", f"module.{labels[0]}", line)
         elif btype == "variable" and labels:

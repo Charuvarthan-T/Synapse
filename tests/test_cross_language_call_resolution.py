@@ -15,6 +15,7 @@ Kotlin/Java share the JVM, C/C++/Objective-C share headers, JS/TS variants
 compile into one module graph. Candidates with no known family (non-code
 nodes) are never filtered, preserving the previous permissive behavior.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -33,55 +34,54 @@ def _call_edges(files: list[Path], base: Path) -> set[tuple[str, str, str, str]]
     lbl = {n["id"]: n["label"] for n in r["nodes"]}
     return {
         (lbl.get(e["source"], ""), lbl.get(e["target"], ""), e["relation"], e.get("confidence"))
-        for e in r["edges"] if e["relation"] in ("calls", "indirect_call")
+        for e in r["edges"]
+        if e["relation"] in ("calls", "indirect_call")
     }
 
 
 def test_tsx_callback_does_not_bind_to_kotlin_method(tmp_path: Path) -> None:
-    # The real-world symptom: a repo with a web app and a native Android app.
-    # A TSX component passes a callback by name; the only same-named definition
-    # repo-wide is a Kotlin method. No edge must be emitted.
-    _write(tmp_path / "web/Upcoming.tsx",
-           "declare function register(cb: () => void): void;\n"
-           "export function UpcomingPanel() {\n"
-           "  register(refreshHeading);\n"
-           "  return null;\n"
-           "}\n")
-    _write(tmp_path / "android/HeadingSensorBridge.kt",
-           "class HeadingSensorBridge {\n"
-           "    fun refreshHeading() {\n"
-           "        println(\"native sensor\")\n"
-           "    }\n"
-           "}\n")
+    _write(
+        tmp_path / "web/Upcoming.tsx",
+        "declare function register(cb: () => void): void;\n"
+        "export function UpcomingPanel() {\n"
+        "  register(refreshHeading);\n"
+        "  return null;\n"
+        "}\n",
+    )
+    _write(
+        tmp_path / "android/HeadingSensorBridge.kt",
+        "class HeadingSensorBridge {\n"
+        "    fun refreshHeading() {\n"
+        '        println("native sensor")\n'
+        "    }\n"
+        "}\n",
+    )
     edges = _call_edges(sorted(tmp_path.rglob("*.tsx")) + sorted(tmp_path.rglob("*.kt")), tmp_path)
     assert not any("refreshHeading" in t for _s, t, _r, _c in edges), edges
 
 
 def test_python_call_does_not_bind_to_kotlin_function(tmp_path: Path) -> None:
-    # Direct-call path (non-JS/TS callers have no import-evidence gate): a bare
-    # Python call must not resolve to the lone same-named Kotlin definition.
-    _write(tmp_path / "py/worker.py",
-           "def process():\n"
-           "    return refreshHeading()\n")
-    _write(tmp_path / "android/HeadingSensorBridge.kt",
-           "class HeadingSensorBridge {\n"
-           "    fun refreshHeading() {\n"
-           "        println(\"native sensor\")\n"
-           "    }\n"
-           "}\n")
+    _write(tmp_path / "py/worker.py", "def process():\n    return refreshHeading()\n")
+    _write(
+        tmp_path / "android/HeadingSensorBridge.kt",
+        "class HeadingSensorBridge {\n"
+        "    fun refreshHeading() {\n"
+        '        println("native sensor")\n'
+        "    }\n"
+        "}\n",
+    )
     edges = _call_edges(sorted(tmp_path.rglob("*.py")) + sorted(tmp_path.rglob("*.kt")), tmp_path)
     assert not any("refreshHeading" in t for _s, t, _r, _c in edges), edges
 
 
 def test_same_language_callback_still_resolves(tmp_path: Path) -> None:
-    # Positive control: a TS callback passed by name with a same-language
-    # definition and import evidence keeps resolving as INFERRED indirect_call.
-    _write(tmp_path / "a.ts",
-           'import { refreshHeading } from "./b";\n'
-           "declare function register(cb: () => void): void;\n"
-           "export function run() { register(refreshHeading); }\n")
-    _write(tmp_path / "b.ts",
-           "export function refreshHeading(): void {}\n")
+    _write(
+        tmp_path / "a.ts",
+        'import { refreshHeading } from "./b";\n'
+        "declare function register(cb: () => void): void;\n"
+        "export function run() { register(refreshHeading); }\n",
+    )
+    _write(tmp_path / "b.ts", "export function refreshHeading(): void {}\n")
     edges = _call_edges([tmp_path / "a.ts", tmp_path / "b.ts"], tmp_path)
     resolved = [e for e in edges if "refreshHeading" in e[1] and e[2] == "indirect_call"]
     assert resolved, edges
@@ -89,15 +89,10 @@ def test_same_language_callback_still_resolves(tmp_path: Path) -> None:
 
 
 def test_jvm_interop_kotlin_call_to_java_still_resolves(tmp_path: Path) -> None:
-    # Kotlin and Java share the JVM — same interop family, so a Kotlin call to a
-    # Java method must keep resolving exactly as it did before the guard.
-    _write(tmp_path / "Alarm.java",
-           "public class Alarm {\n"
-           "    public static void ring() { System.out.println(\"ring\"); }\n"
-           "}\n")
-    _write(tmp_path / "Scheduler.kt",
-           "fun schedule() {\n"
-           "    ring()\n"
-           "}\n")
+    _write(
+        tmp_path / "Alarm.java",
+        'public class Alarm {\n    public static void ring() { System.out.println("ring"); }\n}\n',
+    )
+    _write(tmp_path / "Scheduler.kt", "fun schedule() {\n    ring()\n}\n")
     edges = _call_edges([tmp_path / "Alarm.java", tmp_path / "Scheduler.kt"], tmp_path)
     assert any("ring" in t for _s, t, _r, _c in edges), edges

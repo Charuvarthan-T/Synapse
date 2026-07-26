@@ -1,4 +1,5 @@
 """Bash extractor. Moved verbatim from graphify/extract.py."""
+
 from __future__ import annotations
 
 import re
@@ -8,13 +9,7 @@ from typing import Any
 from graphify.extractors.base import _file_stem, _make_id, _read_text
 
 
-# Leading `${VAR}` / `$VAR` expansion segment(s) of a `source` path argument. The
-# canonical `BENCH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"` idiom makes
-# such a variable resolve to the script's own directory, so the literal suffix that
-# follows (`lib/x.sh`) can be resolved against the sourcing file's own dir (#2079).
-_BASH_LEADING_EXPANSION = re.compile(
-    r"^(?:(?:\$\{[^}]*\}|\$[A-Za-z_][A-Za-z0-9_]*)/?)+"
-)
+_BASH_LEADING_EXPANSION = re.compile(r"^(?:(?:\$\{[^}]*\}|\$[A-Za-z_][A-Za-z0-9_]*)/?)+")
 
 
 def _bash_source_suffix(raw: str) -> str | None:
@@ -29,13 +24,8 @@ def _bash_source_suffix(raw: str) -> str | None:
     return suffix
 
 
-# Name of the leading variable of a `source` argument: `${ROOT}/lib/x.sh` -> ROOT.
-_BASH_LEADING_VAR = re.compile(
-    r"^\$\{([A-Za-z_][A-Za-z0-9_]*)[^}]*\}|^\$([A-Za-z_][A-Za-z0-9_]*)"
-)
+_BASH_LEADING_VAR = re.compile(r"^\$\{([A-Za-z_][A-Za-z0-9_]*)[^}]*\}|^\$([A-Za-z_][A-Za-z0-9_]*)")
 
-# The `$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)` idiom, capturing the
-# trailing `/..` hops applied to the dirname result.
 _BASH_DIRNAME_IDIOM = re.compile(r"dirname[^)]*\)((?:/\.\.)*)")
 
 
@@ -89,11 +79,6 @@ def extract_bash(path: Path) -> dict:
     str_path = str(path)
     nodes: list[dict] = []
     edges: list[dict] = []
-    # Cross-file resolution scaffolding consumed by resolve_bash_source_edges in
-    # the extract pipeline: `bash_sources` records which files this one `source`s,
-    # `raw_calls` records calls whose callee isn't defined in this file (candidate
-    # calls into a sourced library). The extractor sees one file at a time and so
-    # can't resolve these itself (#2141).
     raw_calls: list[dict] = []
     bash_sources: list[dict] = []
     raw_seen: set[tuple[str, str]] = set()
@@ -101,30 +86,47 @@ def extract_bash(path: Path) -> dict:
     function_bodies: list[tuple[str, Any]] = []
     defined_functions: set[str] = set()
 
-    from graphify.security import sanitize_metadata  # module-level cached import
+    from graphify.security import sanitize_metadata
 
     def add_node(nid: str, label: str, line: int, kind: str = "code") -> None:
         if nid and nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({"id": nid, "label": label, "file_type": "code",
-                          "source_file": str_path, "source_location": f"L{line}",
-                          "metadata": sanitize_metadata({"language": "bash", "kind": kind})})  # noqa: E501
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": "code",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                    "metadata": sanitize_metadata({"language": "bash", "kind": kind}),
+                }
+            )  # noqa: E501
 
-    def add_edge(src: str, tgt: str, relation: str, line: int,
-                 confidence: str = "EXTRACTED", weight: float = 1.0,
-                 context: str | None = None) -> None:
+    def add_edge(
+        src: str,
+        tgt: str,
+        relation: str,
+        line: int,
+        confidence: str = "EXTRACTED",
+        weight: float = 1.0,
+        context: str | None = None,
+    ) -> None:
         if not src or not tgt or src == tgt:
             return
-        edge = {"source": src, "target": tgt, "relation": relation,
-                "confidence": confidence, "source_file": str_path,
-                "source_location": f"L{line}", "weight": weight}
+        edge = {
+            "source": src,
+            "target": tgt,
+            "relation": relation,
+            "confidence": confidence,
+            "source_file": str_path,
+            "source_location": f"L{line}",
+            "weight": weight,
+        }
         if context:
             edge["context"] = context
         edges.append(edge)
 
     file_nid = _make_id(str(path))
-    # file_nid is fully path-derived and never produced by _make_id(stem, func_name),
-    # so appending "__entry" guarantees a distinct ID from any function node.
     entry_nid = file_nid + "__entry"
     add_node(file_nid, path.name, 1, kind="file")
     add_node(entry_nid, f"{path.name} script", 1, kind="bash_entrypoint")
@@ -132,17 +134,15 @@ def extract_bash(path: Path) -> dict:
 
     _BASH_SOURCE_COMMANDS = frozenset({"source", "."})
     _BASH_SCRIPT_RUNNERS = frozenset({"bash", "sh", "zsh", "ksh", "dash"})
-    # Parent node types that mean a contained command is part of a substitution
-    # or expansion, not a real function call. Token-level filtering misses
-    # these because `$(build)` exposes `build` as a child command whose name
-    # token has no metacharacters — only the parent does.
-    _BASH_EXPANSION_PARENTS = frozenset({
-        "command_substitution",
-        "process_substitution",
-    })
+    _BASH_EXPANSION_PARENTS = frozenset(
+        {
+            "command_substitution",
+            "process_substitution",
+        }
+    )
 
     def text(node) -> str:
-        return source[node.start_byte:node.end_byte].decode("utf-8", errors="replace")
+        return source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
 
     def is_inside_expansion(node) -> bool:
         parent = node.parent
@@ -153,8 +153,6 @@ def extract_bash(path: Path) -> dict:
         return False
 
     def literal(node) -> str | None:
-        # Token-level filter: rejects names containing shell metacharacters.
-        # Combined with `is_inside_expansion` for parent-context rejection.
         raw = text(node).strip()
         if not raw:
             return None
@@ -166,7 +164,6 @@ def extract_bash(path: Path) -> dict:
 
     def _bash_func_name(node) -> str | None:
         """Get the name from a function_definition node."""
-        # bash grammar: function_definition has a word child (the name)
         for child in node.children:
             if child.type == "word":
                 return literal(child)
@@ -177,9 +174,6 @@ def extract_bash(path: Path) -> dict:
             return
         for child in body_node.children:
             if child.type == "function_definition":
-                # Skip nested function definitions — their bodies are walked
-                # separately, so we don't attribute their calls to the
-                # enclosing scope.
                 continue
             if child.type == "command" and not is_inside_expansion(child):
                 cmd_name_node = child.child_by_field_name("name")
@@ -187,35 +181,36 @@ def extract_bash(path: Path) -> dict:
                     cmd_name_node = child.children[0]
                 if cmd_name_node:
                     name = literal(cmd_name_node)
-                    # Defined-functions wins. Skip-lists for external commands
-                    # would create false negatives when a user defines a
-                    # function shadowing an external (`install`, `find`, etc.).
                     if name and name in defined_functions:
                         tgt = _make_id(stem, name)
                         key = (func_nid, tgt)
                         if tgt and key not in seen_calls:
                             seen_calls.add(key)
-                            add_edge(func_nid, tgt, "calls",
-                                     child.start_point[0] + 1,
-                                     confidence="EXTRACTED", context="call")
-                    elif (name and name not in _BASH_SOURCE_COMMANDS
-                          and name not in _BASH_SCRIPT_RUNNERS):
-                        # Callee isn't defined in this file — it may be a function
-                        # from a sourced library. Record an unresolved raw_call for
-                        # resolve_bash_source_edges to bind against the files this
-                        # script `source`s. A callee that is not a sourced function
-                        # (a genuine external command) matches nothing there and
-                        # yields no edge, so this can't over-connect the graph (#2141).
+                            add_edge(
+                                func_nid,
+                                tgt,
+                                "calls",
+                                child.start_point[0] + 1,
+                                confidence="EXTRACTED",
+                                context="call",
+                            )
+                    elif (
+                        name
+                        and name not in _BASH_SOURCE_COMMANDS
+                        and name not in _BASH_SCRIPT_RUNNERS
+                    ):
                         raw_key = (func_nid, name)
                         if raw_key not in raw_seen:
                             raw_seen.add(raw_key)
-                            raw_calls.append({
-                                "language": "bash",
-                                "callee": name,
-                                "caller_nid": func_nid,
-                                "source_file": str_path,
-                                "source_location": f"L{child.start_point[0] + 1}",
-                            })
+                            raw_calls.append(
+                                {
+                                    "language": "bash",
+                                    "callee": name,
+                                    "caller_nid": func_nid,
+                                    "source_file": str_path,
+                                    "source_location": f"L{child.start_point[0] + 1}",
+                                }
+                            )
             walk_calls(child, func_nid, seen_calls)
 
     def walk(node, parent_nid: str) -> None:
@@ -228,15 +223,12 @@ def extract_bash(path: Path) -> dict:
                 add_node(fn_nid, f"{name}()", line, kind="bash_function")
                 add_edge(parent_nid, fn_nid, "defines", line)
                 defined_functions.add(name)
-                # find the compound_statement body
                 body = None
                 for child in node.children:
                     if child.type == "compound_statement":
                         body = child
                         break
                 function_bodies.append((fn_nid, body))
-                # Recurse into the body so nested function definitions are discovered
-                # and added to function_bodies for the second-pass walk_calls.
                 if body is not None:
                     walk(body, fn_nid)
             return
@@ -249,48 +241,30 @@ def extract_bash(path: Path) -> dict:
                 cmd_name_node = node.children[0]
             if cmd_name_node:
                 cmd = literal(cmd_name_node)
-                args = [c for c in node.children
-                        if c.type in ("word", "string", "concatenation")
-                        and c != cmd_name_node]
+                args = [
+                    c
+                    for c in node.children
+                    if c.type in ("word", "string", "concatenation") and c != cmd_name_node
+                ]
                 if cmd in _BASH_SOURCE_COMMANDS and cmd not in defined_functions:
-                    # find the path argument (first word after command name)
                     if args:
                         raw = _read_text(args[0], source).strip().strip("'\"")
                         line = node.start_point[0] + 1
                         if raw.startswith((".", "/")):
                             resolved = (path.parent / raw).resolve()
-                            # Only emit the edge if the target actually exists on
-                            # disk — prevents graph pollution from crafted paths
-                            # like `source ../../etc/passwd` that traverse outside
-                            # the project tree (B-1).
                             if resolved.exists():
                                 tgt_nid = _make_id(str(resolved))
-                                add_edge(file_nid, tgt_nid, "imports_from", line,
-                                         context="import")
-                                # Record the sourced file so resolve_bash_source_edges
-                                # can bind calls into its functions (#2141). Gated on
-                                # existence like the edge above, so crafted traversal
-                                # paths never enter the resolver's data.
-                                bash_sources.append({
-                                    "target_path": raw,
-                                    "source_file": str_path,
-                                    "source_location": f"L{line}",
-                                })
+                                add_edge(file_nid, tgt_nid, "imports_from", line, context="import")
+                                bash_sources.append(
+                                    {
+                                        "target_path": raw,
+                                        "source_file": str_path,
+                                        "source_location": f"L{line}",
+                                    }
+                                )
                         elif "$" in raw:
-                            # Variable-built path, e.g. the ubiquitous
-                            # `source "${BENCH_DIR}/lib/x.sh"` idiom. The raw text
-                            # bakes the unexpanded `${VAR}` into the id, which
-                            # matches no node and is dropped as a dangling edge
-                            # (#2079). Strip the leading expansion(s) and resolve
-                            # the literal suffix against the script's own dir;
-                            # emit INFERRED (the expansion can't be proven
-                            # statically) only when it resolves to a real file,
-                            # never a dead id.
                             suffix = _bash_source_suffix(raw)
                             if suffix:
-                                # Resolve against the variable's tracked base when
-                                # we know it, else fall back to the script's own
-                                # directory as before (#2172).
                                 base = path.parent
                                 var_match = _BASH_LEADING_VAR.match(raw)
                                 if var_match:
@@ -299,28 +273,22 @@ def extract_bash(path: Path) -> dict:
                                         base = var_bases[var_name]
                                 resolved = (base / suffix).resolve()
                                 if resolved.is_file():
-                                    add_edge(file_nid, _make_id(str(resolved)),
-                                             "imports_from", line,
-                                             confidence="INFERRED", context="import")
-                                    # Integration (#2141 + #2079): record the resolved
-                                    # sourced file so calls into its functions resolve
-                                    # too, not just the source edge. target_path is
-                                    # absolute here; resolve_bash_source_edges takes it
-                                    # as-is.
-                                    bash_sources.append({
-                                        "target_path": str(resolved),
-                                        "source_file": str_path,
-                                        "source_location": f"L{line}",
-                                    })
+                                    add_edge(
+                                        file_nid,
+                                        _make_id(str(resolved)),
+                                        "imports_from",
+                                        line,
+                                        confidence="INFERRED",
+                                        context="import",
+                                    )
+                                    bash_sources.append(
+                                        {
+                                            "target_path": str(resolved),
+                                            "source_file": str_path,
+                                            "source_location": f"L{line}",
+                                        }
+                                    )
                         else:
-                            # Bare `source lib.sh` (no leading ./ or /). Bash
-                            # itself resolves such a name via $PATH at runtime,
-                            # but in practice the file sits next to the script,
-                            # so bind it when a sibling of that name exists
-                            # (#2171). Same existence gate as the ./-prefixed
-                            # branch above: a name that resolves to nothing keeps
-                            # the old opaque `imports` edge and records no
-                            # bash_sources entry, so nothing is fabricated.
                             sibling: Path | None = None
                             if raw:
                                 try:
@@ -330,22 +298,25 @@ def extract_bash(path: Path) -> dict:
                                 except OSError:
                                     sibling = None
                             if sibling is not None:
-                                # A bare `source lib.sh` resolves via $PATH at
-                                # runtime; binding it to the sibling of that name
-                                # is a heuristic, so mark it INFERRED (#2171).
-                                add_edge(file_nid, _make_id(str(sibling)),
-                                         "imports_from", line,
-                                         confidence="INFERRED", context="import")
-                                bash_sources.append({
-                                    "target_path": raw,
-                                    "source_file": str_path,
-                                    "source_location": f"L{line}",
-                                })
+                                add_edge(
+                                    file_nid,
+                                    _make_id(str(sibling)),
+                                    "imports_from",
+                                    line,
+                                    confidence="INFERRED",
+                                    context="import",
+                                )
+                                bash_sources.append(
+                                    {
+                                        "target_path": raw,
+                                        "source_file": str_path,
+                                        "source_location": f"L{line}",
+                                    }
+                                )
                             else:
                                 tgt_nid = _make_id(raw)
                                 if tgt_nid:
-                                    add_edge(file_nid, tgt_nid, "imports", line,
-                                             context="import")
+                                    add_edge(file_nid, tgt_nid, "imports", line, context="import")
                 elif cmd and cmd not in defined_functions:
                     raw = cmd if cmd.endswith(".sh") else None
                     if cmd in _BASH_SCRIPT_RUNNERS and args:
@@ -360,13 +331,16 @@ def extract_bash(path: Path) -> dict:
                                 except ValueError:
                                     pass
                             caller_nid = entry_nid if parent_nid == file_nid else parent_nid
-                            add_edge(caller_nid, _make_id(str(target_path)) + "__entry",
-                                     "calls", node.start_point[0] + 1,
-                                     context="script_invocation")
+                            add_edge(
+                                caller_nid,
+                                _make_id(str(target_path)) + "__entry",
+                                "calls",
+                                node.start_point[0] + 1,
+                                context="script_invocation",
+                            )
             return
 
         if t == "declaration_command":
-            # export/declare/readonly VAR=value at program level
             if node.parent and node.parent.type == "program":
                 for child in node.children:
                     if child.type == "variable_assignment":
@@ -383,9 +357,6 @@ def extract_bash(path: Path) -> dict:
         for child in node.children:
             walk(child, parent_nid)
 
-    # Pre-pass: collect all defined function names so the source-command handler
-    # in walk() can detect user-defined functions that shadow 'source' / '.'
-    # regardless of definition order in the file.
     def _prescan_functions(node) -> None:
         if node.type == "function_definition":
             name = _bash_func_name(node)
@@ -398,12 +369,6 @@ def extract_bash(path: Path) -> dict:
                 _prescan_functions(child)
 
     _prescan_functions(root)
-    # Bases for `source "${VAR}/lib/x.sh"` resolution (#2172). #2079 always resolved
-    # the literal suffix against the script's own directory, which is right for the
-    # `DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"` idiom but wrong whenever
-    # the variable points elsewhere -- e.g. ROOT=".../scripts/.." with a same-named
-    # decoy under the script dir bound to the decoy. Track top-level assignments so
-    # the real base is used; untracked variables keep the script-dir guess.
     var_bases: dict[str, Path] = {}
     for _assign in root.children:
         if _assign.type != "variable_assignment":
@@ -421,11 +386,9 @@ def extract_bash(path: Path) -> dict:
 
     walk(root, file_nid)
 
-    # Second pass: cross-function calls
     top_seen: set = set()
-    walk_calls(root, entry_nid, top_seen)  # top-level calls attributed to the entrypoint
+    walk_calls(root, entry_nid, top_seen)
     for fn_nid, body in function_bodies:
         walk_calls(body, fn_nid, set())
 
-    return {"nodes": nodes, "edges": edges,
-            "raw_calls": raw_calls, "bash_sources": bash_sources}
+    return {"nodes": nodes, "edges": edges, "raw_calls": raw_calls, "bash_sources": bash_sources}

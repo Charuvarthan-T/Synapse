@@ -1,4 +1,5 @@
 """Go extractor. Moved verbatim from graphify/extract.py."""
+
 from __future__ import annotations
 
 
@@ -6,11 +7,33 @@ from pathlib import Path
 from graphify.extractors.base import _LANGUAGE_BUILTIN_GLOBALS, _file_stem, _make_id, _read_text
 
 
-_GO_PREDECLARED_TYPES = frozenset({
-    "bool", "byte", "complex64", "complex128", "error", "float32", "float64",
-    "int", "int8", "int16", "int32", "int64", "rune", "string",
-    "uint", "uint8", "uint16", "uint32", "uint64", "uintptr", "any", "comparable",
-})
+_GO_PREDECLARED_TYPES = frozenset(
+    {
+        "bool",
+        "byte",
+        "complex64",
+        "complex128",
+        "error",
+        "float32",
+        "float64",
+        "int",
+        "int8",
+        "int16",
+        "int32",
+        "int64",
+        "rune",
+        "string",
+        "uint",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+        "uintptr",
+        "any",
+        "comparable",
+    }
+)
+
 
 def _go_collect_type_refs(node, source: bytes, generic: bool, out: list[tuple[str, str]]) -> None:
     """Walk a Go type expression; append (name, role) tuples."""
@@ -39,8 +62,14 @@ def _go_collect_type_refs(node, source: bytes, generic: bool, out: list[tuple[st
                     if arg.is_named:
                         _go_collect_type_refs(arg, source, True, out)
         return
-    if t in ("pointer_type", "slice_type", "array_type", "map_type",
-             "channel_type", "parenthesized_type"):
+    if t in (
+        "pointer_type",
+        "slice_type",
+        "array_type",
+        "map_type",
+        "channel_type",
+        "parenthesized_type",
+    ):
         for c in node.children:
             if c.is_named:
                 _go_collect_type_refs(c, source, generic, out)
@@ -49,6 +78,7 @@ def _go_collect_type_refs(node, source: bytes, generic: bool, out: list[tuple[st
         for c in node.children:
             if c.is_named:
                 _go_collect_type_refs(c, source, generic, out)
+
 
 def extract_go(path: Path) -> dict:
     """Extract functions, methods, type declarations, and imports from a .go file."""
@@ -68,30 +98,36 @@ def extract_go(path: Path) -> dict:
         return {"nodes": [], "edges": [], "error": str(e)}
 
     stem = _file_stem(path)
-    # Use directory name as package scope so methods on the same type across
-    # multiple files in a package share one canonical type node.
     pkg_scope = path.parent.name or stem
     str_path = str(path)
     nodes: list[dict] = []
     edges: list[dict] = []
     seen_ids: set[str] = set()
     function_bodies: list[tuple[str, object]] = []
-    go_imported_pkgs: set[str] = set()  # local names of imported packages
+    go_imported_pkgs: set[str] = set()
 
     def add_node(nid: str, label: str, line: int) -> None:
         if nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({
-                "id": nid,
-                "label": label,
-                "file_type": "code",
-                "source_file": str_path,
-                "source_location": f"L{line}",
-            })
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": "code",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                }
+            )
 
-    def add_edge(src: str, tgt: str, relation: str, line: int,
-                 confidence: str = "EXTRACTED", weight: float = 1.0,
-                 context: str | None = None) -> None:
+    def add_edge(
+        src: str,
+        tgt: str,
+        relation: str,
+        line: int,
+        confidence: str = "EXTRACTED",
+        weight: float = 1.0,
+        context: str | None = None,
+    ) -> None:
         edge = {
             "source": src,
             "target": tgt,
@@ -114,22 +150,17 @@ def extract_go(path: Path) -> dict:
             return nid
         nid = _make_id(name)
         if nid not in seen_ids:
-            # The name isn't declared in this file, so this is a cross-file reference
-            # (e.g. a type defined in another file of the package). Emit a SOURCELESS
-            # stub — like the inheritance-base path in the other extractors — so the
-            # corpus-level rewire can collapse it onto the real definition. A sourced
-            # stub here makes _disambiguate_colliding_node_ids bake the referencing
-            # file's path (with extension) into the id and blocks the rewire, which is
-            # the phantom-duplicate-node bug (#1402).
             seen_ids.add(nid)
-            nodes.append({
-                "id": nid,
-                "label": name,
-                "file_type": "code",
-                "source_file": "",
-                "source_location": "",
-                "origin_file": str_path,
-            })
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": name,
+                    "file_type": "code",
+                    "source_file": "",
+                    "source_location": "",
+                    "origin_file": str_path,
+                }
+            )
         return nid
 
     def emit_go_method_refs(func_node, func_nid: str, line: int) -> None:
@@ -236,7 +267,6 @@ def extract_go(path: Path) -> dict:
                 type_nid = _make_id(pkg_scope, type_name)
                 add_node(type_nid, type_name, line)
                 add_edge(file_nid, type_nid, "contains", line)
-                # Type body: struct fields (with embeds) or interface embedding.
                 type_body = None
                 for tc in child.children:
                     if tc.type in ("struct_type", "interface_type"):
@@ -251,9 +281,7 @@ def extract_go(path: Path) -> dict:
                         for field in fdl.children:
                             if field.type != "field_declaration":
                                 continue
-                            has_name = any(
-                                fc.type == "field_identifier" for fc in field.children
-                            )
+                            has_name = any(fc.type == "field_identifier" for fc in field.children)
                             type_node = field.child_by_field_name("type")
                             if type_node is None:
                                 for fc in field.children:
@@ -267,12 +295,16 @@ def extract_go(path: Path) -> dict:
                                 if tgt == type_nid:
                                     continue
                                 if not has_name and role == "type":
-                                    add_edge(type_nid, tgt, "embeds",
-                                             field.start_point[0] + 1)
+                                    add_edge(type_nid, tgt, "embeds", field.start_point[0] + 1)
                                 else:
                                     ctx = "generic_arg" if role == "generic_arg" else "field"
-                                    add_edge(type_nid, tgt, "references",
-                                             field.start_point[0] + 1, context=ctx)
+                                    add_edge(
+                                        type_nid,
+                                        tgt,
+                                        "references",
+                                        field.start_point[0] + 1,
+                                        context=ctx,
+                                    )
                 elif type_body.type == "interface_type":
                     for elem in type_body.children:
                         if elem.type != "type_elem":
@@ -286,11 +318,15 @@ def extract_go(path: Path) -> dict:
                             if tgt == type_nid:
                                 continue
                             if role == "type":
-                                add_edge(type_nid, tgt, "embeds",
-                                         elem.start_point[0] + 1)
+                                add_edge(type_nid, tgt, "embeds", elem.start_point[0] + 1)
                             else:
-                                add_edge(type_nid, tgt, "references",
-                                         elem.start_point[0] + 1, context="generic_arg")
+                                add_edge(
+                                    type_nid,
+                                    tgt,
+                                    "references",
+                                    elem.start_point[0] + 1,
+                                    context="generic_arg",
+                                )
             return
 
         if t == "import_declaration":
@@ -301,13 +337,18 @@ def extract_go(path: Path) -> dict:
                             path_node = spec.child_by_field_name("path")
                             if path_node:
                                 raw = _read_text(path_node, source).strip('"')
-                                # Prefix with go_pkg_ so stdlib names (e.g. "context")
-                                # don't collide with local files of the same basename.
                                 tgt_nid = _make_id("go", "pkg", raw)
-                                add_edge(file_nid, tgt_nid, "imports_from", spec.start_point[0] + 1, context="import")
-                                # Track local name (alias or last path segment)
+                                add_edge(
+                                    file_nid,
+                                    tgt_nid,
+                                    "imports_from",
+                                    spec.start_point[0] + 1,
+                                    context="import",
+                                )
                                 alias = spec.child_by_field_name("name")
-                                local_name = _read_text(alias, source) if alias else raw.split("/")[-1]
+                                local_name = (
+                                    _read_text(alias, source) if alias else raw.split("/")[-1]
+                                )
                                 if local_name and local_name != "_" and local_name != ".":
                                     go_imported_pkgs.add(local_name)
                 elif child.type == "import_spec":
@@ -315,7 +356,13 @@ def extract_go(path: Path) -> dict:
                     if path_node:
                         raw = _read_text(path_node, source).strip('"')
                         tgt_nid = _make_id("go", "pkg", raw)
-                        add_edge(file_nid, tgt_nid, "imports_from", child.start_point[0] + 1, context="import")
+                        add_edge(
+                            file_nid,
+                            tgt_nid,
+                            "imports_from",
+                            child.start_point[0] + 1,
+                            context="import",
+                        )
                         alias = child.child_by_field_name("name")
                         local_name = _read_text(alias, source) if alias else raw.split("/")[-1]
                         if local_name and local_name != "_" and local_name != ".":
@@ -350,8 +397,6 @@ def extract_go(path: Path) -> dict:
                     field = func_node.child_by_field_name("field")
                     operand = func_node.child_by_field_name("operand")
                     receiver_name = _read_text(operand, source) if operand else ""
-                    # Package-qualified call (e.g. fmt.Println) → allow cross-file resolution.
-                    # Receiver method call (e.g. s.logger.Log) → skip, no import evidence.
                     is_member_call = receiver_name not in go_imported_pkgs
                     if field:
                         callee_name = _read_text(field, source)
@@ -362,24 +407,28 @@ def extract_go(path: Path) -> dict:
                     if pair not in seen_call_pairs:
                         seen_call_pairs.add(pair)
                         line = node.start_point[0] + 1
-                        edges.append({
-                            "source": caller_nid,
-                            "target": tgt_nid,
-                            "relation": "calls",
-                            "context": "call",
-                            "confidence": "EXTRACTED",
-                            "source_file": str_path,
-                            "source_location": f"L{line}",
-                            "weight": 1.0,
-                        })
+                        edges.append(
+                            {
+                                "source": caller_nid,
+                                "target": tgt_nid,
+                                "relation": "calls",
+                                "context": "call",
+                                "confidence": "EXTRACTED",
+                                "source_file": str_path,
+                                "source_location": f"L{line}",
+                                "weight": 1.0,
+                            }
+                        )
                 elif callee_name:
-                    raw_calls.append({
-                        "caller_nid": caller_nid,
-                        "callee": callee_name,
-                        "is_member_call": is_member_call,
-                        "source_file": str_path,
-                        "source_location": f"L{node.start_point[0] + 1}",
-                    })
+                    raw_calls.append(
+                        {
+                            "caller_nid": caller_nid,
+                            "callee": callee_name,
+                            "is_member_call": is_member_call,
+                            "source_file": str_path,
+                            "source_location": f"L{node.start_point[0] + 1}",
+                        }
+                    )
         for child in node.children:
             walk_calls(child, caller_nid)
 
@@ -390,7 +439,9 @@ def extract_go(path: Path) -> dict:
     clean_edges = []
     for edge in edges:
         src, tgt = edge["source"], edge["target"]
-        if src in valid_ids and (tgt in valid_ids or edge["relation"] in ("imports", "imports_from")):
+        if src in valid_ids and (
+            tgt in valid_ids or edge["relation"] in ("imports", "imports_from")
+        ):
             clean_edges.append(edge)
 
     return {"nodes": nodes, "edges": clean_edges, "raw_calls": raw_calls}

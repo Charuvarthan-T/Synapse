@@ -34,8 +34,6 @@ def test_openai_base_url_and_model_env_override(monkeypatch):
 
 
 def test_graphify_openai_model_wins_over_openai_model(monkeypatch):
-    # model_env_key (GRAPHIFY_OPENAI_MODEL) is resolved at call time and takes
-    # precedence over the import-time OPENAI_MODEL default.
     monkeypatch.setenv("OPENAI_MODEL", "env-default-model")
     monkeypatch.setenv("GRAPHIFY_OPENAI_MODEL", "graphify-override-model")
     reloaded = importlib.reload(llm)

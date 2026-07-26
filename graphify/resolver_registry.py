@@ -40,8 +40,6 @@ class LanguageResolver:
     resolve: Callable
 
 
-# Module-level registry, populated by callers via register(). Ordered: resolvers
-# run in registration order, preserving any required sequencing between passes.
 _REGISTRY: list[LanguageResolver] = []
 
 

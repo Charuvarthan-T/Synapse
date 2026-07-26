@@ -5,6 +5,7 @@ home-resolution mechanism at a throwaway directory, so installers and
 uninstallers exercised by the suite can never delete or rewrite the
 developer's real ~/.claude, ~/.gemini, ~/.codebuddy, ~/.copilot, etc.
 """
+
 from __future__ import annotations
 
 import os
@@ -12,8 +13,6 @@ from pathlib import Path
 
 from graphify.__main__ import claude_uninstall
 
-# Module import happens during collection, before any fixture runs, so this
-# captures the developer's actual home directory for comparison below.
 _REAL_HOME = Path(os.path.realpath(os.path.expanduser("~")))
 
 
@@ -54,5 +53,4 @@ def test_global_uninstall_is_captured_by_sandbox(tmp_path, tmp_path_factory):
     claude_uninstall(project_dir)
 
     assert not skill.exists(), "global skill delete was not captured by the sandbox"
-    # And the sandbox home itself is still inside pytest's tmp area.
     assert Path.home().is_relative_to(tmp_path_factory.getbasetemp())

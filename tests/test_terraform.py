@@ -1,4 +1,5 @@
 """Tests for the Terraform/HCL extractor (graphify/extract.py, issue #187)."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -61,7 +62,6 @@ def test_no_error_and_all_block_types_become_nodes(tmp_path):
     r = extract_terraform(_write(tmp_path, "main.tf", SAMPLE))
     assert r.get("error") is None
     labels = set(_labels(r))
-    # one node per block type (the terraform{} settings block is intentionally skipped)
     for expected in (
         "var.region",
         "provider.aws",
@@ -98,7 +98,6 @@ def test_file_contains_blocks(tmp_path):
 
 
 def test_meta_heads_not_emitted(tmp_path):
-    # count.index / each.key / self.* / path.module are builtins, not references.
     body = """\
 resource "aws_instance" "web" {
   count = 2
@@ -113,8 +112,6 @@ resource "aws_instance" "web" {
 
 
 def test_cross_file_references_resolve_after_merge(tmp_path):
-    # A resource defined in one file is referenced from another in the same
-    # directory; directory-scoped IDs must let the edge resolve at build time.
     defn = """\
 resource "azurerm_resource_group" "main" { name = "rg" }
 """
@@ -126,12 +123,10 @@ resource "azurerm_network_interface" "nic" {
     r_defn = extract_terraform(_write(tmp_path, "main.tf", defn))
     r_user = extract_terraform(_write(tmp_path, "nic.tf", user))
 
-    # The cross-file edge target id equals the definition's node id.
     rg_id = next(n["id"] for n in r_defn["nodes"] if n["label"] == "azurerm_resource_group.main")
     nic_ref_targets = {e["target"] for e in r_user["edges"] if e["relation"] == "references"}
     assert rg_id in nic_ref_targets
 
-    # And it survives a real merge: the edge is present (not dropped as dangling).
     G = build_from_json(
         {
             "nodes": r_defn["nodes"] + r_user["nodes"],
@@ -145,14 +140,12 @@ resource "azurerm_network_interface" "nic" {
 def test_empty_and_commentonly_files_are_safe(tmp_path):
     assert extract_terraform(_write(tmp_path, "a.tf", "")).get("error") is None
     r = extract_terraform(_write(tmp_path, "b.tf", "# just a comment\n"))
-    # only the file node, no crash
     assert len(r["nodes"]) == 1
 
 
 def test_tfvars_key_value_is_safe(tmp_path):
-    # .tfvars files contain only key=value assignments (no block structure),
-    # so extract_terraform produces zero block nodes — only the file node.
-    # This is the documented intended behaviour for .tfvars.
-    r = extract_terraform(_write(tmp_path, "terraform.tfvars", 'region = "us-east-1"\nenv = "prod"\n'))
+    r = extract_terraform(
+        _write(tmp_path, "terraform.tfvars", 'region = "us-east-1"\nenv = "prod"\n')
+    )
     assert r.get("error") is None
-    assert len(r["nodes"]) == 1  # only the file node, no variable nodes
+    assert len(r["nodes"]) == 1

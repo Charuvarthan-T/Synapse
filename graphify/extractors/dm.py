@@ -1,4 +1,5 @@
 """Dm extractor. Moved verbatim from graphify/extract.py."""
+
 from __future__ import annotations
 
 import re
@@ -34,17 +35,36 @@ def extract_dm(path: Path) -> dict:
     def add_node(nid: str, label: str, line: int) -> None:
         if nid and nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({"id": nid, "label": label, "file_type": "code",
-                          "source_file": str_path, "source_location": f"L{line}"})
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": "code",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                }
+            )
 
-    def add_edge(src: str, tgt: str, relation: str, line: int,
-                 confidence: str = "EXTRACTED", weight: float = 1.0,
-                 context: str | None = None) -> None:
+    def add_edge(
+        src: str,
+        tgt: str,
+        relation: str,
+        line: int,
+        confidence: str = "EXTRACTED",
+        weight: float = 1.0,
+        context: str | None = None,
+    ) -> None:
         if not src or not tgt or src == tgt:
             return
-        edge: dict = {"source": src, "target": tgt, "relation": relation,
-                "confidence": confidence, "source_file": str_path,
-                "source_location": f"L{line}", "weight": weight}
+        edge: dict = {
+            "source": src,
+            "target": tgt,
+            "relation": relation,
+            "confidence": confidence,
+            "source_file": str_path,
+            "source_location": f"L{line}",
+            "weight": weight,
+        }
         if context:
             edge["context"] = context
         edges.append(edge)
@@ -77,8 +97,9 @@ def extract_dm(path: Path) -> dict:
             return "".join(parts)
         return _read_text(file_node, source).strip("'\"")
 
-    def walk(node, parent_type_path: "str | None" = None,
-             parent_type_nid: "str | None" = None) -> None:
+    def walk(
+        node, parent_type_path: "str | None" = None, parent_type_nid: "str | None" = None
+    ) -> None:
         t = node.type
         line = node.start_point[0] + 1
 
@@ -190,39 +211,53 @@ def extract_dm(path: Path) -> dict:
             if pair in seen_call_pairs:
                 return
             seen_call_pairs.add(pair)
-            edges.append({
-                "source": caller_nid, "target": tgt_nid, "relation": "calls",
-                "context": "call", "confidence": "EXTRACTED",
-                "source_file": str_path, "source_location": f"L{line}", "weight": 1.0,
-            })
+            edges.append(
+                {
+                    "source": caller_nid,
+                    "target": tgt_nid,
+                    "relation": "calls",
+                    "context": "call",
+                    "confidence": "EXTRACTED",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                    "weight": 1.0,
+                }
+            )
         else:
-            raw_calls.append({
-                "caller_nid": caller_nid, "callee": callee,
-                "is_member_call": is_member, "source_file": str_path,
-                "source_location": f"L{line}",
-            })
+            raw_calls.append(
+                {
+                    "caller_nid": caller_nid,
+                    "callee": callee,
+                    "is_member_call": is_member,
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                }
+            )
 
     def walk_calls(body_node, caller_nid: str) -> None:
         if body_node is None:
             return
         t = body_node.type
-        if t in ("proc_definition", "proc_override", "type_proc_definition",
-                 "type_proc_override", "type_definition"):
+        if t in (
+            "proc_definition",
+            "proc_override",
+            "type_proc_definition",
+            "type_proc_override",
+            "type_definition",
+        ):
             return
         if t == "call_expression":
             name_node = body_node.child_by_field_name("name")
             if name_node is not None:
                 callee = _read_text(name_node, source)
                 if callee and callee != "..":
-                    _emit_call(caller_nid, callee, body_node.start_point[0] + 1,
-                               is_member=False)
+                    _emit_call(caller_nid, callee, body_node.start_point[0] + 1, is_member=False)
         elif t == "field_proc_expression":
             proc_field = body_node.child_by_field_name("proc")
             if proc_field is not None:
                 callee = _read_text(proc_field, source)
                 if callee:
-                    _emit_call(caller_nid, callee, body_node.start_point[0] + 1,
-                               is_member=True)
+                    _emit_call(caller_nid, callee, body_node.start_point[0] + 1, is_member=True)
         elif t == "new_expression":
             tp_node = _find_child(body_node, "type_path")
             if tp_node is not None:
@@ -233,13 +268,18 @@ def extract_dm(path: Path) -> dict:
                     pair = (caller_nid, tgt_nid)
                     if pair not in seen_call_pairs:
                         seen_call_pairs.add(pair)
-                        edges.append({
-                            "source": caller_nid, "target": tgt_nid,
-                            "relation": "instantiates", "context": "call",
-                            "confidence": "EXTRACTED", "source_file": str_path,
-                            "source_location": f"L{body_node.start_point[0] + 1}",
-                            "weight": 1.0,
-                        })
+                        edges.append(
+                            {
+                                "source": caller_nid,
+                                "target": tgt_nid,
+                                "relation": "instantiates",
+                                "context": "call",
+                                "confidence": "EXTRACTED",
+                                "source_file": str_path,
+                                "source_location": f"L{body_node.start_point[0] + 1}",
+                                "weight": 1.0,
+                            }
+                        )
         for child in body_node.children:
             walk_calls(child, caller_nid)
 
@@ -248,17 +288,19 @@ def extract_dm(path: Path) -> dict:
 
     return {"nodes": nodes, "edges": edges, "raw_calls": raw_calls}
 
+
 def _read_dmi_description(data: bytes) -> str:
     """Pull the BYOND metadata text out of a .dmi PNG, or empty string on failure."""
     import struct
     import zlib as _zlib
+
     if not data.startswith(b"\x89PNG\r\n\x1a\n"):
         return ""
     i = 8
     while i + 8 <= len(data):
-        length = struct.unpack(">I", data[i:i + 4])[0]
-        chunk_type = data[i + 4:i + 8]
-        payload = data[i + 8:i + 8 + length]
+        length = struct.unpack(">I", data[i : i + 4])[0]
+        chunk_type = data[i + 4 : i + 8]
+        payload = data[i + 8 : i + 8 + length]
         if chunk_type in (b"tEXt", b"zTXt"):
             try:
                 null = payload.index(b"\x00")
@@ -267,10 +309,15 @@ def _read_dmi_description(data: bytes) -> str:
             keyword = payload[:null]
             if keyword == b"Description":
                 if chunk_type == b"zTXt":
-                    return _zlib.decompressobj().decompress(payload[null + 2:], max_length=1024 * 1024).decode("utf-8", errors="replace")
-                return payload[null + 1:].decode("utf-8", errors="replace")
+                    return (
+                        _zlib.decompressobj()
+                        .decompress(payload[null + 2 :], max_length=1024 * 1024)
+                        .decode("utf-8", errors="replace")
+                    )
+                return payload[null + 1 :].decode("utf-8", errors="replace")
         i += 8 + length + 4
     return ""
+
 
 def extract_dmi(path: Path) -> dict:
     """Extract icon state names from a .dmi (BYOND PNG icon sheet)."""
@@ -282,8 +329,15 @@ def extract_dmi(path: Path) -> dict:
     str_path = str(path)
     stem = _file_stem(path)
     file_nid = _make_id(str(path))
-    nodes: list[dict] = [{"id": file_nid, "label": path.name, "file_type": "code",
-                           "source_file": str_path, "source_location": "L1"}]
+    nodes: list[dict] = [
+        {
+            "id": file_nid,
+            "label": path.name,
+            "file_type": "code",
+            "source_file": str_path,
+            "source_location": "L1",
+        }
+    ]
     edges: list[dict] = []
     seen: set[str] = {file_nid}
 
@@ -308,15 +362,32 @@ def extract_dmi(path: Path) -> dict:
         if nid in seen:
             continue
         seen.add(nid)
-        nodes.append({"id": nid, "label": f'"{state_name}"', "file_type": "code",
-                      "source_file": str_path, "source_location": f"L{line_no}"})
-        edges.append({"source": file_nid, "target": nid, "relation": "contains",
-                      "confidence": "EXTRACTED", "source_file": str_path,
-                      "source_location": f"L{line_no}", "weight": 1.0})
+        nodes.append(
+            {
+                "id": nid,
+                "label": f'"{state_name}"',
+                "file_type": "code",
+                "source_file": str_path,
+                "source_location": f"L{line_no}",
+            }
+        )
+        edges.append(
+            {
+                "source": file_nid,
+                "target": nid,
+                "relation": "contains",
+                "confidence": "EXTRACTED",
+                "source_file": str_path,
+                "source_location": f"L{line_no}",
+                "weight": 1.0,
+            }
+        )
 
     return {"nodes": nodes, "edges": edges}
 
+
 _DMM_GRID_RE = re.compile(r"^\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)\s*=", re.MULTILINE)
+
 
 def _split_dmm_tile(body: str) -> list[str]:
     out: list[str] = []
@@ -355,11 +426,13 @@ def _split_dmm_tile(body: str) -> list[str]:
         out.append(tail)
     return out
 
+
 def _dmm_type_path(entry: str) -> str:
     brace = entry.find("{")
     if brace != -1:
         entry = entry[:brace]
     return entry.strip()
+
 
 def extract_dmm(path: Path) -> dict:
     """Extract type-path references from a .dmm map file's tile dictionary."""
@@ -372,12 +445,19 @@ def extract_dmm(path: Path) -> dict:
 
     str_path = str(path)
     file_nid = _make_id(str(path))
-    nodes: list[dict] = [{"id": file_nid, "label": path.name, "file_type": "code",
-                           "source_file": str_path, "source_location": "L1"}]
+    nodes: list[dict] = [
+        {
+            "id": file_nid,
+            "label": path.name,
+            "file_type": "code",
+            "source_file": str_path,
+            "source_location": "L1",
+        }
+    ]
     edges: list[dict] = []
 
     grid_match = _DMM_GRID_RE.search(text)
-    dict_text = text[:grid_match.start()] if grid_match else text
+    dict_text = text[: grid_match.start()] if grid_match else text
 
     seen_targets: set[str] = set()
     buf: list[str] = []
@@ -411,7 +491,7 @@ def extract_dmm(path: Path) -> dict:
             rp = chunk.rfind(")")
             if lp == -1 or rp == -1 or rp <= lp:
                 continue
-            inner = chunk[lp + 1:rp]
+            inner = chunk[lp + 1 : rp]
             for entry in _split_dmm_tile(inner):
                 tpath = _dmm_type_path(entry)
                 if not tpath.startswith("/"):
@@ -420,18 +500,28 @@ def extract_dmm(path: Path) -> dict:
                 if tgt in seen_targets:
                     continue
                 seen_targets.add(tgt)
-                edges.append({"source": file_nid, "target": tgt, "relation": "uses",
-                              "context": "map", "confidence": "EXTRACTED",
-                              "source_file": str_path,
-                              "source_location": f"L{open_line}", "weight": 1.0})
+                edges.append(
+                    {
+                        "source": file_nid,
+                        "target": tgt,
+                        "relation": "uses",
+                        "context": "map",
+                        "confidence": "EXTRACTED",
+                        "source_file": str_path,
+                        "source_location": f"L{open_line}",
+                        "weight": 1.0,
+                    }
+                )
 
     return {"nodes": nodes, "edges": edges}
+
 
 _DMF_WINDOW_RE = re.compile(r'^\s*window\s+"([^"]+)"\s*$')
 
 _DMF_ELEM_RE = re.compile(r'^\s*elem\s+"([^"]+)"\s*$')
 
-_DMF_TYPE_RE = re.compile(r'^\s*type\s*=\s*(\S+)\s*$')
+_DMF_TYPE_RE = re.compile(r"^\s*type\s*=\s*(\S+)\s*$")
+
 
 def extract_dmf(path: Path) -> dict:
     """Extract windows and controls from a .dmf interface file."""
@@ -443,8 +533,15 @@ def extract_dmf(path: Path) -> dict:
     str_path = str(path)
     stem = _file_stem(path)
     file_nid = _make_id(str(path))
-    nodes: list[dict] = [{"id": file_nid, "label": path.name, "file_type": "code",
-                           "source_file": str_path, "source_location": "L1"}]
+    nodes: list[dict] = [
+        {
+            "id": file_nid,
+            "label": path.name,
+            "file_type": "code",
+            "source_file": str_path,
+            "source_location": "L1",
+        }
+    ]
     edges: list[dict] = []
     seen: set[str] = {file_nid}
 
@@ -459,11 +556,26 @@ def extract_dmf(path: Path) -> dict:
             nid = _make_id(stem, "window", name)
             if nid not in seen:
                 seen.add(nid)
-                nodes.append({"id": nid, "label": f'window "{name}"', "file_type": "code",
-                              "source_file": str_path, "source_location": f"L{line_idx}"})
-                edges.append({"source": file_nid, "target": nid, "relation": "contains",
-                              "confidence": "EXTRACTED", "source_file": str_path,
-                              "source_location": f"L{line_idx}", "weight": 1.0})
+                nodes.append(
+                    {
+                        "id": nid,
+                        "label": f'window "{name}"',
+                        "file_type": "code",
+                        "source_file": str_path,
+                        "source_location": f"L{line_idx}",
+                    }
+                )
+                edges.append(
+                    {
+                        "source": file_nid,
+                        "target": nid,
+                        "relation": "contains",
+                        "confidence": "EXTRACTED",
+                        "source_file": str_path,
+                        "source_location": f"L{line_idx}",
+                        "weight": 1.0,
+                    }
+                )
             current_window_nid = nid
             current_elem_nid = None
             current_elem_name = None
@@ -474,12 +586,26 @@ def extract_dmf(path: Path) -> dict:
             nid = _make_id(stem, "elem", current_window_nid, name)
             if nid not in seen:
                 seen.add(nid)
-                nodes.append({"id": nid, "label": f'elem "{name}"', "file_type": "code",
-                              "source_file": str_path, "source_location": f"L{line_idx}"})
-                edges.append({"source": current_window_nid, "target": nid,
-                              "relation": "contains", "confidence": "EXTRACTED",
-                              "source_file": str_path, "source_location": f"L{line_idx}",
-                              "weight": 1.0})
+                nodes.append(
+                    {
+                        "id": nid,
+                        "label": f'elem "{name}"',
+                        "file_type": "code",
+                        "source_file": str_path,
+                        "source_location": f"L{line_idx}",
+                    }
+                )
+                edges.append(
+                    {
+                        "source": current_window_nid,
+                        "target": nid,
+                        "relation": "contains",
+                        "confidence": "EXTRACTED",
+                        "source_file": str_path,
+                        "source_location": f"L{line_idx}",
+                        "weight": 1.0,
+                    }
+                )
             current_elem_nid = nid
             current_elem_name = name
             continue

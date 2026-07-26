@@ -1,7 +1,3 @@
-# Gemini, and OpenAI.
-# Used by `graphify extract . --backend gemini` and the benchmark scripts.
-# The default graphify pipeline uses Claude Code subagents via skill.md;
-# this module provides a direct API path for non-Claude-Code environments.
 from __future__ import annotations
 
 import base64
@@ -24,15 +20,8 @@ from graphify.file_slice import (
     unit_path,
 )
 
-# `_read_files` truncates each file at this many characters before joining into
-# the user message. Token estimates use the same cap so packing matches reality.
 _FILE_CHAR_CAP = 20_000
-# `_read_files` wraps each file in an `<untrusted_source path=... sha256=...>`
-# delimiter block (see issue #1210); this is roughly the per-file overhead in
-# characters that wrapper adds (open tag + 64-char sha + close tag + newlines).
 _PER_FILE_OVERHEAD_CHARS = 160
-# Coarse fallback used only when `tiktoken` is not installed. 1 token ≈ 4 chars
-# is the standard heuristic for English/code on BPE tokenizers.
 _CHARS_PER_TOKEN = 4
 
 
@@ -49,11 +38,10 @@ def _get_tokenizer():
         return None
     try:
         return tiktoken.get_encoding("cl100k_base")
-    except Exception:  # network failure on first-use download, etc.
+    except Exception:
         return None
 
 
-# Cached at import time. None if tiktoken is unavailable; consumers must handle.
 _TOKENIZER = _get_tokenizer()
 
 
@@ -73,16 +61,14 @@ def _resolve_ollama_base_url(default: str) -> str:
     host = ollama_host.strip()
     if not host:
         return default
-    # Bare port ("11434") or ":port" (":11434") -> localhost on that port.
     if host.isdigit():
         host = f"localhost:{host}"
     elif host.startswith(":") and host[1:].isdigit():
         host = f"localhost{host}"
     if not host.startswith(("http://", "https://")):
         host = f"http://{host}"
-    # Default the port to Ollama's 11434 when the host omits it (bare hostname
-    # would otherwise resolve to port 80 and silently fail to connect).
     from urllib.parse import urlsplit, urlunsplit
+
     try:
         parts = urlsplit(host)
         if parts.hostname and parts.port is None:
@@ -99,28 +85,21 @@ def _resolve_ollama_base_url(default: str) -> str:
 
 BACKENDS: dict[str, dict] = {
     "claude": {
-        # ANTHROPIC_BASE_URL points the backend at any Anthropic-compatible
-        # server (LiteLLM proxy, gateways, ...); ANTHROPIC_MODEL overrides the
-        # default model. Mirrors the OPENAI_BASE_URL / OPENAI_MODEL pattern.
         "base_url": os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
         "default_model": os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
         "env_key": "ANTHROPIC_API_KEY",
-        "pricing": {"input": 3.0, "output": 15.0},  # USD per 1M tokens
+        "pricing": {"input": 3.0, "output": 15.0},
         "temperature": 0,
         "max_tokens": 16384,
         "vision": True,
     },
     "kimi": {
-        # KIMI_BASE_URL points the backend at any OpenAI-compatible server for
-        # Moonshot's Kimi models (LiteLLM, self-hosted proxy, ...).
         "base_url": os.environ.get("KIMI_BASE_URL", "https://api.moonshot.ai/v1"),
         "default_model": "kimi-k2.6",
         "env_key": "MOONSHOT_API_KEY",
-        # kimi-k2.6 is natively multimodal (MoonViT) and accepts the same
-        # OpenAI image_url data-URI block via Moonshot's compat endpoint.
         "vision": True,
-        "pricing": {"input": 0.74, "output": 4.66},  # USD per 1M tokens
-        "temperature": None,  # kimi-k2.6 enforces its own fixed temperature; sending any value raises 400
+        "pricing": {"input": 0.74, "output": 4.66},
+        "temperature": None,
         "max_tokens": 16384,
     },
     "ollama": {
@@ -132,87 +111,60 @@ BACKENDS: dict[str, dict] = {
         "max_tokens": 16384,
     },
     "gemini": {
-        # GEMINI_BASE_URL points the backend at any OpenAI-compatible server for
-        # Gemini models (LiteLLM, self-hosted proxy, ...). Falls back to Google's
-        # official OpenAI-compatible endpoint.
-        "base_url": os.environ.get("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/"),
+        "base_url": os.environ.get(
+            "GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/"
+        ),
         "default_model": "gemini-3-flash-preview",
         "env_keys": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
         "model_env_key": "GRAPHIFY_GEMINI_MODEL",
-        "pricing": {"input": 0.50, "output": 3.00},  # USD per 1M tokens
+        "pricing": {"input": 0.50, "output": 3.00},
         "temperature": 0,
         "reasoning_effort": "low",
         "max_completion_tokens": 16384,
         "vision": True,
     },
     "openai": {
-        # OPENAI_BASE_URL points the backend at any OpenAI-compatible server
-        # (llama.cpp, vLLM, LM Studio, ...); OPENAI_MODEL overrides the default
-        # model. GRAPHIFY_OPENAI_MODEL still wins over OPENAI_MODEL when both
-        # are set (via model_env_key).
         "base_url": os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
         "default_model": os.environ.get("OPENAI_MODEL", "gpt-4.1-mini"),
         "env_key": "OPENAI_API_KEY",
         "model_env_key": "GRAPHIFY_OPENAI_MODEL",
         "max_tokens": 16384,
-        "pricing": {"input": 0.40, "output": 1.60},  # USD per 1M tokens
-        # Default (gpt-4.1-mini) accepts temperature=0. Reasoning models
-        # (o1/o3/o4/gpt-5) reject any explicit temperature and have it omitted
-        # automatically by _resolve_temperature; GRAPHIFY_LLM_TEMPERATURE
-        # overrides either way (#1191).
+        "pricing": {"input": 0.40, "output": 1.60},
         "temperature": 0,
         "vision": True,
     },
     "deepseek": {
-        # DEEPSEEK_BASE_URL points the backend at any OpenAI-compatible server for
-        # DeepSeek models (LiteLLM, self-hosted proxy, ...). Falls back to DeepSeek's
-        # official API endpoint.
         "base_url": os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
         "default_model": "deepseek-v4-flash",
         "env_key": "DEEPSEEK_API_KEY",
         "model_env_key": "GRAPHIFY_DEEPSEEK_MODEL",
-        "pricing": {"input": 0.14, "output": 0.28},  # USD per 1M tokens (v4-flash)
-        # deepseek-reasoner silently ignores temperature; deepseek-chat / v4-flash
-        # accept 0-2, so sending 0 is safe. Note: deepseek-v4-flash (and v4-pro) have
-        # thinking ENABLED by default (verified against the live API, #1621) — set
-        # GRAPHIFY_DISABLE_THINKING=1 to turn it off (tradeoff documented on the flag).
+        "pricing": {"input": 0.14, "output": 0.28},
         "temperature": 0,
         "max_tokens": 16384,
     },
     "azure": {
-        # Azure OpenAI Service — uses AzureOpenAI SDK client, not the standard
-        # OpenAI client, so it has its own call path (_call_azure).
-        # Required env vars: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT.
-        # Optional: AZURE_OPENAI_API_VERSION (defaults to 2024-12-01-preview),
-        #           AZURE_OPENAI_DEPLOYMENT or GRAPHIFY_AZURE_MODEL (deployment name).
-        # base_url is intentionally absent — prevents accidental routing through
-        # _call_openai_compat, which requires it and uses the wrong SDK client class.
-        "default_model": os.environ.get("AZURE_OPENAI_DEPLOYMENT", os.environ.get("GRAPHIFY_AZURE_MODEL", "gpt-4o")),
+        "default_model": os.environ.get(
+            "AZURE_OPENAI_DEPLOYMENT", os.environ.get("GRAPHIFY_AZURE_MODEL", "gpt-4o")
+        ),
         "env_key": "AZURE_OPENAI_API_KEY",
         "model_env_key": "GRAPHIFY_AZURE_MODEL",
-        "pricing": {"input": 2.50, "output": 10.00},  # USD per 1M tokens (gpt-4o; may mis-estimate other deployments)
+        "pricing": {"input": 2.50, "output": 10.00},
         "temperature": 0,
         "max_tokens": 16384,
     },
     "bedrock": {
         "default_model": "anthropic.claude-3-5-sonnet-20241022-v2:0",
         "model_env_key": "GRAPHIFY_BEDROCK_MODEL",
-        "pricing": {"input": 3.0, "output": 15.0},  # USD per 1M tokens
+        "pricing": {"input": 3.0, "output": 15.0},
         "temperature": 0,
         "max_tokens": 16384,
         "vision": True,
     },
     "claude-cli": {
-        # Routes through the locally-installed `claude` CLI (Claude Code) using
-        # `-p --output-format json`. Authenticates via the user's existing
-        # Pro/Max subscription instead of a separate ANTHROPIC_API_KEY — costs
-        # are billed to the plan, not pay-as-you-go API credit.
         "default_model": "claude-code-plan",
         "pricing": {"input": 0.0, "output": 0.0},
         "temperature": 0,
         "max_tokens": 16384,
-        # Claude Code is multimodal; images are passed by path and read with the
-        # CLI's Read tool rather than as inline base64 (see `_call_claude_cli`).
         "vision": True,
     },
 }
@@ -236,11 +188,15 @@ def provider_base_url_ok(base_url: str, name: str, *, warn: bool = True) -> bool
     config is the GRAPHIFY_ALLOW_LOCAL_PROVIDERS gate on project-local files.
     """
     from urllib.parse import urlparse
+
     try:
         parsed = urlparse(base_url)
     except Exception:
         if warn:
-            print(f"[graphify] WARNING: provider {name!r} has an unparseable base_url; ignoring.", file=sys.stderr)
+            print(
+                f"[graphify] WARNING: provider {name!r} has an unparseable base_url; ignoring.",
+                file=sys.stderr,
+            )
         return False
     if parsed.scheme not in ("http", "https"):
         if warn:
@@ -262,13 +218,13 @@ def provider_base_url_ok(base_url: str, name: str, *, warn: bool = True) -> bool
 
 
 def _load_custom_providers() -> dict[str, dict]:
-    # A project-local ./.graphify/providers.json travels with a cloned or shared
-    # repo and defines where the corpus + API key are sent, so loading it
-    # silently is a corpus/key exfiltration vector. Require an explicit opt-in;
-    # the user's own global ~/.graphify/providers.json stays trusted.
     local_path = _custom_providers_path(global_=False)
     global_path = _custom_providers_path(global_=True)
-    allow_local = os.environ.get("GRAPHIFY_ALLOW_LOCAL_PROVIDERS", "").strip().lower() in ("1", "true", "yes")
+    allow_local = os.environ.get("GRAPHIFY_ALLOW_LOCAL_PROVIDERS", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
     if local_path.is_file() and not allow_local:
         print(
             f"[graphify] WARNING: ignoring project-local {local_path} (custom providers control "
@@ -314,12 +270,6 @@ def _resolve_max_tokens(default: int) -> int:
     return default
 
 
-# Model-name fragments for OpenAI-compatible "reasoning" models that reject an
-# explicit temperature: the API returns 400 "Unsupported value: 'temperature'
-# does not support 0 with this model. Only the default (1) value is supported."
-# Covers the o1/o3/o4 reasoning series and the gpt-5 family, which share the
-# same restriction. Matched case-insensitively against the resolved model id
-# (issue #1191).
 _FIXED_TEMPERATURE_MODEL_MARKERS = ("o1", "o1-", "o3", "o3-", "o4", "o4-", "gpt-5")
 
 
@@ -331,11 +281,9 @@ def _model_requires_default_temperature(model: str) -> bool:
     We must omit the parameter entirely for these (#1191).
     """
     m = (model or "").lower()
-    # Strip a leading "openai/" or provider prefix some gateways prepend.
     base = m.rsplit("/", 1)[-1]
     if base.startswith("gpt-5"):
         return True
-    # o1 / o3 / o4 family: bare ("o1") or versioned ("o3-mini", "o1-preview").
     for fam in ("o1", "o3", "o4"):
         if base == fam or base.startswith(fam + "-"):
             return True
@@ -395,6 +343,7 @@ def _no_window_kwargs() -> dict:
     becomes a visible window that appears and vanishes for the duration of the
     model call. CREATE_NO_WINDOW keeps the children invisible; no-op elsewhere."""
     import subprocess
+
     if sys.platform == "win32":
         return {"creationflags": subprocess.CREATE_NO_WINDOW}
     return {}
@@ -445,7 +394,13 @@ def _thinking_disabled_via_env() -> bool:
     run-to-run stability over extraction quality, not a forced default. The moonshot
     (kimi) branch keeps disabling thinking unconditionally because that model returns
     empty content otherwise."""
-    return os.environ.get("GRAPHIFY_DISABLE_THINKING", "").strip().lower() in ("1", "true", "yes", "on")
+    return os.environ.get("GRAPHIFY_DISABLE_THINKING", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+
 
 _EXTRACTION_SYSTEM = """\
 You are a graphify semantic extraction agent. Extract a knowledge graph fragment from the files provided.
@@ -504,6 +459,7 @@ def _file_to_text(path: Path) -> str:
     """
     if path.suffix.lower() == ".pdf":
         from graphify.detect import extract_pdf_text
+
         return extract_pdf_text(path)
     return path.read_text(encoding="utf-8", errors="replace")
 
@@ -519,12 +475,6 @@ def _resolve_under_root(path: Path, root: Path) -> Path | None:
     return resolved_path
 
 
-# Known prompt-injection / chat-template sentinels that a hostile source file
-# might embed to try to break out of the untrusted_source block or impersonate a
-# system/role turn. Neutralised (not deleted — we keep byte offsets stable enough
-# for analysis) by inserting a zero-width space so the model never sees an intact
-# control token. The closing delimiter for our own wrapper is also neutralised so
-# a file cannot forge an early `</untrusted_source>` and smuggle instructions out.
 _INJECTION_SENTINELS = re.compile(
     r"</?untrusted_source\b[^>]*>"
     r"|<\|(?:im_start|im_end|system|user|assistant|endoftext)\|>"
@@ -554,11 +504,7 @@ def _wrap_untrusted(rel: str, content: str) -> str:
     """
     sha = hashlib.sha256(content.encode("utf-8", errors="replace")).hexdigest()
     safe = _neutralise_injection_sentinels(content)
-    return (
-        f'<untrusted_source path="{rel}" sha256="{sha}">\n'
-        f"{safe}\n"
-        f"</untrusted_source>"
-    )
+    return f'<untrusted_source path="{rel}" sha256="{sha}">\n{safe}\n</untrusted_source>'
 
 
 def _read_files(units: "list[Path | FileSlice]", root: Path) -> str:
@@ -590,32 +536,11 @@ def _read_files(units: "list[Path | FileSlice]", root: Path) -> str:
                 content = _file_to_text(safe_path)
         except OSError:
             continue
-        # Whole files are still capped (covers non-splittable large files like
-        # code); slices are already bounded to the cap, so the cap is a no-op.
         parts.append(_wrap_untrusted(rel, content[:_FILE_CHAR_CAP]))
     return "\n\n".join(parts)
 
 
-# ── Semantic evidence-binding ─────────────────────────────────────────────────
-# The semantic (LLM) extraction runs on documents/papers/images — code files are
-# handled by the deterministic AST engine and never reach the model. So a
-# ``file_type == "code"`` node here is a symbol the model surfaced from WITHIN a
-# document (a name in a fenced code block, an API referenced in a paper). Verify
-# that such a symbol actually occurs in the source bytes the model was shown; a
-# node the model asserts with no evidence in its source is a likely fabrication.
-# `_out_of_scope` (#1895) only rejects a node attributed to a real file that was
-# NOT dispatched; a fabricated symbol attributed to a file that WAS dispatched
-# slips through it. This closes that intra-file gap with a lenient substring
-# check and FLAGS (never drops) an unverifiable node with ``verification =
-# "unverified"``, surfaced by the caller (stderr), reported by the diagnostics,
-# and left on the node in graph.json.
-# Short tokens (len < 3) are ignored: they match too readily to be evidence and
-# their absence is not a reliable fabrication signal, so skipping them avoids
-# false positives.
 _LABEL_IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
-# A dedicated node field — deliberately NOT the ``confidence`` key, whose
-# validated vocabulary ({EXTRACTED, INFERRED, AMBIGUOUS}, and only on edges)
-# this value does not belong to. Downstream (diagnostics) counts it.
 _VERIFICATION_FIELD = "verification"
 _UNVERIFIED_VALUE = "unverified"
 
@@ -678,11 +603,9 @@ def _bind_node_evidence(result: dict, text_units: "list[Path | FileSlice]", root
     nodes = result.get("nodes")
     if not nodes:
         return 0
-    # Perf: skip the (potentially expensive, e.g. PDF re-extraction) source read
-    # entirely when the result has no code-typed node with a source_file — the
-    # common case for a document/paper batch.
-    if not any(isinstance(n, dict) and n.get("file_type") == "code" and n.get("source_file")
-               for n in nodes):
+    if not any(
+        isinstance(n, dict) and n.get("file_type") == "code" and n.get("source_file") for n in nodes
+    ):
         return 0
     source_by_path = _dispatched_source_text(text_units, root)
     if not source_by_path:
@@ -703,28 +626,20 @@ def _bind_node_evidence(result: dict, text_units: "list[Path | FileSlice]", root
             continue
         src = source_by_path.get(key)
         if src is None:
-            continue  # not dispatched in this call — #1895's out-of-scope domain
-        idents = _label_identifiers(str(n.get("label", ""))) + _label_identifiers(str(n.get("id", "")))
+            continue
+        idents = _label_identifiers(str(n.get("label", ""))) + _label_identifiers(
+            str(n.get("id", ""))
+        )
         if not idents:
-            continue  # nothing checkable — do not flag
+            continue
         if any(ident.lower() in src for ident in idents):
-            continue  # symbol name is present in the source — verified
-        # No evidence. Flag only a node the model itself presented as solid
-        # (EXTRACTED/unset) — one it already hedged (INFERRED/AMBIGUOUS) needs no
-        # second flag. Idempotent: never overwrites an existing verification.
+            continue
         if n.get("confidence") in (None, "", "EXTRACTED") and not n.get(_VERIFICATION_FIELD):
             n[_VERIFICATION_FIELD] = _UNVERIFIED_VALUE
             downgraded += 1
     return downgraded
 
 
-# ── Image (vision) handling ───────────────────────────────────────────────────
-# Raster image types a vision model can actually look at. `.svg` is intentionally
-# excluded: it is XML markup, so `_read_files` reads it as text (the model parses
-# the source directly), which is more useful than rasterising it. Before this,
-# every image was fed through `path.read_text(errors="replace")`, turning binary
-# pixels into garbage text — noise for API backends and an outright `exit 1` for
-# the claude-cli backend.
 _VISION_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 _IMAGE_MEDIA_TYPES = {
     ".png": "image/png",
@@ -733,23 +648,9 @@ _IMAGE_MEDIA_TYPES = {
     ".gif": "image/gif",
     ".webp": "image/webp",
 }
-# Per-image byte ceiling. Anthropic caps a request at 32 MB and Bedrock images
-# at ~5 MB; 5 MB per image keeps every backend within limits. Oversized images
-# fall back to a text reference (the node is still created, just unseen).
 _MAX_IMAGE_BYTES = 5 * 1024 * 1024
-# Flat token estimate per image for chunk packing. Vision models bill an image
-# at a roughly fixed cost regardless of file size, so estimating by byte size
-# (as the generic path does) would force every large PNG into its own chunk.
 _IMAGE_TOKEN_ESTIMATE = 1_600
-# Hard cap on images per chunk, independent of the token budget. A large
-# token budget would otherwise pack hundreds of images into one request —
-# past provider per-request image limits (Anthropic allows 100), and far too
-# many for the claude-cli Read-tool loop to work through. Keeps memory and
-# request size bounded on image-dense corpora.
 _MAX_IMAGES_PER_CHUNK = 20
-# Backends that read an image by file path (claude-cli's Read tool)
-# instead of inlining base64. They open the file themselves and downsample as
-# needed, so `_MAX_IMAGE_BYTES` does not apply and the bytes never need loading.
 _PATH_IMAGE_BACKENDS = {"claude-cli"}
 
 
@@ -763,9 +664,9 @@ class _ImageRef:
     becomes a graph node.
     """
 
-    path: Path        # absolute path (claude-cli reads it via the Read tool)
-    rel: str          # path relative to the corpus root (the node's source_file)
-    media_type: str   # e.g. "image/png"
+    path: Path
+    rel: str
+    media_type: str
     raw: bytes | None
 
     @property
@@ -774,7 +675,6 @@ class _ImageRef:
 
     @property
     def bedrock_format(self) -> str:
-        # Converse wants a bare format token, not a media type.
         return self.media_type.split("/", 1)[-1]
 
 
@@ -795,7 +695,9 @@ def _partition_semantic_files(
     return text_units, image_files
 
 
-def _build_image_refs(image_files: list[Path], root: Path, *, read_bytes: bool = True) -> list[_ImageRef]:
+def _build_image_refs(
+    image_files: list[Path], root: Path, *, read_bytes: bool = True
+) -> list[_ImageRef]:
     """Build `_ImageRef`s for raster images.
 
     `read_bytes=True` (base64 backends) loads the pixels and drops any image over
@@ -809,7 +711,10 @@ def _build_image_refs(image_files: list[Path], root: Path, *, read_bytes: bool =
     for p in image_files:
         abs_path = _resolve_under_root(p, root)
         if abs_path is None:
-            print(f"[graphify] skipping image {p}: symlink target outside corpus root", file=sys.stderr)
+            print(
+                f"[graphify] skipping image {p}: symlink target outside corpus root",
+                file=sys.stderr,
+            )
             continue
         try:
             rel = str(p.relative_to(root))
@@ -868,13 +773,10 @@ def _image_notes(refs: list[_ImageRef], *, with_paths: bool = False) -> str:
             "then emit one node per image"
         )
     else:
-        header = (
-            "The following image file(s) are attached as visual input. Emit one "
-            "node per image"
-        )
+        header = "The following image file(s) are attached as visual input. Emit one node per image"
     lines = [
         "=== IMAGES ===",
-        f"{header} with \"file_type\":\"image\" and the listed source_file, a label "
+        f'{header} with "file_type":"image" and the listed source_file, a label '
         "describing what it depicts (diagram, screenshot, chart, photo, UI, logo), "
         "and edges to any code/doc nodes the image clearly references.",
     ]
@@ -929,15 +831,13 @@ def _openai_content(user_message: str, refs: list[_ImageRef]):
 def _bedrock_content(user_message: str, refs: list[_ImageRef]) -> list[dict]:
     """Build the Bedrock Converse user content list (raw bytes, not base64)."""
     content: list[dict] = [
-        {"image": {"format": r.bedrock_format, "source": {"bytes": r.raw}}}
-        for r in refs
-        if r.raw
+        {"image": {"format": r.bedrock_format, "source": {"bytes": r.raw}}} for r in refs if r.raw
     ]
     content.append({"text": _with_image_notes(user_message, refs)})
     return content
 
 
-_LLM_JSON_MAX_BYTES = 10 * 1024 * 1024  # 10 MB hard cap before json.loads (F-016)
+_LLM_JSON_MAX_BYTES = 10 * 1024 * 1024
 
 
 def _sanitize_fragment(parsed: dict) -> dict:
@@ -977,15 +877,10 @@ def _parse_llm_json(raw: str) -> dict:
             file=sys.stderr,
         )
         return {"nodes": [], "edges": [], "hyperedges": []}
-    # Strategy 1: strip whitespace, then handle markdown fences anywhere in the
-    # text (not only at offset 0 — the original code only stripped fences when
-    # `raw.startswith("```")`, missing the common case where Claude prepends a
-    # preamble like "Here's the extracted entities:\n\n```json\n{...}\n```").
     stripped = raw.strip()
     fence_start = stripped.find("```")
     if fence_start != -1:
         after_fence = stripped[fence_start + 3 :]
-        # Optional language tag (json, JSON, javascript, etc.) up to newline.
         nl = after_fence.find("\n")
         if nl != -1 and after_fence[:nl].strip().lower() in {"json", "javascript", "js", ""}:
             after_fence = after_fence[nl + 1 :]
@@ -998,14 +893,8 @@ def _parse_llm_json(raw: str) -> dict:
         parsed = json.loads(stripped)
         if isinstance(parsed, dict):
             return _sanitize_fragment(parsed)
-        # Top-level array/scalar (common LLM output) is not a usable graph
-        # fragment; fall through to the next strategy rather than returning a
-        # non-dict that callers will try to subscript (e.g. result["input_tokens"]).
     except json.JSONDecodeError:
         pass
-    # Strategy 2: extract the first balanced JSON object found anywhere in
-    # the text. Handles the case where Claude wraps the JSON in prose without
-    # any markdown fence ("The extracted graph is { ... }. Hope this helps!").
     start = stripped.find("{")
     if start != -1:
         depth = 0
@@ -1037,8 +926,7 @@ def _parse_llm_json(raw: str) -> dict:
                     except json.JSONDecodeError:
                         break
     print(
-        f"[graphify] LLM returned invalid JSON, skipping chunk "
-        f"(first 200 chars: {raw[:200]!r})",
+        f"[graphify] LLM returned invalid JSON, skipping chunk (first 200 chars: {raw[:200]!r})",
         file=sys.stderr,
     )
     return {"nodes": [], "edges": [], "hyperedges": []}
@@ -1112,7 +1000,7 @@ def _backend_pkg_hint(pkg: str, extra: str) -> str:
     """
     return (
         f"the '{pkg}' package is required for this backend but is not installed. "
-        f"Install it with:  uv tool install \"graphifyy[{extra}]\" --force  "
+        f'Install it with:  uv tool install "graphifyy[{extra}]" --force  '
         f"(uv tool), or  pip install {pkg}  (pip/venv install)."
     )
 
@@ -1138,23 +1026,12 @@ def _call_openai_compat(
         extra = backend if backend in ("kimi", "gemini", "openai", "ollama") else "openai"
         raise ImportError(_backend_pkg_hint("openai", extra)) from exc
 
-    # Local backends (ollama, llama.cpp, vLLM) routinely take >60s for a
-    # single chunk on a large model — far longer than the openai SDK's
-    # default. Honour GRAPHIFY_API_TIMEOUT (seconds) for explicit override;
-    # default to 600s, which is long enough for a 31B model on a 16k chunk
-    # but still bounds runaway connections (issue #792 addendum).
-    # The SDK's transient-error retries (default 6) exist for cloud rate limits
-    # (429). A local Ollama server does not rate-limit, and if it wedges it will
-    # not recover by retrying, so 6 retries turn a 180s --api-timeout into a
-    # ~21min block (7 attempts x 180s) with no progress (#1686). Default ollama
-    # to 0 SDK retries so --api-timeout is the hard wall-clock bound and a hung
-    # request fails fast into the chunk-level retry/skip. An explicit
-    # GRAPHIFY_MAX_RETRIES still wins for users who want it.
     _retries = _resolve_max_retries()
     if backend == "ollama" and not os.environ.get("GRAPHIFY_MAX_RETRIES", "").strip():
         _retries = 0
-    client = OpenAI(api_key=api_key, base_url=base_url, timeout=_resolve_api_timeout(),
-                    max_retries=_retries)
+    client = OpenAI(
+        api_key=api_key, base_url=base_url, timeout=_resolve_api_timeout(), max_retries=_retries
+    )
     kwargs: dict = {
         "model": model,
         "messages": [
@@ -1168,33 +1045,14 @@ def _call_openai_compat(
         kwargs["temperature"] = temperature
     if reasoning_effort is not None:
         kwargs["reasoning_effort"] = reasoning_effort
-    # A custom provider in providers.json can pass its own extra_body (e.g.
-    # `chat_template_kwargs.enable_thinking=false` for self-hosted Qwen3 served
-    # by vLLM). When supplied, it wins over the moonshot default — the user has
-    # explicitly chosen the request shape for their endpoint.
     if extra_body is not None:
         kwargs["extra_body"] = extra_body
-    # Kimi-k2.6 is a reasoning model — disable thinking so content isn't empty
     elif "moonshot" in base_url:
         kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
-    # Opt-in only: disable thinking for reasoning models like deepseek-v4-flash
-    # (#1621). Not a default — see _thinking_disabled_via_env for the tradeoff.
     elif _thinking_disabled_via_env():
         kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
-    # Ollama defaults num_ctx to 2048 and silently truncates prompts larger
-    # than that — the symptom is hollow 200 OK responses after the first few
-    # chunks (#798). We derive num_ctx from the actual prompt size so we don't
-    # over-allocate KV-cache VRAM. Over-allocation (e.g. 128k slots for an 8k
-    # prompt on a 31B model) exhausts VRAM by chunk 4 and produces the same
-    # hollow-200 symptom — just from a different direction (#798 follow-up).
-    # Formula: actual input tokens + output cap + system prompt headroom.
-    # Capped at 131072 (enough for the default 60k token_budget); env var wins.
-    # The ollama num_ctx auto-derive is a default. A custom provider that
-    # explicitly sets extra_body has opted out — respect their request shape.
     if backend == "ollama" and extra_body is None:
         num_ctx_raw = os.environ.get("GRAPHIFY_OLLAMA_NUM_CTX", "").strip()
-        # Auto-derive num_ctx from actual chunk size regardless — used as the
-        # fallback and for the mismatch check below.
         estimated_input = len(user_message) // _CHARS_PER_TOKEN + 400
         auto_num_ctx = min(estimated_input + max_completion_tokens + 2000, 131072)
         auto_num_ctx = max(auto_num_ctx, 8192)
@@ -1202,8 +1060,6 @@ def _call_openai_compat(
             try:
                 num_ctx = int(num_ctx_raw)
             except ValueError:
-                # Bad env var: fall through to auto-derivation (not 131072 —
-                # hardcoding the cap is what causes OOM on constrained VRAM).
                 print(
                     f"[graphify] GRAPHIFY_OLLAMA_NUM_CTX={num_ctx_raw!r} is not a valid integer; "
                     f"using auto-derived value ({auto_num_ctx}).",
@@ -1211,8 +1067,6 @@ def _call_openai_compat(
                 )
                 num_ctx = auto_num_ctx
             else:
-                # Warn when the pinned value is smaller than the estimated input —
-                # Ollama silently truncates the prompt and returns empty responses.
                 if num_ctx < estimated_input:
                     print(
                         f"[graphify] warning: GRAPHIFY_OLLAMA_NUM_CTX={num_ctx} is smaller than "
@@ -1222,8 +1076,6 @@ def _call_openai_compat(
                         file=sys.stderr,
                     )
         else:
-            # Estimate input tokens: user_message chars / 4 (standard BPE
-            # heuristic) + 400 for the system prompt, then add output headroom.
             num_ctx = auto_num_ctx
         keep_alive = os.environ.get("GRAPHIFY_OLLAMA_KEEP_ALIVE", "30m")
         kwargs["extra_body"] = {"options": {"num_ctx": num_ctx}, "keep_alive": keep_alive}
@@ -1235,15 +1087,7 @@ def _call_openai_compat(
     result["input_tokens"] = resp.usage.prompt_tokens if resp.usage else 0
     result["output_tokens"] = resp.usage.completion_tokens if resp.usage else 0
     result["model"] = model
-    # `finish_reason == "length"` means the model hit max_completion_tokens
-    # mid-generation. The JSON we got back is truncated; callers should
-    # treat this as a signal to retry with smaller input.
     result["finish_reason"] = resp.choices[0].finish_reason
-    # An overwhelmed local model (typically Ollama) can return HTTP 200 with
-    # empty / null content or unparseable half-generated JSON. The call looks
-    # successful, `finish_reason` is `"stop"`, and the chunk would be silently
-    # dropped from the corpus. Re-label as `"length"` so the adaptive retry
-    # layer bisects the chunk — same recovery as a true truncation.
     if _response_is_hollow(raw_content, result) and result["finish_reason"] != "length":
         print(
             f"[graphify] {backend or 'backend'} returned a hollow response "
@@ -1267,7 +1111,15 @@ def _call_openai_compat(
     return result
 
 
-def _call_claude(api_key: str, model: str, user_message: str, max_tokens: int = 8192, *, deep_mode: bool = False, images: list[_ImageRef] | None = None) -> dict:
+def _call_claude(
+    api_key: str,
+    model: str,
+    user_message: str,
+    max_tokens: int = 8192,
+    *,
+    deep_mode: bool = False,
+    images: list[_ImageRef] | None = None,
+) -> dict:
     """Call Anthropic Claude directly (not via OpenAI compat layer)."""
     try:
         import anthropic
@@ -1291,9 +1143,6 @@ def _call_claude(api_key: str, model: str, user_message: str, max_tokens: int = 
     result["input_tokens"] = resp.usage.input_tokens if resp.usage else 0
     result["output_tokens"] = resp.usage.output_tokens if resp.usage else 0
     result["model"] = model
-    # Normalise Anthropic's `stop_reason` to the OpenAI-compat `finish_reason`
-    # vocabulary so the adaptive-retry layer doesn't have to know which
-    # backend produced the result.
     result["finish_reason"] = "length" if resp.stop_reason == "max_tokens" else "stop"
     if _response_is_hollow(raw_content, result) and result["finish_reason"] != "length":
         print(
@@ -1322,10 +1171,7 @@ def _claude_cli_envelope(stdout: str) -> dict:
             f"first 500 chars of stdout: {stdout[:500]!r}"
         ) from exc
     if isinstance(envelope, list):
-        result_events = [
-            e for e in envelope
-            if isinstance(e, dict) and e.get("type") == "result"
-        ]
+        result_events = [e for e in envelope if isinstance(e, dict) and e.get("type") == "result"]
         if result_events:
             return result_events[-1]
         if envelope and isinstance(envelope[-1], dict):
@@ -1337,12 +1183,6 @@ def _claude_cli_envelope(stdout: str) -> dict:
     return envelope
 
 
-# A JSON Schema pinning the top-level shape graphify consumes. Passed to
-# `claude -p --json-schema` (structured output) so the CLI CONSTRAINS the model
-# to emit the object directly instead of relying on it CHOOSING to honour a
-# "raw JSON only" instruction in the prompt. Item internals stay loose so a
-# valid extraction is never rejected; the `result` envelope field still carries
-# the JSON string, so the parse path is unchanged. See #2076.
 _EXTRACTION_JSON_SCHEMA = json.dumps(
     {
         "type": "object",
@@ -1355,8 +1195,6 @@ _EXTRACTION_JSON_SCHEMA = json.dumps(
     }
 )
 
-# Cache the `--json-schema` capability probe per resolved claude command so it
-# runs at most once per process (extract fans a chunk out per file/slice).
 _JSON_SCHEMA_SUPPORT: dict[str, bool] = {}
 
 
@@ -1393,7 +1231,13 @@ def _claude_cli_supports_json_schema(claude_cmd: str) -> bool:
     return supported
 
 
-def _call_claude_cli(user_message: str, max_tokens: int = 8192, *, deep_mode: bool = False, images: list[_ImageRef] | None = None) -> dict:
+def _call_claude_cli(
+    user_message: str,
+    max_tokens: int = 8192,
+    *,
+    deep_mode: bool = False,
+    images: list[_ImageRef] | None = None,
+) -> dict:
     """Call Claude via the locally-installed Claude Code CLI (`claude -p`).
 
     Routes through the user's Claude Code subscription auth instead of a separate
@@ -1408,12 +1252,6 @@ def _call_claude_cli(user_message: str, max_tokens: int = 8192, *, deep_mode: bo
     import shutil
     import subprocess
 
-    # On Windows, npm installs `claude` as both `claude.ps1` and `claude.cmd`
-    # alongside each other. When PATHEXT lists `.PS1` before `.CMD`,
-    # `shutil.which("claude")` returns `claude.ps1`, which `CreateProcess`
-    # cannot execute directly — it raises `[WinError 2] The system cannot
-    # find the file specified`. `claude.cmd` IS executable by CreateProcess,
-    # so prefer it explicitly on Windows. See issue #1072.
     claude_cmd = "claude"
     if platform.system() == "Windows":
         cmd_path = shutil.which("claude.cmd")
@@ -1430,25 +1268,6 @@ def _call_claude_cli(user_message: str, max_tokens: int = 8192, *, deep_mode: bo
             "https://claude.ai/code and run `claude` once to authenticate."
         )
 
-    # Deliver the extraction instructions in the USER turn rather than via
-    # --system-prompt. Newer Claude Code CLIs (>= ~2.1) do not treat a
-    # --system-prompt as the sole authority: they still layer in the local
-    # coding-agent context (CLAUDE.md/AGENTS.md in cwd, skills, MCP) and, when
-    # the user turn is only a raw file dump with no request, reply
-    # conversationally ("I see the file, but there's no actual request
-    # attached — what would you like me to do with it?"). That prose parses to
-    # zero nodes/edges, so _response_is_hollow flags it as truncation and the
-    # adaptive-retry path bisects the chunk indefinitely, never converging and
-    # never writing graph.json (verified against Claude Code 2.1.197).
-    #
-    # Putting the full extraction schema plus an explicit imperative in the
-    # user turn — and dropping --system-prompt — makes the CLI emit the JSON
-    # object directly. The <untrusted_source> guardrails in _extraction_system
-    # still apply because the schema text is carried verbatim; only its
-    # delivery channel changes.
-    #
-    # When images are present, append the Read-the-paths instruction and
-    # allowlist each containing directory so the CLI's Read tool can open them.
     add_dir_args: list[str] = []
     if images:
         user_message = _with_image_notes(user_message, images, with_paths=True)
@@ -1468,27 +1287,16 @@ def _call_claude_cli(user_message: str, max_tokens: int = 8192, *, deep_mode: bo
         + user_message
     )
     cli_args = [
-        claude_cmd, "-p",
-        "--output-format", "json",
+        claude_cmd,
+        "-p",
+        "--output-format",
+        "json",
         "--no-session-persistence",
         *add_dir_args,
     ]
-    # claude-cli defaults to Opus, which is overkill for the structured-JSON
-    # extraction graphify performs. GRAPHIFY_CLAUDE_CLI_MODEL=haiku (or
-    # sonnet, or a full model ID like claude-haiku-4-5-20251001) lets users
-    # opt into a cheaper / faster model. Default behaviour unchanged when
-    # the env var is unset.
     cli_model = os.environ.get("GRAPHIFY_CLAUDE_CLI_MODEL", "").strip()
     if cli_model:
         cli_args.extend(["--model", cli_model])
-    # Constrain the output shape structurally where the CLI supports it. Newer
-    # Claude Code releases increasingly treat a bare file-dump prompt as an
-    # agentic task and REPORT the extraction in prose ("Knowledge graph
-    # extracted — 21 nodes, 20 edges…") instead of returning it; that parses to
-    # zero nodes, reads as truncation, and gets bisected without ever
-    # converging (#2076). --json-schema pins the object shape regardless of
-    # that framing; the user-turn prompt above stays as the fallback for older
-    # CLIs that predate the flag.
     if _claude_cli_supports_json_schema(claude_cmd):
         cli_args.extend(["--json-schema", _EXTRACTION_JSON_SCHEMA])
     proc = subprocess.run(
@@ -1496,25 +1304,17 @@ def _call_claude_cli(user_message: str, max_tokens: int = 8192, *, deep_mode: bo
         input=combined_message,
         capture_output=True,
         text=True,
-        encoding="utf-8",  # Force UTF-8 — prevents UnicodeEncodeError on Windows cp1252
-        errors="replace",  # Tolerate non-UTF-8 bytes (e.g. GBK/cp936 from claude.cmd on Chinese Windows)
+        encoding="utf-8",
+        errors="replace",
         timeout=_resolve_api_timeout(),
         check=False,
         **_no_window_kwargs(),
     )
     if proc.returncode != 0:
-        raise RuntimeError(
-            f"claude -p exited {proc.returncode}: {proc.stderr.strip()[:500]}"
-        )
+        raise RuntimeError(f"claude -p exited {proc.returncode}: {proc.stderr.strip()[:500]}")
 
     envelope = _claude_cli_envelope(proc.stdout)
 
-    # When --json-schema is in effect the CLI puts the CONSTRAINED object in the
-    # `structured_output` envelope field; `result` stays the model's discretionary
-    # text, which on a "reporting" turn is prose even with the flag set (verified
-    # live on Claude Code 2.1.185). Prefer the structured channel and route it
-    # through the same _parse_llm_json normalizer; fall back to parsing `result`
-    # for older CLIs that don't emit structured_output (#2076 review).
     structured = envelope.get("structured_output")
     if isinstance(structured, dict):
         raw_content = json.dumps(structured)
@@ -1560,8 +1360,13 @@ def _azure_client(api_key: str, endpoint: str):
                 timeout_s = v
         except ValueError:
             pass
-    return AzureOpenAI(api_key=api_key, azure_endpoint=endpoint, api_version=api_version, timeout=timeout_s,
-                       max_retries=_resolve_max_retries())
+    return AzureOpenAI(
+        api_key=api_key,
+        azure_endpoint=endpoint,
+        api_version=api_version,
+        timeout=timeout_s,
+        max_retries=_resolve_max_retries(),
+    )
 
 
 def _call_azure(
@@ -1605,7 +1410,14 @@ def _call_azure(
     return result
 
 
-def _call_bedrock(model: str, user_message: str, max_tokens: int = 8192, *, deep_mode: bool = False, images: list[_ImageRef] | None = None) -> dict:
+def _call_bedrock(
+    model: str,
+    user_message: str,
+    max_tokens: int = 8192,
+    *,
+    deep_mode: bool = False,
+    images: list[_ImageRef] | None = None,
+) -> dict:
     """Call AWS Bedrock via boto3 Converse API using the standard AWS credential chain."""
     try:
         import boto3
@@ -1686,9 +1498,6 @@ def extract_files_direct(
     cfg = BACKENDS[backend]
     key = api_key or _get_backend_api_key(backend)
     if not key and backend == "ollama":
-        # Ollama ignores auth but the OpenAI client library requires a non-empty
-        # string. Use a placeholder and surface a visible warning so this never
-        # silently routes traffic without the user realising — see F-029.
         ollama_url = _resolve_ollama_base_url(cfg.get("base_url", ""))
         _validate_ollama_base_url(ollama_url)
         print(
@@ -1704,14 +1513,9 @@ def extract_files_direct(
             f"Set {_format_backend_env_keys(backend)} or pass api_key=."
         )
     mdl = model or _default_model_for_backend(backend)
-    # Separate raster images from text-like files. Text goes through _read_files
-    # as before; images become structured refs the backend renders as pixels
-    # (vision backends) or as a text reference node (everything else).
     text_files, image_files = _partition_semantic_files(files)
     user_msg = _read_files(text_files, root)
     vision = _backend_supports_vision(backend)
-    # Only base64 (inline) vision backends need the bytes loaded + size-capped;
-    # path-based backends (claude-cli) and non-vision backends do not.
     read_bytes = vision and backend not in _PATH_IMAGE_BACKENDS
     image_refs = _build_image_refs(image_files, root, read_bytes=read_bytes) if image_files else []
     if image_refs and not vision:
@@ -1719,11 +1523,17 @@ def extract_files_direct(
     max_out = _resolve_max_tokens(cfg.get("max_tokens", 8192))
 
     if backend == "claude":
-        result = _call_claude(key, mdl, user_msg, max_tokens=max_out, deep_mode=deep_mode, images=image_refs)
+        result = _call_claude(
+            key, mdl, user_msg, max_tokens=max_out, deep_mode=deep_mode, images=image_refs
+        )
     elif backend == "claude-cli":
-        result = _call_claude_cli(user_msg, max_tokens=max_out, deep_mode=deep_mode, images=image_refs)
+        result = _call_claude_cli(
+            user_msg, max_tokens=max_out, deep_mode=deep_mode, images=image_refs
+        )
     elif backend == "bedrock":
-        result = _call_bedrock(mdl, user_msg, max_tokens=max_out, deep_mode=deep_mode, images=image_refs)
+        result = _call_bedrock(
+            mdl, user_msg, max_tokens=max_out, deep_mode=deep_mode, images=image_refs
+        )
     elif backend == "azure":
         endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT", "").strip()
         if not endpoint:
@@ -1748,10 +1558,6 @@ def extract_files_direct(
             user_msg,
             temperature=_resolve_temperature(cfg.get("temperature", 0), mdl),
             reasoning_effort=cfg.get("reasoning_effort"),
-            # Honour max_completion_tokens (gemini) or the older max_tokens key
-            # (ollama/deepseek/kimi/openai) -- most openai-compat configs define the
-            # latter, so reading only max_completion_tokens silently capped their
-            # output at the 8192 fallback and truncated deep-mode JSON (#1365).
             max_completion_tokens=_resolve_max_tokens(
                 cfg.get("max_completion_tokens") or cfg.get("max_tokens", 8192)
             ),
@@ -1761,10 +1567,6 @@ def extract_files_direct(
             extra_body=cfg.get("extra_body"),
         )
 
-    # Verify code-typed nodes against the source the model read and downgrade the
-    # confidence of any whose symbol name has no evidence there. Runs on the bytes
-    # the model actually saw (text_files, same cap as _read_files); images are
-    # excluded (binary, unverifiable). Best-effort — never abort extraction.
     if isinstance(result, dict):
         try:
             _n_unverified = _bind_node_evidence(result, text_files, root)
@@ -1788,19 +1590,19 @@ def _estimate_file_tokens(unit: "Path | FileSlice") -> int:
     the wrapper. Returns 0 for unreadable paths so they don't blow up packing.
     """
     if isinstance(unit, FileSlice):
-        # A slice's size is its char range (already ≤ _FILE_CHAR_CAP). Use the
-        # tokenizer on its text when available, else the chars/4 heuristic.
         if _TOKENIZER is None:
-            return (min(unit.end - unit.start, _FILE_CHAR_CAP) + _PER_FILE_OVERHEAD_CHARS) // _CHARS_PER_TOKEN
+            return (
+                min(unit.end - unit.start, _FILE_CHAR_CAP) + _PER_FILE_OVERHEAD_CHARS
+            ) // _CHARS_PER_TOKEN
         try:
             content = read_slice_text(unit)[:_FILE_CHAR_CAP]
         except OSError:
             return 0
-        return len(_TOKENIZER.encode(content, disallowed_special=())) + (_PER_FILE_OVERHEAD_CHARS // _CHARS_PER_TOKEN)
+        return len(_TOKENIZER.encode(content, disallowed_special=())) + (
+            _PER_FILE_OVERHEAD_CHARS // _CHARS_PER_TOKEN
+        )
 
     path = unit
-    # Raster images are not read as text; a vision model bills them at a roughly
-    # fixed token cost, so estimate by image count rather than (binary) byte size.
     if _is_vision_image(path):
         return _IMAGE_TOKEN_ESTIMATE
     if _TOKENIZER is None:
@@ -1815,7 +1617,9 @@ def _estimate_file_tokens(unit: "Path | FileSlice") -> int:
         content = path.read_text(encoding="utf-8", errors="replace")[:_FILE_CHAR_CAP]
     except OSError:
         return 0
-    return len(_TOKENIZER.encode(content, disallowed_special=())) + (_PER_FILE_OVERHEAD_CHARS // _CHARS_PER_TOKEN)
+    return len(_TOKENIZER.encode(content, disallowed_special=())) + (
+        _PER_FILE_OVERHEAD_CHARS // _CHARS_PER_TOKEN
+    )
 
 
 def _pack_chunks_by_tokens(
@@ -2000,6 +1804,7 @@ def _extract_with_adaptive_retry(
     non-splittable file (e.g. one huge code file) can't be made smaller than
     itself, so we return what we got and warn.
     """
+
     def _merge_two(left_units, right_units) -> dict:
         left = _extract_with_adaptive_retry(
             left_units, backend, api_key, model, root, max_depth, _depth + 1, deep_mode=deep_mode
@@ -2019,8 +1824,6 @@ def _extract_with_adaptive_retry(
         }
 
     def _split_lone_slice() -> "tuple[FileSlice, FileSlice] | None":
-        # When a single-unit chunk is a slice, bisect the slice so we can retry
-        # on a smaller range rather than give up (#1369).
         if len(chunk) == 1 and isinstance(chunk[0], FileSlice) and _depth < max_depth:
             return bisect_slice(chunk[0])
         return None
@@ -2046,14 +1849,30 @@ def _extract_with_adaptive_retry(
                 f"and cannot be split further: {exc}",
                 file=sys.stderr,
             )
-            return {"nodes": [], "edges": [], "hyperedges": [], "input_tokens": 0, "output_tokens": 0, "model": model, "finish_reason": "stop"}
+            return {
+                "nodes": [],
+                "edges": [],
+                "hyperedges": [],
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "model": model,
+                "finish_reason": "stop",
+            }
         if _depth >= max_depth:
             print(
                 f"[graphify] chunk of {len(chunk)} still overflows context at "
                 f"recursion depth {_depth} (max {max_depth}) — dropping",
                 file=sys.stderr,
             )
-            return {"nodes": [], "edges": [], "hyperedges": [], "input_tokens": 0, "output_tokens": 0, "model": model, "finish_reason": "stop"}
+            return {
+                "nodes": [],
+                "edges": [],
+                "hyperedges": [],
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "model": model,
+                "finish_reason": "stop",
+            }
         print(
             f"[graphify] chunk of {len(chunk)} exceeded context at depth "
             f"{_depth} ({type(exc).__name__}); splitting in half and retrying",
@@ -2094,10 +1913,6 @@ def _extract_with_adaptive_retry(
             f"max_completion_tokens — partial result kept (not cached as complete)",
             file=sys.stderr,
         )
-        # The node set is incomplete; mark it so it is not promoted to the
-        # semantic cache as authoritative and is re-dispatched next run. Also
-        # record the chunk's files so a truncation that parsed to nothing (an
-        # empty item set) still marks the file partial (#1950 empty-parse gap).
         _mark_partial(result)
         result["_partial_files"] = sorted(
             set(_chunk_partial_files(chunk)) | set(result.get("_partial_files", []) or [])
@@ -2110,10 +1925,6 @@ def _extract_with_adaptive_retry(
             f"depth {_depth} (max {max_depth}) — partial result kept (not cached as complete)",
             file=sys.stderr,
         )
-        # Conservative: this marks every file in the merged chunk partial, even
-        # ones that finished cleanly during recursion. Over-marking only costs a
-        # re-extraction next run; under-marking would serve a truncated file as
-        # complete, so err toward re-extraction.
         _mark_partial(result)
         result["_partial_files"] = sorted(
             set(_chunk_partial_files(chunk)) | set(result.get("_partial_files", []) or [])
@@ -2141,9 +1952,6 @@ def _extract_with_adaptive_retry(
         "input_tokens": left.get("input_tokens", 0) + right.get("input_tokens", 0),
         "output_tokens": left.get("output_tokens", 0) + right.get("output_tokens", 0),
         "model": result.get("model"),
-        # Both halves either succeeded or have already surfaced their own
-        # truncation warning; the merged result is no longer truncated as a
-        # logical unit.
         "finish_reason": "stop",
         "_partial_files": _merged_partial_files(left, right),
     }
@@ -2209,19 +2017,19 @@ def extract_corpus_parallel(
     front so packing/slicing helpers can rely on ``Path`` semantics (#1386).
     """
     files = [f if isinstance(f, (Path, FileSlice)) else Path(f) for f in files]
-    # Split oversized splittable documents into slices that cover the whole file
-    # before packing, so content past _FILE_CHAR_CAP is extracted instead of
-    # silently dropped (#1369). Files at/under the cap pass through unchanged.
     files = expand_oversized_files(files, _FILE_CHAR_CAP)
     if token_budget is not None:
         chunks = _pack_chunks_by_tokens(files, token_budget=token_budget)
     else:
-        chunks = [files[i:i + chunk_size] for i in range(0, len(files), chunk_size)]
+        chunks = [files[i : i + chunk_size] for i in range(0, len(files), chunk_size)]
 
     merged: dict = {
-        "nodes": [], "edges": [], "hyperedges": [],
-        "input_tokens": 0, "output_tokens": 0,
-        "failed_chunks": 0,  # count of chunks that raised — loud failure on chunk errors
+        "nodes": [],
+        "edges": [],
+        "hyperedges": [],
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "failed_chunks": 0,
     }
     total = len(chunks)
 
@@ -2242,39 +2050,21 @@ def extract_corpus_parallel(
         except Exception as exc:  # noqa: BLE001 — caller-facing surface, log + continue
             return idx, None, exc
 
-    # Ollama serves one request at a time per loaded model on a single GPU.
-    # Four concurrent 60k-token requests cause VRAM pressure and hollow
-    # responses after 3-4 chunks (#798). Force serial unless the user opts in.
     if backend == "ollama" and os.environ.get("GRAPHIFY_OLLAMA_PARALLEL", "").strip() != "1":
         max_concurrency = 1
-    # claude-cli shells out to a Claude Code session; parallel subprocesses conflict
-    # over session state. Force serial unless the user explicitly opts in.
-    if backend == "claude-cli" and os.environ.get("GRAPHIFY_CLAUDE_CLI_PARALLEL", "").strip() != "1":
+    if (
+        backend == "claude-cli"
+        and os.environ.get("GRAPHIFY_CLAUDE_CLI_PARALLEL", "").strip() != "1"
+    ):
         max_concurrency = 1
+
     def _checkpoint_chunk(result: dict, chunk: "list[Path | FileSlice]") -> None:
-        # Persist each chunk's semantic results to the cache as soon as it
-        # completes. Without this, the semantic cache is only written once, at
-        # the very end of the run (in __main__), so a run interrupted partway
-        # — a crash, a kill, or a claude-cli/API run that exits on a rate
-        # limit — loses every completed chunk and restarts from scratch. This
-        # is best-effort: a cache write failure must never abort extraction.
         if os.environ.get("GRAPHIFY_NO_INCREMENTAL_CACHE"):
             return
         try:
             from .cache import save_semantic_cache as _scs
-            # Scope the write to the files actually dispatched in this chunk
-            # (#1757). The model can attribute a node's source_file to another
-            # corpus file; without this bound, that stray node would clobber the
-            # other file's complete cache entry (or, with merge_existing, pollute
-            # it). Use unit_path so a FileSlice (one slice of an oversized doc)
-            # resolves to its parent file; a bare Path passes through. (#1870: the
-            # old `.rel` attribute does not exist on FileSlice, so every sliced
-            # chunk leaked the FileSlice object into the allowlist and the write
-            # raised TypeError, silently defeating the checkpoint.)
+
             allowed = [unit_path(item) for item in chunk]
-            # Deep-mode results checkpoint into their own namespace
-            # (cache/semantic-deep/) so a deep run never overwrites standard
-            # entries — and a later standard run never serves deep ones (#1894).
             _scs(
                 result.get("nodes", []),
                 result.get("edges", []),
@@ -2284,13 +2074,7 @@ def extract_corpus_parallel(
                 merge_existing=True,
                 allowed_source_files=allowed,
                 mode="deep" if deep_mode else None,
-                # Stamp the entry with the prompt that produced it, so a release
-                # that changes _EXTRACTION_SYSTEM re-extracts instead of replaying
-                # this vintage forever (#1939).
                 prompt=_extraction_system(deep=deep_mode),
-                # A truncated/partial chunk must not be checkpointed as
-                # authoritative: pass the partial file set so its entry is
-                # stamped ``partial: True`` and re-dispatched next run.
                 partial_source_files=_partial_source_files(result) or None,
             )
         except Exception as _exc:  # noqa: BLE001 — checkpoint is best-effort
@@ -2298,8 +2082,6 @@ def extract_corpus_parallel(
 
     workers = max(1, min(max_concurrency, total))
     if workers == 1:
-        # Avoid thread pool overhead for single-worker runs (and keep
-        # callback ordering identical to the pre-refactor sequential path).
         for idx, chunk in enumerate(chunks):
             _, result, exc = _run_one(idx, chunk)
             if exc is not None:
@@ -2312,13 +2094,6 @@ def extract_corpus_parallel(
             if callable(on_chunk_done):
                 on_chunk_done(idx, total, result)
     else:
-        # Merge in deterministic submission order, NOT completion order. Merging
-        # as chunks finish makes the node/edge ordering in the returned corpus
-        # (and therefore graph.json) depend on which network call happened to
-        # return first — so identical input churned run-to-run (#1632). Collect
-        # results keyed by chunk index and merge in sorted order after the pool
-        # drains; this matches the serial path's order. The progress callback
-        # still fires in completion order so long local runs aren't silent.
         results_by_idx: dict[int, dict] = {}
         with ThreadPoolExecutor(max_workers=workers) as pool:
             futures = [pool.submit(_run_one, idx, chunk) for idx, chunk in enumerate(chunks)]
@@ -2339,9 +2114,6 @@ def extract_corpus_parallel(
         for idx in sorted(results_by_idx):
             _merge_into(merged, results_by_idx[idx])
 
-    # Loud failure summary — surface chunk failures at end so they're never
-    # buried mid-log. Exit 0 preserved for caller compatibility; the
-    # summary block makes the problem visible.
     if merged["failed_chunks"] > 0:
         print(
             f"[graphify] WARNING: {merged['failed_chunks']}/{total} semantic chunk(s) failed"
@@ -2349,22 +2121,8 @@ def extract_corpus_parallel(
             file=sys.stderr,
         )
 
-    # Dispatch/return reconciliation (#1890). A chunk can return a clean, non-empty
-    # response that simply omits some of the documents it was given; those docs then
-    # vanish from the graph with no node, no warning, and no cache/manifest stamp, so
-    # they are silently re-dispatched (and re-omitted) forever. Diff the files we
-    # dispatched against the source_files that actually came back and surface the gap.
     dispatched = {unit_path(f) for chunk in chunks for f in chunk}
 
-    # Out-of-scope node filter (#1895). The #1757 cache guard already refuses
-    # to WRITE a cache entry for a node whose source_file is a real file that
-    # was not dispatched, but the node itself still flowed into the merged
-    # result and landed in graph.json. Mirror the #1757 condition here: resolve
-    # each source_file against root and drop the node only when it resolves to
-    # an existing file (.is_file()) outside the dispatched set — non-file
-    # source_files (concepts, model-invented anchors) pass through untouched.
-    # Runs BEFORE the #1890 covered/uncovered reconciliation so that diff
-    # reflects the post-filter graph.
     def _resolve_against_root(value: "str | Path") -> Path:
         p = Path(value)
         if not p.is_absolute():
@@ -2397,19 +2155,17 @@ def extract_corpus_parallel(
     merged["out_of_scope_dropped"] = dropped_node_count
     if dropped_node_count:
         merged["nodes"] = kept_nodes
-        # Keep the graph consistent: an edge or hyperedge referencing a
-        # dropped node's id (or itself attributed to an undispatched real
-        # file) must not survive its endpoint.
         merged["edges"] = [
-            e for e in merged.get("edges", [])
+            e
+            for e in merged.get("edges", [])
             if not _out_of_scope(e)
             and e.get("source") not in dropped_ids
             and e.get("target") not in dropped_ids
         ]
         merged["hyperedges"] = [
-            h for h in merged.get("hyperedges", [])
-            if not _out_of_scope(h)
-            and not (dropped_ids & set(h.get("nodes", []) or []))
+            h
+            for h in merged.get("hyperedges", [])
+            if not _out_of_scope(h) and not (dropped_ids & set(h.get("nodes", []) or []))
         ]
         shown = ", ".join(sorted(Path(f).name for f in dropped_files)[:5])
         more = f" (+{len(dropped_files) - 5} more)" if len(dropped_files) > 5 else ""
@@ -2427,10 +2183,7 @@ def extract_corpus_parallel(
         if sf:
             p = Path(sf)
             covered.add(p if p.is_absolute() else (root / p))
-    uncovered = sorted(
-        p for p in dispatched
-        if p.resolve() not in {c.resolve() for c in covered}
-    )
+    uncovered = sorted(p for p in dispatched if p.resolve() not in {c.resolve() for c in covered})
     merged["uncovered_files"] = [str(p) for p in uncovered]
     if uncovered:
         shown = ", ".join(p.name for p in uncovered[:5])
@@ -2451,9 +2204,6 @@ def _merge_into(merged: dict, result: dict) -> None:
     merged["hyperedges"].extend(result.get("hyperedges", []))
     merged["input_tokens"] += result.get("input_tokens", 0)
     merged["output_tokens"] += result.get("output_tokens", 0)
-    # Carry forward files a chunk truncated to an empty parse (#1950): these have
-    # no items to ride the merge, so they'd otherwise be lost from the run-level
-    # partial set the manifest stamp consults.
     incoming = result.get("_partial_files")
     if incoming:
         merged["_partial_files"] = sorted(
@@ -2509,7 +2259,12 @@ def _call_llm(
             import anthropic
         except ImportError as exc:
             raise ImportError(_backend_pkg_hint("anthropic", "anthropic")) from exc
-        client = anthropic.Anthropic(api_key=key, base_url=cfg["base_url"], timeout=_resolve_api_timeout(), max_retries=_resolve_max_retries())
+        client = anthropic.Anthropic(
+            api_key=key,
+            base_url=cfg["base_url"],
+            timeout=_resolve_api_timeout(),
+            max_retries=_resolve_max_retries(),
+        )
         resp = client.messages.create(
             model=mdl,
             max_tokens=max_tokens,
@@ -2522,9 +2277,7 @@ def _call_llm(
 
     if backend == "claude-cli":
         import platform, shutil, subprocess
-        # Mirror the extraction-path resolution: on Windows the npm shim is
-        # claude.cmd, which CreateProcess can't resolve from a bare "claude"
-        # (PATHEXT doesn't apply), so pass the resolved .cmd path explicitly.
+
         claude_cmd = "claude"
         if platform.system() == "Windows":
             cmd_path = shutil.which("claude.cmd")
@@ -2542,8 +2295,8 @@ def _call_llm(
             input=prompt,
             capture_output=True,
             text=True,
-            encoding="utf-8",  # Force UTF-8 — prevents UnicodeEncodeError on Windows cp1252
-            errors="replace",  # Tolerate non-UTF-8 bytes (e.g. GBK/cp936 from claude.cmd on Chinese Windows)
+            encoding="utf-8",
+            errors="replace",
             timeout=_resolve_api_timeout(),
             check=False,
             **_no_window_kwargs(),
@@ -2560,7 +2313,6 @@ def _call_llm(
                 cli_usage.get("output_tokens", 0),
             )
         return envelope.get("result", "")
-
 
     if backend == "bedrock":
         try:
@@ -2584,9 +2336,7 @@ def _call_llm(
     if backend == "azure":
         endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT", "").strip()
         if not endpoint:
-            raise ValueError(
-                "Azure OpenAI backend requires AZURE_OPENAI_ENDPOINT to be set."
-            )
+            raise ValueError("Azure OpenAI backend requires AZURE_OPENAI_ENDPOINT to be set.")
         azure_client = _azure_client(key, endpoint)
         azure_kwargs: dict = {
             "model": mdl,
@@ -2604,20 +2354,20 @@ def _call_llm(
             _rec(getattr(au, "prompt_tokens", 0), getattr(au, "completion_tokens", 0))
         return resp.choices[0].message.content or ""
 
-    # OpenAI-compatible (kimi, openai, gemini, ollama)
     try:
         from openai import OpenAI
     except ImportError as exc:
         raise ImportError(_backend_pkg_hint("openai", "openai")) from exc
-    client = OpenAI(api_key=key, base_url=cfg["base_url"], timeout=_resolve_api_timeout(), max_retries=_resolve_max_retries())
+    client = OpenAI(
+        api_key=key,
+        base_url=cfg["base_url"],
+        timeout=_resolve_api_timeout(),
+        max_retries=_resolve_max_retries(),
+    )
     kwargs: dict = {
         "model": mdl,
         "messages": [{"role": "user", "content": prompt}],
         "max_completion_tokens": max_tokens,
-        # Force a single non-streamed response: some OpenAI-compatible gateways
-        # default to SSE streaming when `stream` is omitted, but the result here
-        # is always read as resp.choices[0]. Same fix as _call_openai_compat
-        # (#1223) — this path feeds the --dedup-llm tiebreaker.
         "stream": False,
     }
     temperature = _resolve_temperature(cfg.get("temperature", 0), mdl)
@@ -2625,8 +2375,6 @@ def _call_llm(
         kwargs["temperature"] = temperature
     if cfg.get("reasoning_effort"):
         kwargs["reasoning_effort"] = cfg["reasoning_effort"]
-    # Custom providers can override via providers.json `extra_body`; falls back
-    # to the moonshot default to preserve existing behavior.
     if cfg.get("extra_body") is not None:
         kwargs["extra_body"] = cfg["extra_body"]
     elif "moonshot" in cfg["base_url"]:
@@ -2659,9 +2407,10 @@ def _ollama_host_is_link_local_or_metadata(host: str) -> bool:
     """
     import ipaddress
     import socket
-    if host in ("metadata.google.internal", "metadata.google.com", "0.0.0.0", "::", "[::]"):  # nosec B104 - blocklist, not a bind
+
+    if host in ("metadata.google.internal", "metadata.google.com", "0.0.0.0", "::", "[::]"):
         return True
-    if host.startswith("169.254."):  # link-local literal, includes the metadata IP
+    if host.startswith("169.254."):
         return True
     try:
         infos = socket.getaddrinfo(host, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
@@ -2672,7 +2421,7 @@ def _ollama_host_is_link_local_or_metadata(host: str) -> bool:
             ip = ipaddress.ip_address(info[4][0])
         except ValueError:
             continue
-        if ip.is_link_local:  # 169.254.0.0/16 and fe80::/10 (includes the metadata IP)
+        if ip.is_link_local:
             return True
     return False
 
@@ -2691,6 +2440,7 @@ def _validate_ollama_base_url(url: str, *, warn: bool = True) -> None:
     """
     try:
         from urllib.parse import urlparse
+
         parsed = urlparse(url)
     except Exception:
         if warn:
@@ -2740,37 +2490,38 @@ def detect_backend() -> str | None:
             return backend
     if _get_backend_api_key("azure") and os.environ.get("AZURE_OPENAI_ENDPOINT"):
         return "azure"
-    if os.environ.get("AWS_PROFILE") or os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION"):
+    if (
+        os.environ.get("AWS_PROFILE")
+        or os.environ.get("AWS_REGION")
+        or os.environ.get("AWS_DEFAULT_REGION")
+    ):
         return "bedrock"
-    # Honor Ollama's own OLLAMA_HOST here too, not just OLLAMA_BASE_URL (#1940) —
-    # otherwise a user who set the standard Ollama var but no --backend still
-    # gets "no LLM API key found". Empty default -> falsy when neither is set,
-    # so ollama stays opt-in and never shadows a paid key (checked first above).
     ollama_url = _resolve_ollama_base_url("")
     if ollama_url:
         _validate_ollama_base_url(ollama_url)
         return "ollama"
     for name in BACKENDS:
-        if name not in ("gemini", "kimi", "claude", "openai", "deepseek", "azure", "bedrock", "ollama", "claude-cli"):
+        if name not in (
+            "gemini",
+            "kimi",
+            "claude",
+            "openai",
+            "deepseek",
+            "azure",
+            "bedrock",
+            "ollama",
+            "claude-cli",
+        ):
             if _get_backend_api_key(name):
                 return name
     return None
 
 
-# ── Community labeling ────────────────────────────────────────────────────────
-# When graphify runs inside an orchestrating agent (Claude Code / Gemini CLI),
-# the agent names communities itself per skill.md Step 5 - it reads the analysis
-# file and writes 2-5 word names with its own reasoning, no API call. When
-# graphify is run as a bare CLI (``graphify extract . --backend X``), there is no
-# agent to do that step, so community labels stay ``Community 0/1/2...``. These
-# helpers fill that gap: ask the configured backend to name communities in ONE
-# batched call and return a complete ``{cid: name}`` map (#1097).
-
 _LABEL_FENCE_RE = re.compile(r"^\s*```(?:json)?\s*|\s*```\s*$", re.IGNORECASE)
-_LABEL_MAX_COMMUNITIES = 200   # legacy soft-cap; kept for callers that pin it.
-_LABEL_TOP_K = 12              # node labels sampled per community for the prompt
-_LABEL_MAXLEN = 60             # truncate individual labels to keep the prompt small
-_LABEL_BATCH_SIZE = 100        # communities per LLM call; sized for ~16k context windows
+_LABEL_MAX_COMMUNITIES = 200
+_LABEL_TOP_K = 12
+_LABEL_MAXLEN = 60
+_LABEL_BATCH_SIZE = 100
 
 
 def _placeholder_community_labels(communities) -> dict[int, str]:
@@ -2781,7 +2532,6 @@ def _community_label_lines(G, communities, gods, max_communities, top_k):
     """One prompt line per community (largest first), sampling up to ``top_k``
     representative node labels (god nodes first). Returns (lines, labeled_cids);
     skips communities with no resolvable nodes."""
-    # gods may be node-id strings or god_nodes() dicts ({"id": ..., "label": ...}).
     god_set = {g["id"] if isinstance(g, dict) else g for g in (gods or [])}
     ordered = sorted(communities.items(), key=lambda kv: -len(kv[1]))
     lines: list[str] = []
@@ -2811,7 +2561,7 @@ def _parse_label_response(text: str, labeled_cids: list[int]) -> dict[int, str]:
     if not cleaned.startswith("{"):
         start, end = cleaned.find("{"), cleaned.rfind("}")
         if start != -1 and end > start:
-            cleaned = cleaned[start:end + 1]
+            cleaned = cleaned[start : end + 1]
     data: dict | None = None
     try:
         parsed = json.loads(cleaned)
@@ -2820,12 +2570,6 @@ def _parse_label_response(text: str, labeled_cids: list[int]) -> dict[int, str]:
     except (json.JSONDecodeError, ValueError):
         data = None
     if data is None:
-        # Salvage: pull the complete "<cid>": "<name>" pairs directly. A model
-        # can truncate its reply mid-object (a stingy token budget or a preamble
-        # eating the completion), which used to hard-fail the whole batch with
-        # e.g. `Expecting value: line 1 column 6` on a `{"0":` fragment (#1690).
-        # Recovering the pairs that DID arrive labels those communities instead
-        # of dropping the entire batch to placeholders.
         pairs = re.findall(r'"?(-?\d+)"?\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"', cleaned)
         if pairs:
             data = {k: v for k, v in pairs}
@@ -2869,20 +2613,14 @@ def _label_batch_with_retry(
     prompt = (
         "You are naming clusters in a knowledge graph. For each community below, "
         "return a concise 2-5 word plain-language name describing what it is about "
-        "(e.g. \"Order Management\", \"Payment Flow\", \"Auth Middleware\"). "
+        '(e.g. "Order Management", "Payment Flow", "Auth Middleware"). '
         "Respond ONLY with a JSON object mapping the community id (as a string) to "
         "its name - no prose, no markdown fences.\n\n" + "\n".join(batch_lines)
     )
-    # Budget generously: a 2-5 word name is ~10 tokens, but models (notably
-    # gemini) often prepend a short preamble or reasoning that eats the
-    # completion and truncates the JSON mid-object, which used to fail the whole
-    # batch (#1690). The old 64 + 24*n floor left no headroom.
     max_tokens = _resolve_max_tokens(min(256 + 48 * len(batch_cids), 8192))
     call_kwargs: dict = {"backend": backend, "max_tokens": max_tokens}
     if model is not None:
         call_kwargs["model"] = model
-    # Only forward usage_out when the caller wants accounting, so existing
-    # callers (and their test doubles) see the unchanged _call_llm signature.
     if usage_out is not None:
         call_kwargs["usage_out"] = usage_out
 
@@ -2890,9 +2628,6 @@ def _label_batch_with_retry(
         text = _call_llm(prompt, **call_kwargs)
         return _parse_label_response(text, batch_cids)
     except (json.JSONDecodeError, ValueError) as exc:
-        # Parse failure. If we can still split, retry each half on a smaller
-        # prompt (smaller output → less likely to truncate/mangle). At the base
-        # case (single community or max depth) re-raise so the caller skips it.
         if len(batch_cids) <= 1 or depth >= max_depth:
             print(
                 f"[graphify label] batch of {len(batch_cids)} still unparseable "
@@ -2903,13 +2638,21 @@ def _label_batch_with_retry(
             raise
         mid = len(batch_cids) // 2
         left = _label_batch_with_retry(
-            batch_cids[:mid], batch_lines[:mid],
-            backend=backend, model=model, depth=depth + 1, max_depth=max_depth,
+            batch_cids[:mid],
+            batch_lines[:mid],
+            backend=backend,
+            model=model,
+            depth=depth + 1,
+            max_depth=max_depth,
             usage_out=usage_out,
         )
         right = _label_batch_with_retry(
-            batch_cids[mid:], batch_lines[mid:],
-            backend=backend, model=model, depth=depth + 1, max_depth=max_depth,
+            batch_cids[mid:],
+            batch_lines[mid:],
+            backend=backend,
+            model=model,
+            depth=depth + 1,
+            max_depth=max_depth,
             usage_out=usage_out,
         )
         return left | right
@@ -2955,28 +2698,26 @@ def label_communities(
 
     n_batches = (len(labeled_cids) + batch_size - 1) // batch_size
 
-    # Mirror extract_corpus_parallel's backend guards: Ollama serves one request at
-    # a time per loaded model (parallel batches cause VRAM pressure and hollow
-    # replies, #798) and claude-cli shells out to a single Claude Code session that
-    # parallel subprocesses corrupt. Force serial for these unless the user opts in
-    # via the same env switches.
     if backend == "ollama" and os.environ.get("GRAPHIFY_OLLAMA_PARALLEL", "").strip() != "1":
         max_concurrency = 1
-    if backend == "claude-cli" and os.environ.get("GRAPHIFY_CLAUDE_CLI_PARALLEL", "").strip() != "1":
+    if (
+        backend == "claude-cli"
+        and os.environ.get("GRAPHIFY_CLAUDE_CLI_PARALLEL", "").strip() != "1"
+    ):
         max_concurrency = 1
     workers = max(1, min(max_concurrency, n_batches))
 
     def _run_batch(batch_idx: int):
         start = batch_idx * batch_size
         end = min(start + batch_size, len(labeled_cids))
-        # Accumulate token usage into a per-batch dict so concurrent workers
-        # never race on the shared accumulator; it is merged on the main thread
-        # in _merge (#1694).
         batch_usage: dict = {} if usage_out is not None else None
         batch_kwargs = {"usage_out": batch_usage} if usage_out is not None else {}
         try:
             parsed = _label_batch_with_retry(
-                labeled_cids[start:end], lines[start:end], backend=backend, model=model,
+                labeled_cids[start:end],
+                lines[start:end],
+                backend=backend,
+                model=model,
                 **batch_kwargs,
             )
             return batch_idx, parsed, None, batch_usage
@@ -2988,8 +2729,6 @@ def label_communities(
 
     def _merge(batch_idx: int, parsed, exc, batch_usage=None) -> None:
         nonlocal written
-        # Count tokens even for a failed batch: the LLM call was billed whether
-        # or not the reply parsed.
         if usage_out is not None and batch_usage:
             usage_out["input"] = usage_out.get("input", 0) + batch_usage.get("input", 0)
             usage_out["output"] = usage_out.get("output", 0) + batch_usage.get("output", 0)
@@ -3006,8 +2745,6 @@ def label_communities(
         labels.update(parsed)
         written += len(parsed)
 
-    # Fan out batches; merge on the main thread so `labels` is never mutated
-    # concurrently. workers == 1 keeps the original sequential path verbatim.
     if workers == 1:
         for batch_idx in range(n_batches):
             _merge(*_run_batch(batch_idx))
@@ -3018,8 +2755,6 @@ def label_communities(
                 _merge(*future.result())
 
     if written == 0 and errors:
-        # Every batch failed; propagate the lowest-index error so the message is
-        # deterministic and generate_community_labels degrades cleanly.
         raise errors[min(errors)]
     return labels
 
@@ -3055,8 +2790,13 @@ def generate_community_labels(
         return _placeholder_community_labels(communities), "placeholder"
     try:
         labels = label_communities(
-            G, communities, backend=backend, model=model, gods=gods,
-            max_concurrency=max_concurrency, batch_size=batch_size,
+            G,
+            communities,
+            backend=backend,
+            model=model,
+            gods=gods,
+            max_concurrency=max_concurrency,
+            batch_size=batch_size,
             usage_out=usage_out,
         )
         return labels, "llm"

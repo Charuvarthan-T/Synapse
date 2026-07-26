@@ -26,8 +26,7 @@ def _built_import_self_loops(result: dict) -> list[tuple[str, str, dict]]:
     return [
         (source, target, data)
         for source, target, data in graph.edges(data=True)
-        if source == target
-        and data.get("relation") in {"imports", "imports_from", "re_exports"}
+        if source == target and data.get("relation") in {"imports", "imports_from", "re_exports"}
     ]
 
 

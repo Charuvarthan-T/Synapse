@@ -1,4 +1,3 @@
-# Security helpers - URL validation, safe fetch, path guards, label sanitisation
 from __future__ import annotations
 
 import html
@@ -18,18 +17,10 @@ import socket
 from graphify.paths import GRAPHIFY_OUT, GRAPHIFY_OUT_NAME
 
 _ALLOWED_SCHEMES = {"http", "https"}
-_MAX_FETCH_BYTES = 52_428_800   # 50 MB hard cap for binary downloads
-_MAX_TEXT_BYTES  = 10_485_760   # 10 MB hard cap for HTML / text
+_MAX_FETCH_BYTES = 52_428_800
+_MAX_TEXT_BYTES = 10_485_760
 
-# Graph-load memory-bomb cap: reject .json files larger than this before
-# JSON-parsing them into a dict. Without this, a multi-gigabyte (or
-# specifically crafted) graph.json can exhaust process memory during
-# json.loads + node_link_graph rehydration.
-# Default fallback cap. Kept as a module-level constant so the value is
-# discoverable and so existing callers/tests that reference it directly keep
-# working; the effective cap is resolved at call time by
-# ``_max_graph_file_bytes`` (which lets ``GRAPHIFY_MAX_GRAPH_BYTES`` override it).
-_MAX_GRAPH_FILE_BYTES = 512 * 1024 * 1024   # 512 MiB
+_MAX_GRAPH_FILE_BYTES = 512 * 1024 * 1024
 
 
 def _max_graph_file_bytes() -> int:
@@ -65,20 +56,13 @@ def _max_graph_file_bytes() -> int:
         return _MAX_GRAPH_FILE_BYTES
     return value * multiplier
 
-# AWS metadata, link-local, and common cloud metadata endpoints
+
 _BLOCKED_HOSTS = {"metadata.google.internal", "metadata.google.com"}
 
-# RFC 6598 Shared Address Space (CGN) -- is_private misses this on Python <3.11
 _CGN_NETWORK = ipaddress.ip_network("100.64.0.0/10")
 
-# RFC 6052 NAT64 Well-Known Prefix -- is_reserved=True in Python but these embed
-# public IPv4 addresses and are legitimate public internet traffic, not SSRF vectors.
 _NAT64_WKP = ipaddress.ip_network("64:ff9b::/96")
 
-
-# ---------------------------------------------------------------------------
-# URL validation
-# ---------------------------------------------------------------------------
 
 def _ip_is_blocked(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     """Return True if *ip* falls in a private/reserved/internal range.
@@ -88,15 +72,10 @@ def _ip_is_blocked(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     NAT64 well-known-prefix addresses are unwrapped to their embedded IPv4
     before the check, since those carry legitimate public traffic.
     """
-    # For NAT64 addresses, check the embedded IPv4 instead of the wrapper
     if isinstance(ip, ipaddress.IPv6Address) and ip in _NAT64_WKP:
         ip = ipaddress.ip_address(int(ip) & 0xFFFFFFFF)
     return (
-        ip.is_private
-        or ip.is_reserved
-        or ip.is_loopback
-        or ip.is_link_local
-        or ip in _CGN_NETWORK
+        ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local or ip in _CGN_NETWORK
     )
 
 
@@ -111,20 +90,14 @@ def validate_url(url: str) -> str:
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme.lower() not in _ALLOWED_SCHEMES:
         raise ValueError(
-            f"Blocked URL scheme '{parsed.scheme}' - only http and https are allowed. "
-            f"Got: {url!r}"
+            f"Blocked URL scheme '{parsed.scheme}' - only http and https are allowed. Got: {url!r}"
         )
 
     hostname = parsed.hostname
     if hostname:
-        # Block known cloud metadata hostnames
         if hostname.lower() in _BLOCKED_HOSTS:
-            raise ValueError(
-                f"Blocked cloud metadata endpoint '{hostname}'. "
-                f"Got: {url!r}"
-            )
+            raise ValueError(f"Blocked cloud metadata endpoint '{hostname}'. Got: {url!r}")
 
-        # Resolve hostname and block private/reserved IP ranges
         try:
             infos = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
             for info in infos:
@@ -143,18 +116,6 @@ def validate_url(url: str) -> str:
     return url
 
 
-# ---------------------------------------------------------------------------
-# SSRF-guarded connections
-#
-# Instead of monkey-patching the process-global socket.getaddrinfo (a
-# non-thread-safe TOCTOU hazard when multiple fetches run concurrently),
-# we subclass the HTTP(S) connection so each connection resolves DNS exactly
-# once, validates the resulting IP, and then connects to that exact IP. There
-# is no second resolution, so a DNS-rebind attack cannot swap in a private
-# address (e.g. 169.254.169.254) between validation and connection.
-# ---------------------------------------------------------------------------
-
-
 def _resolve_and_validate(host: str, port: int) -> tuple[int, str]:
     """Resolve *host* once and return (family, validated_ip) for the first
     address that is not in a blocked range.
@@ -170,9 +131,7 @@ def _resolve_and_validate(host: str, port: int) -> tuple[int, str]:
         except ValueError:
             continue
         if _ip_is_blocked(ip):
-            raise OSError(
-                f"SSRF blocked: IP {addr} resolved from '{host}' is private/reserved"
-            )
+            raise OSError(f"SSRF blocked: IP {addr} resolved from '{host}' is private/reserved")
         return family, addr
     raise OSError(f"SSRF blocked: no usable address resolved from '{host}'")
 
@@ -236,24 +195,17 @@ class _NoFileRedirectHandler(urllib.request.HTTPRedirectHandler):
     """
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        validate_url(newurl)          # raises ValueError if scheme is wrong
+        validate_url(newurl)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 def _build_opener() -> urllib.request.OpenerDirector:
-    # build_opener replaces the default HTTP(S)Handlers with our SSRF-guarded
-    # subclasses, so every connection resolves+validates DNS once and connects
-    # to that exact IP. Thread-safe: no process-global state is mutated.
     return urllib.request.build_opener(
         _SSRFGuardedHTTPHandler,
         _SSRFGuardedHTTPSHandler,
         _NoFileRedirectHandler,
     )
 
-
-# ---------------------------------------------------------------------------
-# Safe fetch
-# ---------------------------------------------------------------------------
 
 def safe_fetch(url: str, max_bytes: int = _MAX_FETCH_BYTES, timeout: int = 30) -> bytes:
     """Fetch *url* and return raw bytes.
@@ -276,8 +228,6 @@ def safe_fetch(url: str, max_bytes: int = _MAX_FETCH_BYTES, timeout: int = 30) -
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 graphify/1.0"})
 
     with opener.open(req, timeout=timeout) as resp:
-        # urllib raises HTTPError for non-2xx when using urlopen directly;
-        # with a custom opener we check manually to be safe.
         status = getattr(resp, "status", None) or getattr(resp, "code", None)
         if status is not None and not (200 <= status < 300):
             raise urllib.error.HTTPError(url, status, f"HTTP {status}", {}, None)
@@ -308,10 +258,6 @@ def safe_fetch_text(url: str, max_bytes: int = _MAX_TEXT_BYTES, timeout: int = 1
     return raw.decode("utf-8", errors="replace")
 
 
-# ---------------------------------------------------------------------------
-# Path validation
-# ---------------------------------------------------------------------------
-
 def validate_graph_path(path: str | Path, base: Path | None = None) -> Path:
     """Resolve *path* and verify it stays inside *base*.
 
@@ -335,8 +281,7 @@ def validate_graph_path(path: str | Path, base: Path | None = None) -> Path:
     base = base.resolve()
     if not base.exists():
         raise ValueError(
-            f"Graph base directory does not exist: {base}. "
-            "Run /graphify first to build the graph."
+            f"Graph base directory does not exist: {base}. Run /graphify first to build the graph."
         )
 
     resolved = Path(path).resolve()
@@ -383,10 +328,6 @@ def check_graph_file_size_cap(path: Path) -> None:
         )
 
 
-# ---------------------------------------------------------------------------
-# Label sanitisation (mirrors code-review-graph's _sanitize_name pattern)
-# ---------------------------------------------------------------------------
-
 _CONTROL_CHAR_RE = re.compile(r"[\x00-\x1f\x7f]")
 _MAX_LABEL_LEN = 256
 
@@ -405,10 +346,6 @@ def sanitize_label(text: str | None) -> str:
     return text
 
 
-# ---------------------------------------------------------------------------
-# Metadata sanitisation (recursive, bounded, HTML-safe)
-# ---------------------------------------------------------------------------
-
 _METADATA_MAX_VALUE_LEN = 512
 _METADATA_MAX_LIST_ITEMS = 50
 
@@ -419,13 +356,12 @@ def _sanitize_metadata_string(value: object) -> str:
     text = html.escape(text, quote=True)
     if len(text) > _METADATA_MAX_VALUE_LEN:
         text = text[:_METADATA_MAX_VALUE_LEN]
-    return text  # html is imported at module level (line 5)
+    return text
 
 
 def _sanitize_metadata_value(value: object) -> object:
     """Sanitize a metadata value while preserving simple JSON-compatible types."""
     if isinstance(value, bool):
-        # bool is a subclass of int — must be checked first to avoid coercion.
         return value
     if isinstance(value, str):
         return _sanitize_metadata_string(value)

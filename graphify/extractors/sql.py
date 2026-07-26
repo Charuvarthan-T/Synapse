@@ -1,4 +1,5 @@
 """Sql extractor. Moved verbatim from graphify/extract.py."""
+
 from __future__ import annotations
 
 import re
@@ -13,14 +14,20 @@ def extract_sql(path: Path, content: str | bytes | None = None) -> dict:
         import tree_sitter_sql as tssql
         from tree_sitter import Language, Parser
     except ImportError:
-        return {"nodes": [], "edges": [], "error": "tree_sitter_sql not installed. Run: pip install tree-sitter-sql"}
+        return {
+            "nodes": [],
+            "edges": [],
+            "error": "tree_sitter_sql not installed. Run: pip install tree-sitter-sql",
+        }
 
     try:
         language = Language(tssql.language())
         parser = Parser(language)
         source = (
-            content.encode("utf-8") if isinstance(content, str)
-            else content if content is not None
+            content.encode("utf-8")
+            if isinstance(content, str)
+            else content
+            if content is not None
             else path.read_bytes()
         )
         tree = parser.parse(source)
@@ -28,18 +35,24 @@ def extract_sql(path: Path, content: str | bytes | None = None) -> dict:
     except Exception as e:
         return {"nodes": [], "edges": [], "error": str(e)}
 
-
     stem = _file_stem(path)
     str_path = str(path)
     file_nid = _make_id(str_path)
-    nodes: list[dict] = [{"id": file_nid, "label": path.name, "file_type": "code",
-                           "source_file": str_path, "source_location": None}]
+    nodes: list[dict] = [
+        {
+            "id": file_nid,
+            "label": path.name,
+            "file_type": "code",
+            "source_file": str_path,
+            "source_location": None,
+        }
+    ]
     edges: list[dict] = []
     seen_ids: set[str] = {file_nid}
-    table_nids: dict[str, str] = {}  # name → nid for reference resolution
+    table_nids: dict[str, str] = {}
 
     def _read(n) -> str:
-        return source[n.start_byte:n.end_byte].decode("utf-8", errors="replace")
+        return source[n.start_byte : n.end_byte].decode("utf-8", errors="replace")
 
     def _obj_name(n) -> str | None:
         for c in n.children:
@@ -50,16 +63,39 @@ def extract_sql(path: Path, content: str | bytes | None = None) -> dict:
     def _add_node(nid: str, label: str, line: int) -> None:
         if nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({"id": nid, "label": label, "file_type": "code",
-                           "source_file": str_path, "source_location": f"L{line}"})
-            edges.append({"source": file_nid, "target": nid, "relation": "contains",
-                           "confidence": "EXTRACTED", "source_file": str_path,
-                           "source_location": f"L{line}", "weight": 1.0})
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": "code",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                }
+            )
+            edges.append(
+                {
+                    "source": file_nid,
+                    "target": nid,
+                    "relation": "contains",
+                    "confidence": "EXTRACTED",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                    "weight": 1.0,
+                }
+            )
 
     def _add_edge(src: str, tgt: str, relation: str, line: int) -> None:
-        edges.append({"source": src, "target": tgt, "relation": relation,
-                       "confidence": "EXTRACTED", "source_file": str_path,
-                       "source_location": f"L{line}", "weight": 1.0})
+        edges.append(
+            {
+                "source": src,
+                "target": tgt,
+                "relation": relation,
+                "confidence": "EXTRACTED",
+                "source_file": str_path,
+                "source_location": f"L{line}",
+                "weight": 1.0,
+            }
+        )
 
     def walk(node) -> None:
         t = node.type
@@ -71,14 +107,12 @@ def extract_sql(path: Path, content: str | bytes | None = None) -> dict:
                 nid = _make_id(stem, name)
                 _add_node(nid, name, line)
                 table_nids[name.lower()] = nid
-                # Foreign key REFERENCES
                 for col in node.children:
                     if col.type == "column_definitions":
                         has_error = any(cd.type == "ERROR" for cd in col.children)
                         seen_refs: set[str] = set()
                         for cd in col.children:
                             if cd.type == "column_definition":
-                                # Inline column-level REFERENCES
                                 ref_name: str | None = None
                                 found_ref = False
                                 for cc in cd.children:
@@ -88,11 +122,12 @@ def extract_sql(path: Path, content: str | bytes | None = None) -> dict:
                                         ref_name = _read(cc)
                                         break
                                 if ref_name:
-                                    ref_nid = table_nids.get(ref_name.lower()) or _make_id(stem, ref_name)
+                                    ref_nid = table_nids.get(ref_name.lower()) or _make_id(
+                                        stem, ref_name
+                                    )
                                     _add_edge(nid, ref_nid, "references", line)
                                     seen_refs.add(ref_name.lower())
                             elif cd.type == "constraints":
-                                # Table-level FOREIGN KEY ... REFERENCES ... constraints
                                 for constraint in cd.children:
                                     if constraint.type != "constraint":
                                         continue
@@ -105,18 +140,21 @@ def extract_sql(path: Path, content: str | bytes | None = None) -> dict:
                                             ref_name = _read(cc)
                                             break
                                     if ref_name:
-                                        ref_nid = table_nids.get(ref_name.lower()) or _make_id(stem, ref_name)
+                                        ref_nid = table_nids.get(ref_name.lower()) or _make_id(
+                                            stem, ref_name
+                                        )
                                         _add_edge(nid, ref_nid, "references", line)
                                         seen_refs.add(ref_name.lower())
                         if has_error:
-                            # Dialect-specific syntax (e.g. Firebird COMPUTED BY) causes ERROR
-                            # nodes that make the parser drop the trailing constraints block.
-                            # Regex-scan the raw column_definitions text as fallback.
                             col_text = _read(col)
-                            for rm in re.finditer(r"\bREFERENCES\s+([\w$]+)", col_text, re.IGNORECASE):
+                            for rm in re.finditer(
+                                r"\bREFERENCES\s+([\w$]+)", col_text, re.IGNORECASE
+                            ):
                                 ref_name = rm.group(1)
                                 if ref_name.lower() not in seen_refs:
-                                    ref_nid = table_nids.get(ref_name.lower()) or _make_id(stem, ref_name)
+                                    ref_nid = table_nids.get(ref_name.lower()) or _make_id(
+                                        stem, ref_name
+                                    )
                                     _add_edge(nid, ref_nid, "references", line)
                                     seen_refs.add(ref_name.lower())
 
@@ -126,7 +164,6 @@ def extract_sql(path: Path, content: str | bytes | None = None) -> dict:
                 nid = _make_id(stem, name)
                 _add_node(nid, name, line)
                 table_nids[name.lower()] = nid
-                # FROM/JOIN table references inside view body
                 _walk_from_refs(node, nid, line)
 
         elif t == "create_function":
@@ -192,26 +229,13 @@ def extract_sql(path: Path, content: str | bytes | None = None) -> dict:
                     _add_edge(trig_nid, tbl_nid, "triggers", line)
 
         elif t == "ERROR":
-            # tree-sitter-sql cannot parse PL/pgSQL CREATE FUNCTION/PROCEDURE
-            # bodies (OUT/INOUT params, tagged dollar quotes, PERFORM, :=) and
-            # emits an ERROR node instead, silently dropping the object.
-            # Regex-scan the raw text as fallback, mirroring the
-            # fb_proc_or_trigger recovery below. One ERROR blob can swallow
-            # several statements, so scan for every CREATE in it. We deliberately
-            # do not scan the body for FROM/JOIN references: PL/pgSQL loop
-            # variables and locals would produce junk reads_from targets.
-            #
-            # Each name part is either a bare identifier or a double-quoted
-            # (delimited) one, so schema-qualified generated DDL such as
-            # CREATE OR REPLACE FUNCTION "public"."fn"(...) is recovered too.
-            # A bare [\w$.]+ stops dead at the leading quote, which silently
-            # dropped every quoted PL/pgSQL routine (#2180).
             text = _read(node)
             for m in re.finditer(
                 r"CREATE\s+(?:OR\s+REPLACE\s+)?(?:FUNCTION|PROCEDURE)\s+"
                 r"(?:IF\s+NOT\s+EXISTS\s+)?"
                 r"((?:\"[^\"\n]+\"|[\w$]+)(?:\s*\.\s*(?:\"[^\"\n]+\"|[\w$]+))*)",
-                text, re.IGNORECASE,
+                text,
+                re.IGNORECASE,
             ):
                 name = m.group(1)
                 m_line = line + text[: m.start()].count("\n")
@@ -223,7 +247,8 @@ def extract_sql(path: Path, content: str | bytes | None = None) -> dict:
             m = re.match(
                 r"CREATE\s+(?:OR\s+(?:REPLACE|ALTER)\s+)?"
                 r"(PROCEDURE|TRIGGER|FUNCTION)\s+([\w$]+)",
-                text, re.IGNORECASE,
+                text,
+                re.IGNORECASE,
             )
             if m:
                 obj_type = m.group(1).upper()
@@ -238,8 +263,19 @@ def extract_sql(path: Path, content: str | bytes | None = None) -> dict:
                         tbl_nid = table_nids.get(tbl.lower()) or _make_id(stem, tbl)
                         _add_edge(obj_nid, tbl_nid, "triggers", line)
                 _NON_TABLES = {
-                    "select", "where", "set", "dual", "null", "true", "false",
-                    "first", "skip", "rows", "next", "only", "lateral",
+                    "select",
+                    "where",
+                    "set",
+                    "dual",
+                    "null",
+                    "true",
+                    "false",
+                    "first",
+                    "skip",
+                    "rows",
+                    "next",
+                    "only",
+                    "lateral",
                 }
                 seen_tbls: set[str] = set()
                 for rm in re.finditer(r"\b(?:FROM|JOIN|INTO)\s+([\w$]+)", text, re.IGNORECASE):
@@ -267,8 +303,7 @@ def extract_sql(path: Path, content: str | bytes | None = None) -> dict:
                         if cc.type == "object_reference":
                             tbl = _read(cc)
                             tbl_nid = _make_id(stem, tbl)
-                            _add_edge(caller_nid, tbl_nid, "reads_from",
-                                      c.start_point[0] + 1)
+                            _add_edge(caller_nid, tbl_nid, "reads_from", c.start_point[0] + 1)
         for child in node.children:
             _walk_from_refs(child, caller_nid, line)
 
@@ -279,9 +314,6 @@ def extract_sql(path: Path, content: str | bytes | None = None) -> dict:
         elif stmt.type in ("fb_proc_or_trigger", "set_term", "declare_external_function", "ERROR"):
             walk(stmt)
 
-    # Global regex fallback: catch any REFERENCES missed due to ERROR nodes in the parse tree
-    # (e.g. Firebird COMPUTED BY columns push constraints out of the tree entirely).
-    # Snapshot after tree walk so we don't re-emit edges already captured above.
     emitted = {(e["source"], e["target"]) for e in edges if e["relation"] == "references"}
     src_text = source.decode("utf-8", errors="replace")
     for m in re.finditer(r"CREATE\s+TABLE\s+([\w$]+)\s*\(", src_text, re.IGNORECASE):
@@ -290,7 +322,7 @@ def extract_sql(path: Path, content: str | bytes | None = None) -> dict:
         if tbl_nid is None:
             continue
         tbl_line = src_text[: m.start()].count("\n") + 1
-        tail = src_text[m.start():]
+        tail = src_text[m.start() :]
         end = re.search(r"(?:^|\n)(?:CREATE|SET\s+TERM|ALTER)\s", tail[1:], re.IGNORECASE)
         block = tail[: end.start() + 1] if end else tail
         for rm in re.finditer(r"\bREFERENCES\s+([\w$]+)", block, re.IGNORECASE):
@@ -300,30 +332,13 @@ def extract_sql(path: Path, content: str | bytes | None = None) -> dict:
                 _add_edge(tbl_nid, ref_nid, "references", tbl_line)
                 emitted.add((tbl_nid, ref_nid))
 
-    # Global regex fallback for routines (#2180). PL/pgSQL bodies break the parse
-    # in more than one shape, and only the first was recovered before:
-    #   1. the whole CREATE lands in one ERROR node          -> handled in walk()
-    #   2. the statement is shredded into loose top-level tokens
-    #      (keyword_create/keyword_function/object_reference/... ) and the ERROR
-    #      node holds only the offending body line, e.g. `PERFORM x();` or
-    #      `x := 1;` -- so no CREATE text is inside any ERROR node at all
-    #   3. the name is a quoted identifier ("public"."fn"), which a bare
-    #      [\w$.]+ pattern cannot match
-    # Shapes 2 and 3 silently dropped the routine: no node, no warning, exit 0.
-    # Scanning the raw source catches all three, and _add_node dedupes by id so
-    # routines already recovered from the tree are not emitted twice.
-    #
-    # Gate on a failed parse: a cleanly-parsing file must NOT have routines
-    # fabricated from commented-out DDL, DDL inside EXECUTE '...' string bodies,
-    # or MySQL `CREATE FUNCTION IF NOT EXISTS` (which would capture `IF`). Every
-    # observed drop shape leaves an ERROR node in the tree, so has_error loses
-    # nothing while protecting clean corpora (#2180 follow-up).
     if root.has_error:
         for m in re.finditer(
             r"CREATE\s+(?:OR\s+REPLACE\s+)?(?:FUNCTION|PROCEDURE)\s+"
             r"(?:IF\s+NOT\s+EXISTS\s+)?"
             r"((?:\"[^\"\n]+\"|[\w$]+)(?:\s*\.\s*(?:\"[^\"\n]+\"|[\w$]+))*)",
-            src_text, re.IGNORECASE,
+            src_text,
+            re.IGNORECASE,
         ):
             fn_name = m.group(1)
             fn_line = src_text[: m.start()].count("\n") + 1

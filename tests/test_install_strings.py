@@ -8,6 +8,7 @@ which silently increased per-question token usage in Claude Code sessions
 (issue #580). This file locks in the query-first policy so a future revert
 or partial change is caught by CI.
 """
+
 from __future__ import annotations
 import json
 
@@ -28,9 +29,6 @@ from graphify.__main__ import (
 )
 
 
-# All install-surface text rendered as plain strings, in one place.
-# Hook constants are dicts/JSON; serialize them so we can do substring checks
-# against the actual payload text the assistant will receive.
 _INSTALL_TEXTS: dict[str, str] = {
     "_SEARCH_NUDGE": _SEARCH_NUDGE,
     "_READ_NUDGE": _READ_NUDGE,
@@ -76,12 +74,10 @@ def test_no_install_surface_demands_reading_the_full_report_first():
     are legitimate platform metadata, not the bug.
     """
     import re
+
     banned = [
-        # "read ... GRAPH_REPORT.md ... before"
         re.compile(r"read[^.\n]{0,80}GRAPH_REPORT\.md[^.\n]{0,80}before", re.IGNORECASE),
-        # "first tool call ... GRAPH_REPORT" (VS Code variant)
         re.compile(r"first\s+tool\s+call[^.\n]{0,80}GRAPH_REPORT", re.IGNORECASE),
-        # "ALWAYS read ... GRAPH_REPORT" (catches the literal old text and minor variants)
         re.compile(r"always\s+read[^.\n]{0,80}GRAPH_REPORT", re.IGNORECASE),
     ]
     hits: list[tuple[str, str]] = []
@@ -90,10 +86,7 @@ def test_no_install_surface_demands_reading_the_full_report_first():
             m = pattern.search(text)
             if m:
                 hits.append((name, m.group(0)))
-    assert not hits, (
-        f"banned report-first phrasing reappeared: {hits}. "
-        f"This regresses issue #580."
-    )
+    assert not hits, f"banned report-first phrasing reappeared: {hits}. This regresses issue #580."
 
 
 def test_report_is_still_referenced_as_fallback():
@@ -143,6 +136,7 @@ def test_skill_registration_uses_host_generic_instruction():
 
 def test_how_it_works_clarifies_code_only_semantic_extraction():
     from pathlib import Path
+
     doc = (Path(__file__).parent.parent / "docs" / "how-it-works.md").read_text(encoding="utf-8")
     assert "Code files are not sent to the LLM semantic extractor" in doc
     assert "code files, Pass 3 is skipped entirely" in doc

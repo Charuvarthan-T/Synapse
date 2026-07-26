@@ -17,9 +17,6 @@ def _load_manifest() -> dict:
         try:
             return json.loads(_GLOBAL_MANIFEST.read_text(encoding="utf-8"))
         except Exception as exc:
-            # Don't silently wipe the user's manifest on a parse error: that
-            # deletes every tracked repo. Back the bad file up and surface the
-            # error so the user can recover or report it.
             backup = _GLOBAL_MANIFEST.with_suffix(
                 _GLOBAL_MANIFEST.suffix + f".corrupt.{int(datetime.now(timezone.utc).timestamp())}"
             )
@@ -43,12 +40,14 @@ def _load_manifest() -> dict:
 def _save_manifest(manifest: dict) -> None:
     _GLOBAL_DIR.mkdir(parents=True, exist_ok=True)
     from graphify.paths import write_json_atomic
+
     write_json_atomic(_GLOBAL_MANIFEST, manifest, indent=2)
 
 
 def _load_global_graph() -> nx.Graph:
     if _GLOBAL_GRAPH.exists():
         from graphify.security import check_graph_file_size_cap
+
         check_graph_file_size_cap(_GLOBAL_GRAPH)
         data = json.loads(_GLOBAL_GRAPH.read_text(encoding="utf-8"))
         if "links" not in data and "edges" in data:
@@ -67,6 +66,7 @@ def _save_global_graph(G: nx.Graph) -> None:
     except TypeError:
         data = _jg.node_link_data(G)
     from graphify.paths import write_json_atomic
+
     write_json_atomic(_GLOBAL_GRAPH, data, indent=2)
 
 
@@ -102,8 +102,8 @@ def global_add(source_path: Path, repo_tag: str) -> dict:
     if existing.get("source_hash") == src_hash:
         return {"repo_tag": repo_tag, "nodes_added": 0, "nodes_removed": 0, "skipped": True}
 
-    # Load source graph
     from graphify.security import check_graph_file_size_cap
+
     check_graph_file_size_cap(source_path)
     data = json.loads(source_path.read_text(encoding="utf-8"))
     if "links" not in data and "edges" in data:
@@ -113,34 +113,28 @@ def global_add(source_path: Path, repo_tag: str) -> dict:
     except TypeError:
         src_G = _jg.node_link_graph(data)
 
-    # Prefix IDs for cross-project isolation
     prefixed = prefix_graph_for_global(src_G, repo_tag)
 
-    # Load global graph and prune stale nodes for this repo
     G = _load_global_graph()
     removed = prune_repo_from_graph(G, repo_tag)
 
-    # Merge external-library nodes (no source_file) by label to avoid duplication
     external_labels = {
         d.get("label", ""): n
         for n, d in G.nodes(data=True)
         if not d.get("source_file") and d.get("label")
     }
-    # Map each deduplicated external onto the existing global node so that
-    # edges incident to it can be rewired instead of dropped.
     remap = {}
     for node, data in prefixed.nodes(data=True):
         if not data.get("source_file") and data.get("label") in external_labels:
             remap[node] = external_labels[data["label"]]
 
-    # Compose: add prefixed nodes (except deduplicated externals) into global graph
     for node, data in prefixed.nodes(data=True):
         if node not in remap:
             G.add_node(node, **data)
     for u, v, data in prefixed.edges(data=True):
         u = remap.get(u, u)
         v = remap.get(v, v)
-        if u != v:  # don't introduce self-loops via remapping
+        if u != v:
             G.add_edge(u, v, **data)
 
     added = prefixed.number_of_nodes() - len(remap)

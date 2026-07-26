@@ -17,6 +17,7 @@ parses every example straight out of the shipped specs and asserts the real
 functions reproduce each one. It fails if the spec examples are edited to a wrong
 value, OR if the ID functions change so the documented examples no longer hold.
 """
+
 import re
 from pathlib import Path
 
@@ -26,8 +27,6 @@ from graphify.extract import _file_stem, _make_id
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-# `path` + `entity` → `id`  (arrow is U+2192). Backtick-delimited so prose around
-# the examples never leaks in.
 _EXAMPLE_RE = re.compile(r"`([^`]+)`\s*\+\s*`([^`]+)`\s*→\s*`([^`]+)`")
 
 
@@ -36,8 +35,6 @@ def _spec_files() -> list[Path]:
     files: list[Path] = []
     for root in roots:
         for p in root.rglob("extraction-spec.md"):
-            # build/ is a packaging artifact; expected/ is skillgen's own golden
-            # output and is already covered by `skillgen --check`.
             if "/build/" in p.as_posix() or "/expected/" in p.as_posix():
                 continue
             files.append(p)
@@ -90,7 +87,5 @@ def test_cautionary_wrong_forms_are_actually_wrong():
     Lock those anti-examples to the code too, so the warning can't go stale."""
     correct = _ast_symbol_id("src/auth/session.py", "ValidateToken")
     assert correct == "src_auth_session_validatetoken"
-    # filename-only (drops every dir) and immediate-parent-only (drops outer dirs)
-    # are both wrong now that the stem is the full repo-relative path (#1504).
     assert _make_id("session", "ValidateToken") != correct
     assert _make_id("auth", "session", "ValidateToken") != correct

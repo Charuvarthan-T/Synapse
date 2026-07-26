@@ -1,4 +1,3 @@
-# git hook integration - install/uninstall graphify post-commit and post-checkout hooks
 from __future__ import annotations
 import os
 import re
@@ -10,12 +9,6 @@ _HOOK_MARKER_END = "# graphify-hook-end"
 _CHECKOUT_MARKER = "# graphify-checkout-hook-start"
 _CHECKOUT_MARKER_END = "# graphify-checkout-hook-end"
 
-# __PINNED_PYTHON__ is replaced at install time with the absolute path of the
-# Python interpreter that ran `graphify hook install`.  For uv-tool and pipx
-# installs the interpreter lives inside an isolated venv, so the launcher on
-# PATH is the only entry point — and GUI git clients / CI runners often have a
-# minimal PATH that omits ~/.local/bin.  Pinning sys.executable at install time
-# makes the hook work regardless of PATH at git-trigger time.
 _PYTHON_DETECT = """\
 # Detect the correct Python interpreter (handles uv tool, pipx, venv, system installs).
 # _PINNED was recorded at hook-install time; tried first so the hook works even
@@ -99,10 +92,6 @@ if [ -z "$GRAPHIFY_PYTHON" ]; then
 fi
 """
 
-# The Python that the rebuild runs, shared by both hooks. Embedded verbatim into
-# the launcher below and re-executed in the detached child. Must not contain the
-# double-quote, $, backtick or backslash characters: it is carried inside a
-# shell double-quoted `-c "..."` argument (see _detached_launch).
 _REBUILD_BODY_COMMIT = """\
 import os, signal, sys, threading
 from pathlib import Path
@@ -207,17 +196,6 @@ except Exception as exc:
     sys.exit(1)
 """
 
-# Cross-platform detached-launch shim (#1161). The hooks used to background the
-# rebuild with `nohup "$GRAPHIFY_PYTHON" -c "..." &`, but Git for Windows' bundled
-# MSYS shell ships no nohup (nor setsid), so that line died with
-# 'nohup: command not found' and the rebuild silently never ran — git commit/pull
-# still returned 0, so the graph just went stale with no signal. graphify already
-# requires Python, so we let Python do the detaching: a tiny outer process spawns
-# the real rebuild fully detached and returns immediately, so the hook never
-# blocks. POSIX uses start_new_session (the setsid equivalent); Windows uses
-# DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP, breaking away from any job object
-# when allowed. This payload is carried inside a shell double-quoted -c argument,
-# so it deliberately uses only single-quoted Python strings (no ", $, ` or \\).
 _LAUNCHER_TEMPLATE = """\
 import os, subprocess, sys
 _src = '''
@@ -255,16 +233,6 @@ def _detached_launch(rebuild_body: str) -> str:
     return '"$GRAPHIFY_PYTHON" -c "' + launcher + '"\n'
 
 
-# Skip the rebuild inside a linked worktree (git worktree add), shared by both
-# hooks. With core.hooksPath shared across worktrees a commit in any worktree
-# fires these hooks; the canonical graphify-out/ belongs to the primary checkout,
-# so rebuilding from a worktree is wasteful, writes a rogue delta-only graph the
-# user never asked for, and races deploy/CI `git clean` against the detached
-# rebuild ("failed to remove graphify-out/: Directory not empty") (#1809, #1806).
-# A linked worktree has git-dir != git-common-dir. Both are resolved to absolute
-# via `cd ... && pwd` before comparing: git's exported GIT_DIR / --git-dir can be
-# absolute while --git-common-dir is the relative ".git", and a raw compare would
-# false-positive on the PRIMARY checkout and wrongly skip it.
 _WORKTREE_GUARD = """\
 _GFY_GITDIR=$(cd "$(git rev-parse --git-dir 2>/dev/null)" 2>/dev/null && pwd)
 _GFY_COMMONDIR=$(cd "$(git rev-parse --git-common-dir 2>/dev/null)" 2>/dev/null && pwd)
@@ -274,7 +242,8 @@ fi
 """
 
 
-_HOOK_SCRIPT = """\
+_HOOK_SCRIPT = (
+    """\
 # graphify-hook-start
 # Auto-rebuilds the knowledge graph after each commit (code files only, no LLM needed).
 # Installed by: graphify hook install
@@ -302,7 +271,9 @@ GIT_DIR=${GIT_DIR:-$(git rev-parse --git-dir 2>/dev/null)}
 
 [ "${GRAPHIFY_SKIP_HOOK:-0}" = "1" ] && exit 0
 
-""" + _WORKTREE_GUARD + """
+"""
+    + _WORKTREE_GUARD
+    + """
 CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only HEAD 2>/dev/null)
 if [ -z "$CHANGED" ]; then
     exit 0
@@ -314,7 +285,9 @@ if [ -z "$_NON_GRAPH" ]; then
     exit 0
 fi
 
-""" + _PYTHON_DETECT + """
+"""
+    + _PYTHON_DETECT
+    + """
 export GRAPHIFY_CHANGED="$CHANGED"
 
 # Run the rebuild detached so git commit returns immediately. Full-repo rebuilds
@@ -325,11 +298,15 @@ _GRAPHIFY_LOG="${HOME}/.cache/graphify-rebuild.log"
 mkdir -p "$(dirname "$_GRAPHIFY_LOG")"
 export GRAPHIFY_REBUILD_LOG="$_GRAPHIFY_LOG"
 echo "[graphify hook] launching background rebuild (log: $_GRAPHIFY_LOG)"
-""" + _detached_launch(_REBUILD_BODY_COMMIT) + """# graphify-hook-end
 """
+    + _detached_launch(_REBUILD_BODY_COMMIT)
+    + """# graphify-hook-end
+"""
+)
 
 
-_CHECKOUT_SCRIPT = """\
+_CHECKOUT_SCRIPT = (
+    """\
 # graphify-checkout-hook-start
 # Auto-rebuilds the knowledge graph (code only) when switching branches.
 # Installed by: graphify hook install
@@ -373,13 +350,19 @@ GIT_DIR=${GIT_DIR:-$(git rev-parse --git-dir 2>/dev/null)}
 # suppressed commit-triggered rebuilds but not branch-switch ones (#1809).
 [ "${GRAPHIFY_SKIP_HOOK:-0}" = "1" ] && exit 0
 
-""" + _WORKTREE_GUARD + _PYTHON_DETECT + """
+"""
+    + _WORKTREE_GUARD
+    + _PYTHON_DETECT
+    + """
 _GRAPHIFY_LOG="${HOME}/.cache/graphify-rebuild.log"
 mkdir -p "$(dirname "$_GRAPHIFY_LOG")"
 export GRAPHIFY_REBUILD_LOG="$_GRAPHIFY_LOG"
 echo "[graphify] Branch switched - launching background rebuild (log: $_GRAPHIFY_LOG)"
-""" + _detached_launch(_REBUILD_BODY_CHECKOUT) + """# graphify-checkout-hook-end
 """
+    + _detached_launch(_REBUILD_BODY_CHECKOUT)
+    + """# graphify-checkout-hook-end
+"""
+)
 
 
 def _git_root(path: Path) -> Path | None:
@@ -424,21 +407,15 @@ def _hooks_dir(root: Path) -> Path:
     file, not a directory) correctly in one place. Genuinely corrupt configs
     are still surfaced: git itself fails on them, and its stderr is printed.
     """
-    # NOTE: do NOT pass --path-format=absolute — added in git 2.31; older git
-    # echoes it back as a literal argument, contaminating stdout and causing a
-    # phantom directory to be created (#907). git -C <root> already returns an
-    # absolute path for worktree/external-gitdir cases, and a path relative to
-    # <root> for normal repos — anchoring on root covers both.
     import subprocess as _sp
+
     try:
         res = _sp.run(
             ["git", "-C", str(root), "rev-parse", "--git-path", "hooks"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         if res.returncode != 0:
-            # git failing here is a real signal (corrupt .git/config, tampering,
-            # permission flips by another tool). Surface git's own stderr rather
-            # than silently falling through to the default hooks directory.
             err = (res.stderr or "").strip()
             print(
                 f"[graphify hooks] git could not resolve the hooks path for "
@@ -447,8 +424,6 @@ def _hooks_dir(root: Path) -> Path:
             )
         else:
             raw = res.stdout.strip()
-            # A valid hooks path can never contain newlines or NUL. Their presence
-            # means git echoed an unrecognised flag back (old git behaviour).
             if raw and not any(c in raw for c in ("\n", "\r", "\x00")):
                 _reject_windows_path(raw, "git rev-parse --git-path hooks")
                 d = (root / raw).resolve()
@@ -527,6 +502,7 @@ def _merge_attr_line() -> str:
     default name in that case.
     """
     from graphify.paths import GRAPHIFY_OUT
+
     out = GRAPHIFY_OUT
     if not out or Path(out).is_absolute() or "\\" in out:
         out = "graphify-out"
@@ -556,13 +532,9 @@ def _register_merge_driver(root: Path) -> str:
     launcher is not on PATH at merge time.
     """
     import subprocess as _sp
+
     pinned = _pinned_python()
     if pinned:
-        # Double-quoted: the allowlist in _pinned_python() permits a space (Windows
-        # profile paths), and git runs this driver string through a shell, so an
-        # unquoted "C:\\Users\\First Last\\...\\python.exe" would split into two
-        # words and the driver would never run (#2166). The same allowlist keeps
-        # '$' and backticks out, so double quotes cannot introduce expansion.
         driver = f'"{pinned}" -m graphify merge-driver %O %A %B'
     else:
         driver = "graphify merge-driver %O %A %B"
@@ -573,7 +545,9 @@ def _register_merge_driver(root: Path) -> str:
         ):
             _sp.run(
                 ["git", "-C", str(root), "config", key, value],
-                check=True, capture_output=True, text=True,
+                check=True,
+                capture_output=True,
+                text=True,
             )
     except (OSError, _sp.CalledProcessError) as exc:
         return f"not registered (git config failed: {exc})"
@@ -584,7 +558,6 @@ def _register_merge_driver(root: Path) -> str:
         content = attrs.read_text(encoding="utf-8")
         if _has_merge_attr(content):
             return f"already registered ({line})"
-        # Never clobber other entries; preserve a trailing newline.
         if content and not content.endswith("\n"):
             content += "\n"
         attrs.write_text(content + line + "\n", encoding="utf-8", newline="\n")
@@ -596,12 +569,13 @@ def _register_merge_driver(root: Path) -> str:
 def _unregister_merge_driver(root: Path) -> str:
     """Remove the merge-driver git config keys and the .gitattributes line."""
     import subprocess as _sp
+
     for key in ("merge.graphify.name", "merge.graphify.driver"):
         try:
-            # --unset exits nonzero if the key is absent; that is fine.
             _sp.run(
                 ["git", "-C", str(root), "config", "--unset", key],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
             )
         except OSError:
             pass
@@ -609,14 +583,10 @@ def _unregister_merge_driver(root: Path) -> str:
     if not attrs.exists():
         return "not registered - nothing to remove."
     content = attrs.read_text(encoding="utf-8")
-    kept = [
-        raw for raw in content.splitlines()
-        if not _has_merge_attr(raw)
-    ]
+    kept = [raw for raw in content.splitlines() if not _has_merge_attr(raw)]
     if kept == content.splitlines():
         return "gitattributes entry not found - nothing to remove."
     if kept:
-        # Other entries survive; the file stays.
         attrs.write_text("\n".join(kept) + "\n", encoding="utf-8", newline="\n")
         return "removed from .gitattributes (other entries preserved)"
     attrs.unlink()
@@ -626,10 +596,12 @@ def _unregister_merge_driver(root: Path) -> str:
 def _merge_driver_status(root: Path) -> str:
     """Report whether the merge driver is registered (config + gitattributes)."""
     import subprocess as _sp
+
     try:
         res = _sp.run(
             ["git", "-C", str(root), "config", "--get", "merge.graphify.driver"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         cfg_ok = res.returncode == 0 and bool(res.stdout.strip())
     except OSError:
@@ -666,14 +638,6 @@ def install(path: Path = Path(".")) -> str:
 
     hooks_dir = _user_hooks_dir(_hooks_dir(root))
 
-    # Pin the current interpreter so the hook works even when the graphify
-    # launcher is not on PATH at git-trigger time (uv tool / pipx isolation).
-    # sys.executable is the Python running this very install command, so it is
-    # always the correct isolated-venv interpreter.  The placeholder is replaced
-    # in both scripts before writing; the allowlist in _pinned_python() strips
-    # any characters unsafe in a shell path (empty result -> the pinned probe is
-    # skipped), and import-verification catches a stale pinned path so it safely
-    # falls through to the dynamic detection.
     pinned = _pinned_python()
     hook = _HOOK_SCRIPT.replace("__PINNED_PYTHON__", pinned)
     checkout = _CHECKOUT_SCRIPT.replace("__PINNED_PYTHON__", pinned)
@@ -693,7 +657,9 @@ def uninstall(path: Path = Path(".")) -> str:
 
     hooks_dir = _user_hooks_dir(_hooks_dir(root))
     commit_msg = _uninstall_hook(hooks_dir, "post-commit", _HOOK_MARKER, _HOOK_MARKER_END)
-    checkout_msg = _uninstall_hook(hooks_dir, "post-checkout", _CHECKOUT_MARKER, _CHECKOUT_MARKER_END)
+    checkout_msg = _uninstall_hook(
+        hooks_dir, "post-checkout", _CHECKOUT_MARKER, _CHECKOUT_MARKER_END
+    )
     merge_msg = _unregister_merge_driver(root)
 
     return f"post-commit: {commit_msg}\npost-checkout: {checkout_msg}\nmerge driver: {merge_msg}"
@@ -710,7 +676,11 @@ def status(path: Path = Path(".")) -> str:
         p = hooks_dir / name
         if not p.exists():
             return "not installed"
-        return "installed" if marker in p.read_text(encoding="utf-8") else "not installed (hook exists but graphify not found)"
+        return (
+            "installed"
+            if marker in p.read_text(encoding="utf-8")
+            else "not installed (hook exists but graphify not found)"
+        )
 
     commit = _check("post-commit", _HOOK_MARKER)
     checkout = _check("post-checkout", _CHECKOUT_MARKER)

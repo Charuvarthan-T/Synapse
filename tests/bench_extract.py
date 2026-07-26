@@ -26,7 +26,6 @@ import time
 from collections import Counter
 from pathlib import Path
 
-# Ensure the project root is importable
 _project_root = Path(__file__).resolve().parent.parent
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
@@ -102,9 +101,7 @@ def _run_extraction(
     """Run extraction, return (elapsed_seconds, node_count, edge_count)."""
     clear_cache(cache_root)
     t0 = time.perf_counter()
-    result = extract(
-        paths, cache_root=cache_root, parallel=parallel, max_workers=max_workers
-    )
+    result = extract(paths, cache_root=cache_root, parallel=parallel, max_workers=max_workers)
     elapsed = time.perf_counter() - t0
     nodes = len(result.get("nodes", []))
     edges = len(result.get("edges", []))
@@ -134,33 +131,26 @@ def main() -> None:
 
     cache_root = target if target.is_dir() else target.parent
 
-    # Workers count (same logic as _extract_parallel)
     import os
 
     workers = min(os.cpu_count() or 4, len(paths), 8)
 
-    # Run sequential
     print("Running sequential extraction...", flush=True)
     seq_time, seq_nodes, seq_edges = _run_extraction(paths, cache_root, parallel=False)
     print(f"Sequential:   {seq_time:.2f}s ({seq_nodes:,} nodes, {seq_edges:,} edges)")
 
-    # Run parallel
     print(f"\nRunning parallel extraction ({workers} workers)...", flush=True)
     par_time, par_nodes, par_edges = _run_extraction(
         paths, cache_root, parallel=True, max_workers=workers
     )
-    print(
-        f"Parallel ({workers}): {par_time:.2f}s ({par_nodes:,} nodes, {par_edges:,} edges)"
-    )
+    print(f"Parallel ({workers}): {par_time:.2f}s ({par_nodes:,} nodes, {par_edges:,} edges)")
 
-    # Results
     print()
     if seq_time > 0:
         speedup = seq_time / par_time if par_time > 0 else float("inf")
         print(f"Speedup:      {speedup:.2f}x")
     print(f"Workers:      {workers} (auto-detected)")
 
-    # Validate correctness
     if seq_nodes == par_nodes and seq_edges == par_edges:
         print("Results:      ✓ identical (node count, edge count match)")
     else:
@@ -169,7 +159,6 @@ def main() -> None:
         print(f"  Parallel:   {par_nodes} nodes, {par_edges} edges")
         sys.exit(1)
 
-    # Clean up cache after benchmark
     clear_cache(cache_root)
     print("\nCache cleared after benchmark.")
 

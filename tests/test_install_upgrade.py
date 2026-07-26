@@ -9,6 +9,7 @@ These tests seed each platform's instruction file with the old report-first
 section, run the installer, and assert that the on-disk file now contains
 the new query-first wording and does not contain the old report-first text.
 """
+
 from __future__ import annotations
 import json
 from pathlib import Path
@@ -18,8 +19,6 @@ import pytest
 import graphify.__main__ as mainmod
 
 
-# A representative slice of the pre-fix text. Each platform's old install
-# wrote a variant of "ALWAYS read graphify-out/GRAPH_REPORT.md before ...".
 _OLD_CLAUDE_SECTION = """\
 ## graphify
 
@@ -33,7 +32,7 @@ Rules:
 """
 
 
-_OLD_AGENTS_SECTION = _OLD_CLAUDE_SECTION  # identical pre-fix shape
+_OLD_AGENTS_SECTION = _OLD_CLAUDE_SECTION
 
 _OLD_GEMINI_SECTION = _OLD_CLAUDE_SECTION
 
@@ -85,9 +84,7 @@ def _assert_no_report_first(text: str, ctx: str) -> None:
 
 
 def _assert_query_first(text: str, ctx: str) -> None:
-    assert "graphify query" in text, (
-        f"{ctx}: new 'graphify query' guidance missing after upgrade"
-    )
+    assert "graphify query" in text, f"{ctx}: new 'graphify query' guidance missing after upgrade"
 
 
 def test_claude_install_upgrades_stale_section(tmp_path, monkeypatch):
@@ -95,7 +92,9 @@ def test_claude_install_upgrades_stale_section(tmp_path, monkeypatch):
     `graphify claude install` again after upgrading to a fixed package."""
     monkeypatch.chdir(tmp_path)
     claude_md = tmp_path / "CLAUDE.md"
-    claude_md.write_text("# My Project\n\nSome description.\n\n" + _OLD_CLAUDE_SECTION, encoding="utf-8")
+    claude_md.write_text(
+        "# My Project\n\nSome description.\n\n" + _OLD_CLAUDE_SECTION, encoding="utf-8"
+    )
     monkeypatch.setattr(mainmod, "_check_skill_version", lambda _: None)
 
     mainmod.claude_install(tmp_path)
@@ -103,7 +102,6 @@ def test_claude_install_upgrades_stale_section(tmp_path, monkeypatch):
     after = claude_md.read_text(encoding="utf-8")
     _assert_no_report_first(after, "CLAUDE.md")
     _assert_query_first(after, "CLAUDE.md")
-    # Pre-existing non-graphify content must be preserved
     assert "# My Project" in after
     assert "Some description." in after
 
@@ -125,11 +123,7 @@ def test_claude_install_upgrades_stale_hook_payload(tmp_path, monkeypatch):
                     "hooks": [
                         {
                             "type": "command",
-                            "command": (
-                                "case x in *) "
-                                + _OLD_HOOK_PAYLOAD_SNIPPET
-                                + " esac"
-                            ),
+                            "command": ("case x in *) " + _OLD_HOOK_PAYLOAD_SNIPPET + " esac"),
                         }
                     ],
                 }
@@ -142,13 +136,7 @@ def test_claude_install_upgrades_stale_hook_payload(tmp_path, monkeypatch):
     mainmod.claude_install(tmp_path)
 
     new_settings_text = settings.read_text(encoding="utf-8")
-    assert _OLD_HOOK_PAYLOAD_SNIPPET not in new_settings_text, (
-        "stale hook payload survived upgrade"
-    )
-    # Since #522 the nudge text lives in the `graphify hook-guard` subcommand, not
-    # inline in settings.json (so the command parses on Windows). The upgraded hook
-    # must therefore route to that shell-agnostic subcommand, and the old bash
-    # pipeline must be gone.
+    assert _OLD_HOOK_PAYLOAD_SNIPPET not in new_settings_text, "stale hook payload survived upgrade"
     assert "hook-guard" in new_settings_text, (
         "new hook payload should route to the `graphify hook-guard` subcommand"
     )
@@ -213,7 +201,6 @@ def test_cursor_install_upgrades_stale_rule(tmp_path, monkeypatch):
     after = rule_path.read_text(encoding="utf-8")
     assert "read graphify-out/GRAPH_REPORT.md for god nodes and community structure" not in after
     _assert_query_first(after, ".cursor/rules/graphify.mdc")
-    # YAML frontmatter must be preserved
     assert "alwaysApply: true" in after
 
 
@@ -225,7 +212,6 @@ def test_kiro_install_upgrades_stale_steering(tmp_path, monkeypatch):
     steering.write_text(_OLD_KIRO_STEERING, encoding="utf-8")
     monkeypatch.setattr(mainmod, "_check_skill_version", lambda _: None)
 
-    # Kiro install copies a skill file too; provide a minimal stand-in
     skill_src = Path(mainmod.__file__).parent / "skill-kiro.md"
     if not skill_src.exists():
         pytest.skip("skill-kiro.md not present in this checkout")
@@ -235,7 +221,7 @@ def test_kiro_install_upgrades_stale_steering(tmp_path, monkeypatch):
     after = steering.read_text(encoding="utf-8")
     assert "read it before answering architecture questions" not in after
     _assert_query_first(after, ".kiro/steering/graphify.md")
-    assert "inclusion: always" in after  # frontmatter preserved
+    assert "inclusion: always" in after
 
 
 def test_kiro_install_ships_references_sidecar_and_version_stamp(tmp_path, monkeypatch):
@@ -252,26 +238,20 @@ def test_kiro_install_ships_references_sidecar_and_version_stamp(tmp_path, monke
 
     skill_dir = tmp_path / ".kiro" / "skills" / "graphify"
 
-    # SKILL.md present
     assert (skill_dir / "SKILL.md").exists()
 
-    # references/ sidecar installed with at least one fragment
     refs_dst = skill_dir / "references"
     assert refs_dst.is_dir(), "references/ sidecar must be installed (#1142)"
     assert any(refs_dst.iterdir()), "references/ must not be empty"
 
-    # .graphify_version stamp written
     version_file = skill_dir / ".graphify_version"
     assert version_file.exists(), ".graphify_version stamp must be written (#1142)"
     assert version_file.read_text(encoding="utf-8") == mainmod.__version__
 
-    # no references.tmp leftover
     assert not (skill_dir / "references.tmp").exists()
 
-    # steering file still written
     assert (tmp_path / ".kiro" / "steering" / "graphify.md").exists()
 
-    # uninstall removes skill dir, version stamp, references/, and steering file
     mainmod._kiro_uninstall(tmp_path)
     assert not skill_dir.exists(), "uninstall must remove skill dir including references/ (#1142)"
     assert not (tmp_path / ".kiro" / "steering" / "graphify.md").exists()

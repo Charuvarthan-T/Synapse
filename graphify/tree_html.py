@@ -43,9 +43,6 @@ from typing import Any, Dict, List, Optional
 DEFAULT_MAX_CHILDREN = 200
 
 
-# ── Tree builder (filesystem hierarchy → JSON) ──────────────────
-
-
 def _common_root(paths: List[str]) -> str:
     if not paths:
         return ""
@@ -91,11 +88,12 @@ def build_tree(
     for n in file_nodes:
         by_file[n["source_file"]].append(n)
 
-    # Build dir tree.
     dir_index: Dict[str, Dict[str, Any]] = {}
     label_root = project_label or root_path.name or root or "/"
     root_node: Dict[str, Any] = {
-        "name": label_root, "total_count": 0, "children": [],
+        "name": label_root,
+        "total_count": 0,
+        "children": [],
     }
     dir_index[str(root_path)] = root_node
 
@@ -105,8 +103,7 @@ def build_tree(
             return dir_index[key]
         if abs_path == abs_path.parent:
             return root_node
-        parent = (_ensure_dir(abs_path.parent)
-                  if abs_path.parent != abs_path else root_node)
+        parent = _ensure_dir(abs_path.parent) if abs_path.parent != abs_path else root_node
         node = {"name": abs_path.name, "total_count": 0, "children": []}
         dir_index[key] = node
         parent["children"].append(node)
@@ -121,26 +118,27 @@ def build_tree(
             parent_path = root_path
         parent_dir = _ensure_dir(parent_path)
 
-        # File node — children are the symbols.
         sym_children: List[Dict[str, Any]] = []
         for n in syms:
             label = n.get("label", n.get("id", "?"))
-            # Skip the redundant file-name node graphify emits (bare basename or
-            # the directory-qualified form from the #2032 disambiguation pass).
             if n.get("file_type") == "code":
                 from graphify.build import _is_file_node_label
+
                 if _is_file_node_label(label, src_file):
                     continue
-            sym_children.append({
-                "name": label,
-                "total_count": 1,
-                "children": [],
-            })
-        # Sort: code symbols first by name, then anything else.
-        sym_children.sort(key=lambda c: (
-            c["name"].startswith("_"),
-            c["name"].lower(),
-        ))
+            sym_children.append(
+                {
+                    "name": label,
+                    "total_count": 1,
+                    "children": [],
+                }
+            )
+        sym_children.sort(
+            key=lambda c: (
+                c["name"].startswith("_"),
+                c["name"].lower(),
+            )
+        )
         if len(sym_children) > max_children:
             extra = len(sym_children) - max_children
             sym_children = sym_children[:max_children] + [
@@ -153,13 +151,14 @@ def build_tree(
         }
         parent_dir["children"].append(file_node)
 
-    # Sort each dir's children + propagate total_count up.
     def _finalise(d: Dict[str, Any]) -> int:
         kids = d.get("children") or []
-        kids.sort(key=lambda c: (
-            0 if (c.get("children") and len(c["children"]) > 0) else 1,
-            c["name"].lower(),
-        ))
+        kids.sort(
+            key=lambda c: (
+                0 if (c.get("children") and len(c["children"]) > 0) else 1,
+                c["name"].lower(),
+            )
+        )
         if not kids:
             return d.get("total_count") or 1
         n = 0
@@ -172,10 +171,6 @@ def build_tree(
     return root_node
 
 
-# ── HTML emitter (single-data-blob substitution) ──────────────────
-
-
-# We emit a Python f-string with literal CSS/JS braces escaped as {{ }}.
 _HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -550,8 +545,6 @@ def emit_html(
     svg_width: int = 6000,
     svg_height: int = 8000,
 ) -> str:
-    # Escape </script> sequences so embedded JSON cannot break out of the
-    # <script> tag, and HTML-escape values that land in <title>/<h1>.
     data_json = json.dumps(tree, ensure_ascii=True, separators=(",", ":")).replace("</", "<\\/")
     return _HTML_TEMPLATE.format(
         title=_html.escape(title),
@@ -569,14 +562,13 @@ def write_tree_html(
     root: Optional[str] = None,
     max_children: int = DEFAULT_MAX_CHILDREN,
     project_label: Optional[str] = None,
-    # kept for CLI compatibility with the older signature; ignored now
     top_k_edges: int = 0,
 ) -> Path:
     from graphify.security import check_graph_file_size_cap
+
     check_graph_file_size_cap(graph_path)
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
-    tree = build_tree(graph, root=root, max_children=max_children,
-                      project_label=project_label)
+    tree = build_tree(graph, root=root, max_children=max_children, project_label=project_label)
     title = f"{tree['name']} — graphify tree viewer"
     header = f"{tree['name']} — Knowledge Graph"
     html = emit_html(tree, title=title, header=header)

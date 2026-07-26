@@ -6,6 +6,7 @@ fragments. These tests lock in the anti-drift guards (``--check``,
 core runs a default extraction with zero reference reads, on-demand content
 lives only in the references, and no reference duplicates core content.
 """
+
 from __future__ import annotations
 
 import sys
@@ -13,8 +14,6 @@ from pathlib import Path
 
 import pytest
 
-# tests/ -> repo root is one parent up; put it on the path so tools.skillgen
-# imports regardless of pytest's import mode.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -83,18 +82,13 @@ def test_lean_core_has_no_reference_only_content():
     below are execution-detail lines that never appear in that table.
     """
     core, _ = _claude_artifacts()
-    # The full embedded subagent prompt lives only in extraction-spec.md.
     assert '"file_type":"code|document|paper|image|rationale|concept"' not in core
-    # The incremental-update merge machinery lives only in update.md.
     assert "from graphify.build import build_merge" not in core
     assert "graphify cluster-only ." not in core
-    # The vocab-expansion query flow lives only in query.md.
     assert "Constrained query expansion" not in core
     assert "save-result --question" not in core
-    # The export commands live only in exports.md.
     assert "graphify export wiki" not in core
     assert "graphify export neo4j" not in core
-    # The add / watch / hook flows live only in their references.
     assert "from graphify.ingest import ingest" not in core
     assert "graphify hook install" not in core
     assert "python3 -m graphify.watch" not in core
@@ -103,8 +97,6 @@ def test_lean_core_has_no_reference_only_content():
 def test_lean_core_runs_default_pipeline_with_zero_references():
     """The default code-corpus run must be fully described inside the core."""
     core, _ = _claude_artifacts()
-    # The whole default pipeline (detect -> AST -> build -> label -> HTML ->
-    # report) must be present in the core so a plain run reads no reference.
     for needed in (
         "### Step 1 - Ensure graphify is installed",
         "### Step 2 - Detect files",
@@ -132,28 +124,22 @@ def test_extraction_states_no_api_key_required_for_every_host():
     """
     platforms = gen.load_platforms()
     arts = gen.render_all(platforms)
-    bodies = [a for a in arts
-              if "### Step 3 - Extract entities and relationships" in a.content]
+    bodies = [a for a in arts if "### Step 3 - Extract entities and relationships" in a.content]
     assert bodies, "no rendered skill body contains the Step 3 extraction section"
     for a in bodies:
         assert "graphify needs no API key" in a.content, a.path
         assert "Never ask the user for one, and never block on one." in a.content, a.path
-        # the no-key fallback must not be framed *only* around subagent dispatch
         assert "cannot dispatch subagents" in a.content, a.path
-        # where a host prints the GEMINI key tip, the clarity must precede it (be
-        # hoisted) rather than sit buried after the key check (aider/devin print no
-        # tip — they are the model themselves — so the check only applies if present)
         tip = "Tip: set `GEMINI_API_KEY`"
         if tip in a.content:
-            assert a.content.index("graphify needs no API key") < a.content.index(tip), \
+            assert a.content.index("graphify needs no API key") < a.content.index(tip), (
                 f"{a.path}: no-key clarity is not hoisted above the GEMINI tip"
+            )
 
 
 def test_references_contain_no_core_pipeline_content():
     """No reference fragment may duplicate the core build pipeline."""
     _, refs = _claude_artifacts()
-    # Distinctive lines from the core build/label steps must not appear in any
-    # reference, or the same content would be double-homed.
     core_only_markers = (
         "from graphify.cluster import cluster, score_all",
         "### Step 4 - Build graph, cluster, analyze, generate outputs",
@@ -183,7 +169,6 @@ def test_query_heading_is_homed_in_core_stub_only():
     query_headings = set(gen.headings(refs["query.md"]))
     assert "## For /graphify query" in core_headings
     assert "## For /graphify query" not in query_headings
-    # The deeper query content moved into the reference.
     assert "## For /graphify path" in query_headings
     assert "## For /graphify explain" in query_headings
     assert "## For /graphify path" not in core_headings
@@ -225,9 +210,6 @@ def test_enum_is_full_six_value_superset_in_extraction_spec():
     spec = refs["extraction-spec.md"]
     assert "`code`, `document`, `paper`, `image`, `rationale`, `concept`" in spec
     assert '"file_type":"code|document|paper|image|rationale|concept"' in spec
-
-
-# --- codex + windows (the divergent split hosts) -------------------------------
 
 
 def _platform_artifacts(key):
@@ -278,7 +260,6 @@ def test_descriptions_are_unified():
     for key, p in platforms.items():
         body = gen.render(p)[0].content
         assert expected_line in body, f"[{key}] missing the unified description line"
-        # None of the drifted v8 wording may survive on any platform.
         assert "Provides persistent graph with god nodes" not in body, f"[{key}] kept old wording"
         assert "treat the question as a /graphify query." not in body, f"[{key}] kept old wording"
         assert "clustered communities" not in body, f"[{key}] kept old wording"
@@ -288,14 +269,11 @@ def test_windows_frontmatter_name_and_shell_and_extra():
     """windows: name must be `graphify` (folder-name rule, #1635), powershell
     install, troubleshooting tail."""
     core, _ = _platform_artifacts("windows")
-    # Claude Code requires the frontmatter name to equal the install folder
-    # (graphify); a `graphify-windows` name broke skill discovery (#1635).
     assert core.startswith("---\nname: graphify\n")
     assert "```powershell" in core
     assert "function Find-GraphifyPython" in core
     assert "## Troubleshooting" in core
     assert "### PowerShell 5.1: Vertical scrolling stops working" in core
-    # The troubleshooting section sits before Honesty Rules, single separator.
     assert "\n4. **Skip graspologic**" in core
     assert core.index("## Troubleshooting") < core.index("## Honesty Rules")
 
@@ -308,10 +286,7 @@ def test_codex_dispatch_is_agenttask_and_collects_in_memory():
     assert "close_agent" in core
     assert "multi_agent = true" in core
     assert "Codex collects in memory" in core
-    # The B2 dispatch slot itself (Codex heading -> Step B3) must not carry the
-    # claude Agent-tool example. The shared Step B3 prose mentions the agent type
-    # in a re-run hint, so scope the check to the dispatch block only.
-    b2 = core[core.index("**Step B2"):core.index("**Step B3")]
+    b2 = core[core.index("**Step B2") : core.index("**Step B3")]
     assert "Concrete example for 3 chunks" not in b2
     assert "Agent tool call 1" not in b2
 
@@ -323,7 +298,6 @@ def test_codex_and_windows_unify_enum_to_six_values():
         spec = refs["extraction-spec.md"]
         assert "`code`, `document`, `paper`, `image`, `rationale`, `concept`" in spec
         assert '"file_type":"code|document|paper|image|rationale|concept"' in spec
-        # No legacy 4-value enum survives anywhere in the rendered bundle.
         for body in refs.values():
             assert '"file_type":"code|document|paper|image"' not in body
 
@@ -342,10 +316,8 @@ def test_every_platform_query_has_expansion_and_fallback():
     got both — Claude had expansion but no fallback; the rest the reverse)."""
     for key in ("claude", "codex", "windows", "opencode"):
         core, refs = _platform_artifacts(key)
-        # Core stub mentions both the vocab-expansion step and the inline fallback.
         assert "expand the question against the graph's own vocabulary" in core
         assert "NetworkX traversal" in core
-        # The query reference carries expansion, fallback, and path/explain.
         q = refs["query.md"]
         assert "Constrained query expansion" in q
         assert "If the CLI is unavailable" in q
@@ -367,12 +339,9 @@ def test_schema_singleton_catches_legacy_enums():
     superset = '"file_type":"code|document|paper|image|rationale|concept"'
     assert gen.legacy_enum_lines(four) == [four]
     assert gen.legacy_enum_lines(five) == [five]
-    # The full six-value superset is never flagged.
     assert gen.legacy_enum_lines(superset) == []
     assert gen.legacy_enum_lines("no enum here") == []
 
-
-# --- the remaining progressive hosts -------------------------------------------
 
 _PROGRESSIVE_HOSTS = (
     "opencode",
@@ -400,8 +369,20 @@ def test_all_progressive_hosts_check_and_audit_clean():
 
 def test_no_host_has_trigger_in_frontmatter():
     """No split host emits a trigger: field — not part of Agent Skills spec (#1180)."""
-    for key in ("claude", "codex", "opencode", "kilo", "copilot", "claw", "droid",
-                "amp", "trae", "vscode", "kiro", "pi"):
+    for key in (
+        "claude",
+        "codex",
+        "opencode",
+        "kilo",
+        "copilot",
+        "claw",
+        "droid",
+        "amp",
+        "trae",
+        "vscode",
+        "kiro",
+        "pi",
+    ):
         core, _ = _platform_artifacts(key)
         head = core.split("---", 2)[1]
         assert "trigger:" not in head, f"[{key}] unexpectedly has a trigger: line"
@@ -425,7 +406,7 @@ def test_dispatch_variants_are_host_specific():
     }
     for key, marker in expect.items():
         core, _ = _platform_artifacts(key)
-        b2 = core[core.index("**Step B2"):core.index("**Step B3")]
+        b2 = core[core.index("**Step B2") : core.index("**Step B3")]
         assert marker.lower() in b2.lower(), f"[{key}] dispatch slot missing {marker!r}"
 
 
@@ -459,9 +440,6 @@ def test_every_split_host_renders_eight_references():
         assert sorted(refs) == expected, f"[{key}] reference set drift: {sorted(refs)}"
 
 
-# --- the aider + devin monoliths -----------------------------------------------
-
-
 def test_monoliths_render_inline_single_file_no_references():
     """aider and devin render one inline body, no split and no references dir."""
     platforms = gen.load_platforms()
@@ -470,7 +448,10 @@ def test_monoliths_render_inline_single_file_no_references():
         arts = gen.render(platforms[key])
         assert len(arts) == 1, f"[{key}] monolith should render exactly one file"
         assert arts[0].path == f"graphify/skill-{key}.md"
-        assert "references/" not in arts[0].content or "see `references/" not in arts[0].content.lower()
+        assert (
+            "references/" not in arts[0].content
+            or "see `references/" not in arts[0].content.lower()
+        )
 
 
 def test_monolith_roundtrip_passes_for_aider_and_devin():
@@ -493,7 +474,6 @@ def test_monoliths_change_only_sanctioned_lines():
     platforms = gen.load_platforms()
     for key in ("aider", "devin"):
         assert gen.monolith_roundtrip(platforms[key]) == []
-        # The six-value superset replaced the five-value enum in both files.
         rendered = gen.render(platforms[key])[0].content
         assert gen.ENUM_VALUES in rendered
         assert UNIFIED_DESCRIPTION in rendered
@@ -510,27 +490,34 @@ def test_monoliths_carry_the_1392_runbook_fixes():
     for key in ("aider", "devin"):
         body = gen.render(platforms[key])[0].content
 
-        # #6/#7 directed propagation: no bare build_from_json call survives, and
-        # the IS_DIRECTED substitution instruction is present.
         assert "directed=IS_DIRECTED" in body
         assert "build_from_json(extraction)" not in body
         assert "Substitute it everywhere it appears" in body
 
-        # #10 content-only semantic scope: code is no longer flattened in.
         assert "for cat in ('document', 'paper', 'image')" in body
         assert "detect['files'].values()" not in body
 
-        # #12 stale-cache unlink on a miss.
         assert ".graphify_cached.json').unlink(missing_ok=True)" in body
 
-        # #18/#20 zero-node guard before any write, report/analysis gated on
-        # to_json's return.
         lines = body.splitlines()
-        build_i = next(i for i, l in enumerate(lines) if "G = build_from_json(extraction, directed=IS_DIRECTED)" in l)
-        guard_i = next(i for i, l in enumerate(lines[build_i:], build_i) if "number_of_nodes() == 0" in l)
-        report_i = next(i for i, l in enumerate(lines[build_i:], build_i) if "GRAPH_REPORT.md').write_text(report)" in l)
-        wrote_i = next(i for i, l in enumerate(lines[build_i:], build_i) if l.strip().startswith("wrote = to_json("))
-        # guard fires right after the build, before the graph/report are written.
+        build_i = next(
+            i
+            for i, l in enumerate(lines)
+            if "G = build_from_json(extraction, directed=IS_DIRECTED)" in l
+        )
+        guard_i = next(
+            i for i, l in enumerate(lines[build_i:], build_i) if "number_of_nodes() == 0" in l
+        )
+        report_i = next(
+            i
+            for i, l in enumerate(lines[build_i:], build_i)
+            if "GRAPH_REPORT.md').write_text(report)" in l
+        )
+        wrote_i = next(
+            i
+            for i, l in enumerate(lines[build_i:], build_i)
+            if l.strip().startswith("wrote = to_json(")
+        )
         assert build_i < guard_i < wrote_i < report_i, f"[{key}] Step 4 ordering not fixed"
         assert "if not wrote:" in body
 
@@ -581,9 +568,6 @@ def test_devin_keeps_its_multi_field_frontmatter():
     assert "allowed-tools:" in head
 
 
-# --- the always-on instruction blocks (D2-a) -----------------------------------
-
-
 def test_always_on_renders_six_blocks():
     """render_always_on yields exactly the six always-on instruction files."""
     arts = gen.render_always_on()
@@ -615,16 +599,11 @@ def test_always_on_roundtrip_is_byte_faithful():
     graphify.__main__, so the packaged markdown must round-trip exactly or those
     contracts silently change.
     """
-    # The guard passes with zero problems: every always-on block reproduces its
-    # frozen baseline, with the agents-md block allowed exactly the #1530
-    # sanctioned substitution recorded in gen.ALWAYS_ON_SANCTIONED_EDITS.
     problems = gen.always_on_roundtrip()
     assert problems == []
 
     rendered_agents = next(
-        a.content
-        for a in gen.render_always_on()
-        if a.path == "graphify/always_on/agents-md.md"
+        a.content for a in gen.render_always_on() if a.path == "graphify/always_on/agents-md.md"
     )
     old_instruction = (
         "When the user types `/graphify`, invoke the `skill` tool with "
@@ -634,13 +613,10 @@ def test_always_on_roundtrip_is_byte_faithful():
         "When the user types `/graphify`, use the installed graphify skill or instructions "
         "before doing anything else."
     )
-    # The sanctioned-edit registry holds exactly this single old->new substitution.
     assert gen.ALWAYS_ON_SANCTIONED_EDITS["_AGENTS_MD_SECTION"] == (
         (old_instruction, new_instruction),
     )
     baseline_agents = gen._always_on_constants(gen.ALWAYS_ON_BASELINE_REF)["_AGENTS_MD_SECTION"]
-    # The ONLY divergence from the frozen baseline is the sanctioned sentence —
-    # any other byte drift would have surfaced as a problem above.
     assert old_instruction in baseline_agents
     assert baseline_agents.replace(old_instruction, new_instruction) == rendered_agents
     assert "`skill` tool" not in rendered_agents
@@ -669,9 +645,7 @@ def test_always_on_files_are_guarded_by_check(tmp_path):
     """A hand-edit of an always_on/*.md is caught by --check (the drift guard)."""
     platforms = gen.load_platforms()
     arts = gen.render_all(platforms)
-    # The committed + expected/ snapshots match a fresh render.
     assert gen.check(arts) == [], "\n".join(gen.check(arts))
-    # A mutated artifact is flagged.
     mutated = [
         gen.RenderedArtifact(a.path, a.content + "drift\n")
         if a.path == "graphify/always_on/claude-md.md"
@@ -680,9 +654,6 @@ def test_always_on_files_are_guarded_by_check(tmp_path):
     ]
     problems = gen.check(mutated)
     assert any("always_on/claude-md.md" in p for p in problems)
-
-
-# --- the per-host coverage audit (the systemic guard) --------------------------
 
 
 def test_audit_coverage_passes_for_every_split_host():
@@ -700,9 +671,18 @@ def test_audit_reads_each_host_against_its_own_v8_body():
 
     This is the structural fix: a per-host body, so a drop on one host surfaces.
     """
-    assert gen._v8_baseline_ref("claude") == "47042beb05d1f6dd2186c0c499ae2840ce604ead:graphify/skill.md"
-    assert gen._v8_baseline_ref("trae") == "47042beb05d1f6dd2186c0c499ae2840ce604ead:graphify/skill-trae.md"
-    assert gen._v8_baseline_ref("vscode") == "47042beb05d1f6dd2186c0c499ae2840ce604ead:graphify/skill-vscode.md"
+    assert (
+        gen._v8_baseline_ref("claude")
+        == "47042beb05d1f6dd2186c0c499ae2840ce604ead:graphify/skill.md"
+    )
+    assert (
+        gen._v8_baseline_ref("trae")
+        == "47042beb05d1f6dd2186c0c499ae2840ce604ead:graphify/skill-trae.md"
+    )
+    assert (
+        gen._v8_baseline_ref("vscode")
+        == "47042beb05d1f6dd2186c0c499ae2840ce604ead:graphify/skill-vscode.md"
+    )
 
 
 def test_audit_catches_an_induced_per_host_drop():
@@ -731,8 +711,6 @@ def test_audit_catches_a_dropped_non_allowlisted_heading():
     platforms = gen.load_platforms()
     trae = platforms["trae"]
     real_arts = gen.render(trae)
-    # Drop the Honesty Rules heading from the rendered core to simulate a real
-    # content loss, then re-run the single-home check by hand against trae's v8.
     v8_headings = gen.headings(gen._git_show(gen._v8_baseline_ref("trae")))
     assert "## Honesty Rules" in v8_headings
     by_path = {a.path: a.content for a in real_arts}
@@ -774,26 +752,19 @@ def test_audit_allowlist_documents_only_consolidations():
     for hs in gen._CONSOLIDATION_ALLOWLIST.values():
         all_allowlisted |= set(hs)
     assert "## For native AGENTS.md integration (Trae)" not in all_allowlisted
-    # Only the two minimal-body hosts carry per-host consolidations.
     assert set(gen._CONSOLIDATION_ALLOWLIST) == {"kilo", "vscode"}
-
-
-# --- the trae / trae-cn native AGENTS.md integration fix -----------------------
 
 
 def test_trae_renders_native_agents_md_integration_not_claude():
     """trae wires `graphify trae install` -> AGENTS.md, never `graphify claude install`."""
     core, refs = _platform_artifacts("trae")
     hooks = refs["hooks.md"]
-    # The hooks reference carries the v8 native AGENTS.md integration section.
     assert "## For native AGENTS.md integration (Trae)" in hooks
     assert "graphify trae install" in hooks
     assert "graphify trae-cn install" in hooks
     assert "writes a `## graphify` section to the local `AGENTS.md`" in hooks
-    # The claude-flavored install command must NOT appear for trae.
     assert "graphify claude install" not in hooks
     assert "native CLAUDE.md integration" not in hooks
-    # The lean-core pointer names AGENTS.md, not CLAUDE.md.
     assert "## For the commit hook and native AGENTS.md integration" in core
     assert "wire graphify into a project's AGENTS.md" in core
     assert "native CLAUDE.md integration" not in core
@@ -802,7 +773,7 @@ def test_trae_renders_native_agents_md_integration_not_claude():
 def test_trae_dispatch_carries_the_no_pretooluse_caveat():
     """trae's B2 dispatch block restores the v8 no-PreToolUse-hook caveat."""
     core, _ = _platform_artifacts("trae")
-    b2 = core[core.index("**Step B2"):core.index("Pass the extraction prompt")]
+    b2 = core[core.index("**Step B2") : core.index("Pass the extraction prompt")]
     assert "Trae does NOT support PreToolUse hooks" in b2
     assert "AGENTS.md rules are the always-on mechanism instead" in b2
 
@@ -826,12 +797,15 @@ def test_claude_flavored_hosts_keep_their_hooks_text_unchanged():
         hooks = refs["hooks.md"]
         assert "graphify claude install" in hooks, f"[{key}] lost the claude install command"
         assert "native CLAUDE.md integration" in hooks, f"[{key}] lost the CLAUDE.md heading"
-        assert "Trae does NOT support PreToolUse hooks" not in core, f"[{key}] leaked the trae caveat"
-        assert "Trae does NOT support PreToolUse hooks" not in hooks, f"[{key}] leaked the trae caveat"
-        assert "## For the commit hook and native CLAUDE.md integration" in core, f"[{key}] pointer drifted"
-
-
-# --- the amp native AGENTS.md integration (the 13th split host) ----------------
+        assert "Trae does NOT support PreToolUse hooks" not in core, (
+            f"[{key}] leaked the trae caveat"
+        )
+        assert "Trae does NOT support PreToolUse hooks" not in hooks, (
+            f"[{key}] leaked the trae caveat"
+        )
+        assert "## For the commit hook and native CLAUDE.md integration" in core, (
+            f"[{key}] pointer drifted"
+        )
 
 
 def test_amp_renders_native_agents_md_integration_v8_faithfully():
@@ -844,21 +818,17 @@ def test_amp_renders_native_agents_md_integration_v8_faithfully():
     """
     core, refs = _platform_artifacts("amp")
     hooks = refs["hooks.md"]
-    # amp's bare v8 heading and Amp-worded prose.
     assert "## For native AGENTS.md integration" in hooks
     assert "## For native AGENTS.md integration (Trae)" not in hooks
     assert "make graphify always-on in Amp sessions" in hooks
     assert "instructs Amp to check the graph" in hooks
-    # amp's single-line install/uninstall, no trae-cn alt comments.
     assert "graphify amp install" in hooks
     assert "graphify amp uninstall  # remove the section" in hooks
     assert "graphify trae install" not in hooks
     assert "graphify trae-cn" not in hooks
     assert "or: graphify" not in hooks
-    # No claude flavoring on amp.
     assert "graphify claude install" not in hooks
     assert "native CLAUDE.md integration" not in hooks
-    # The lean-core pointer names AGENTS.md, not CLAUDE.md.
     assert "## For the commit hook and native AGENTS.md integration" in core
     assert "wire graphify into a project's AGENTS.md" in core
     assert "native CLAUDE.md integration" not in core
@@ -877,8 +847,7 @@ def test_amp_has_no_pretooluse_caveat_anywhere():
     assert "PreToolUse" not in hooks, "amp leaked a PreToolUse caveat into its hooks reference"
     assert "Trae does NOT support" not in core
     assert "Trae does NOT support" not in hooks
-    # amp's dispatch is the plain task-tool-disk block (no trae caveat line).
-    b2 = core[core.index("**Step B2"):core.index("Pass the extraction prompt")]
+    b2 = core[core.index("**Step B2") : core.index("Pass the extraction prompt")]
     assert "Trae" not in b2
 
 
@@ -890,12 +859,12 @@ def test_amp_audit_coverage_passes_against_its_own_v8():
     confirms every heading single-homes in amp's core + references.
     """
     platforms = gen.load_platforms()
-    assert gen._v8_baseline_ref("amp") == "47042beb05d1f6dd2186c0c499ae2840ce604ead:graphify/skill-amp.md"
+    assert (
+        gen._v8_baseline_ref("amp")
+        == "47042beb05d1f6dd2186c0c499ae2840ce604ead:graphify/skill-amp.md"
+    )
     problems = gen.audit_coverage(platforms["amp"])
     assert problems == [], "\n".join(problems)
-
-
-# --- the generic agents platform (#1432) ---------------------------------------
 
 
 def test_agents_renders_its_own_agents_md_hooks_wording():
@@ -912,12 +881,10 @@ def test_agents_renders_its_own_agents_md_hooks_wording():
     assert "make graphify always-on in your agent sessions" in hooks
     assert "graphify agents install" in hooks
     assert "graphify agents uninstall  # remove the section" in hooks
-    # No amp/trae/claude wording leaks into the agents render.
     assert "graphify amp install" not in hooks
     assert "graphify trae" not in hooks
     assert "graphify claude install" not in hooks
     assert "PreToolUse" not in hooks and "PreToolUse" not in core
-    # The lean-core pointer names AGENTS.md, not CLAUDE.md.
     assert "## For the commit hook and native AGENTS.md integration" in core
     assert "native CLAUDE.md integration" not in core
 
@@ -933,9 +900,7 @@ def test_agents_body_matches_amp_modulo_hooks_wording():
     platforms = gen.load_platforms()
     amp = {a.path.rsplit("/", 1)[-1]: a.content for a in gen.render(platforms["amp"])}
     agents = {a.path.rsplit("/", 1)[-1]: a.content for a in gen.render(platforms["agents"])}
-    # The lean-core skill body is identical (frontmatter + steps, no hooks ref).
     assert amp["skill-amp.md"] == agents["skill-agents.md"]
-    # Every reference except hooks.md is byte-identical.
     for name in amp:
         if name in ("skill-amp.md", "hooks.md"):
             continue
@@ -946,7 +911,10 @@ def test_agents_body_matches_amp_modulo_hooks_wording():
 def test_agents_audit_baseline_is_amps_v8_body():
     """`agents` is a post-v8 platform, so its audit baseline is amp's v8 body."""
     platforms = gen.load_platforms()
-    assert gen._v8_baseline_ref("agents") == "47042beb05d1f6dd2186c0c499ae2840ce604ead:graphify/skill-amp.md"
+    assert (
+        gen._v8_baseline_ref("agents")
+        == "47042beb05d1f6dd2186c0c499ae2840ce604ead:graphify/skill-amp.md"
+    )
     problems = gen.audit_coverage(platforms["agents"])
     assert problems == [], "\n".join(problems)
 
@@ -964,9 +932,11 @@ def test_semantic_cache_calls_pass_prompt_file_for_every_split_host():
     """
     platforms = gen.load_platforms()
     arts = gen.render_all(platforms)
-    bodies = [a for a in arts
-              if "check_semantic_cache(" in a.content
-              and "references/extraction-spec.md" in a.content]
+    bodies = [
+        a
+        for a in arts
+        if "check_semantic_cache(" in a.content and "references/extraction-spec.md" in a.content
+    ]
     assert bodies, "no rendered split-host skill body calls check_semantic_cache"
     for a in bodies:
         for call in ("check_semantic_cache(", "save_semantic_cache("):
@@ -975,5 +945,4 @@ def test_semantic_cache_calls_pass_prompt_file_for_every_split_host():
                 f"{a.path}: {call} must pass prompt_file so entries are attributed "
                 f"to the extraction prompt (#1939) — got: {line.strip()}"
             )
-        # The placeholder is inert unless the body tells the agent what to substitute.
         assert "SPEC_PATH below is the **absolute** path" in a.content, a.path

@@ -1,4 +1,5 @@
 """Markdown extractor. Moved verbatim from graphify/extract.py."""
+
 from __future__ import annotations
 
 import re
@@ -8,13 +9,14 @@ from pathlib import Path
 from graphify.extractors.base import _file_stem, _make_id
 
 
-_MD_INLINE_LINK_RE = re.compile(r'(?<!\!)\[[^\]]*\]\(\s*<?([^)\s>]+)>?(?:\s+[^)]*)?\)')
+_MD_INLINE_LINK_RE = re.compile(r"(?<!\!)\[[^\]]*\]\(\s*<?([^)\s>]+)>?(?:\s+[^)]*)?\)")
 
-_MD_REF_DEF_RE = re.compile(r'^\s{0,3}\[[^\]]+\]:\s*<?([^\s>]+)>?')
+_MD_REF_DEF_RE = re.compile(r"^\s{0,3}\[[^\]]+\]:\s*<?([^\s>]+)>?")
 
-_MD_WIKILINK_RE = re.compile(r'(?<!\!)\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]')
+_MD_WIKILINK_RE = re.compile(r"(?<!\!)\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]")
 
 _MD_LINKABLE_EXTS = {".md", ".mdx", ".qmd", ".markdown", ".rst", ".txt"}
+
 
 def _resolve_markdown_link(raw: str, source_dir: Path) -> "Path | None":
     """Resolve a markdown link target to the absolute path of a sibling document.
@@ -32,7 +34,6 @@ def _resolve_markdown_link(raw: str, source_dir: Path) -> "Path | None":
     target = raw.strip()
     if not target:
         return None
-    # Drop anchor / query so #section links still resolve to the target doc.
     target = target.split("#", 1)[0].split("?", 1)[0].strip()
     if not target:
         return None
@@ -49,6 +50,7 @@ def _resolve_markdown_link(raw: str, source_dir: Path) -> "Path | None":
     if not candidate.is_absolute():
         candidate = source_dir / candidate
     return Path(os.path.normpath(str(candidate)))
+
 
 def extract_markdown(path: Path) -> dict:
     """Extract structural nodes and edges from a Markdown file.
@@ -90,39 +92,52 @@ def extract_markdown(path: Path) -> dict:
     def add_node(nid: str, label: str, line: int, file_type: str = "document") -> None:
         if nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({"id": nid, "label": label, "file_type": file_type,
-                          "source_file": str_path, "source_location": f"L{line}"})
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": file_type,
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                }
+            )
 
-    def add_edge(src: str, tgt: str, relation: str, line: int,
-                 confidence: str = "EXTRACTED", weight: float = 1.0) -> None:
-        edges.append({"source": src, "target": tgt, "relation": relation,
-                      "confidence": confidence, "source_file": str_path,
-                      "source_location": f"L{line}", "weight": weight})
+    def add_edge(
+        src: str,
+        tgt: str,
+        relation: str,
+        line: int,
+        confidence: str = "EXTRACTED",
+        weight: float = 1.0,
+    ) -> None:
+        edges.append(
+            {
+                "source": src,
+                "target": tgt,
+                "relation": relation,
+                "confidence": confidence,
+                "source_file": str_path,
+                "source_location": f"L{line}",
+                "weight": weight,
+            }
+        )
 
     file_nid = _make_id(str(path))
     add_node(file_nid, path.name, 1)
 
     source_dir = path.parent
-    # Dedup link edges by resolved target node so a hub doc that links to the
-    # same sibling many times yields one edge, not N (keeps weights meaningful).
     linked_targets: set[str] = set()
 
     def add_link(raw: str, line: int) -> None:
         resolved = _resolve_markdown_link(raw, source_dir)
         if resolved is None:
             return
-        # Build the target ID with the SAME recipe as the target file's own
-        # node (_make_id(str(path)) at extract time, canonicalized to
-        # _file_node_id(rel) by the extract() post-pass). Using the absolute
-        # resolved path means both endpoints get remapped identically, so the
-        # edge merges into the existing doc node instead of spawning a ghost.
         tgt_nid = _make_id(str(resolved))
         if tgt_nid == file_nid or tgt_nid in linked_targets:
             return
         linked_targets.add(tgt_nid)
         add_edge(file_nid, tgt_nid, "references", line)
 
-    # Track heading stack for nesting: [(level, nid), ...]
     heading_stack: list[tuple[int, str]] = []
     in_code_block = False
 
@@ -130,8 +145,6 @@ def extract_markdown(path: Path) -> dict:
     for line_num_0, line_text in enumerate(lines):
         line_num = line_num_0 + 1
 
-        # Skip over fenced code blocks so their contents are not parsed as
-        # headings, but do not emit nodes/edges for them (#1077).
         stripped = line_text.strip()
         if stripped.startswith("```"):
             in_code_block = not in_code_block
@@ -140,9 +153,6 @@ def extract_markdown(path: Path) -> dict:
         if in_code_block:
             continue
 
-        # Markdown links -> document references (#1376). Scanned on every
-        # non-fenced line (including heading lines, which the heading branch
-        # below `continue`s past) so links anywhere in the doc are captured.
         for m in _MD_INLINE_LINK_RE.finditer(line_text):
             add_link(m.group(1), line_num)
         for m in _MD_WIKILINK_RE.finditer(line_text):
@@ -151,22 +161,18 @@ def extract_markdown(path: Path) -> dict:
         if ref_def:
             add_link(ref_def.group(1), line_num)
 
-        # Detect headings: # Heading, ## Heading, etc.
-        heading_match = re.match(r'^(#{1,6})\s+(.+)', line_text)
+        heading_match = re.match(r"^(#{1,6})\s+(.+)", line_text)
         if heading_match:
             level = len(heading_match.group(1))
             title = heading_match.group(2).strip()
             h_nid = _make_id(stem, title)
-            # Avoid duplicate heading IDs by appending line number
             if h_nid in seen_ids:
                 h_nid = _make_id(stem, title, str(line_num))
             add_node(h_nid, title, line_num)
 
-            # Pop headings at same or deeper level
             while heading_stack and heading_stack[-1][0] >= level:
                 heading_stack.pop()
 
-            # Connect to parent heading or file
             parent = heading_stack[-1][1] if heading_stack else file_nid
             add_edge(parent, h_nid, "contains", line_num)
 

@@ -7,6 +7,7 @@ member-call resolver could bind a builtin-typed receiver (`let d: Data`) to a
 same-named user symbol in another file — the same phantom-edge shape #1726
 fixed for TypeScript.
 """
+
 import networkx as nx
 import pytest
 
@@ -18,10 +19,20 @@ def _labels_by_id(r):
     return {n["id"]: n.get("label") for n in r["nodes"]}
 
 
-@pytest.mark.parametrize("builtin_label", [
-    "Foundation", "SwiftUI", "NSLock", "Data", "View", "Sendable", "Codable",
-    "DispatchQueue", "Color",
-])
+@pytest.mark.parametrize(
+    "builtin_label",
+    [
+        "Foundation",
+        "SwiftUI",
+        "NSLock",
+        "Data",
+        "View",
+        "Sendable",
+        "Codable",
+        "DispatchQueue",
+        "Color",
+    ],
+)
 def test_god_nodes_excludes_swift_builtin_labels(builtin_label: str) -> None:
     """Swift framework symbols must be filtered from god_nodes output.
 
@@ -82,57 +93,51 @@ def test_god_nodes_excludes_swift_builtin_labels(builtin_label: str) -> None:
         f"but it appeared in the result: {result}"
     )
     assert "real_node" in result_ids, (
-        f"god_nodes() should include project symbol 'AudioStreamer' "
-        f"but it was absent: {result}"
+        f"god_nodes() should include project symbol 'AudioStreamer' but it was absent: {result}"
     )
 
 
 def test_swift_builtin_receiver_does_not_bind_to_user_symbol(tmp_path):
-    # #2147 (same shape as #1726 for TS): a receiver typed with a builtin
-    # (`let payload: Data`) must not have its member calls bound to a user type
-    # that happens to be named `Data` in another file.
-    (tmp_path / "Model.swift").write_text(
-        "class Data {\n"
-        "    func append(_ s: String) {}\n"
-        "}\n")
+    (tmp_path / "Model.swift").write_text("class Data {\n    func append(_ s: String) {}\n}\n")
     (tmp_path / "Uploader.swift").write_text(
         "class Uploader {\n"
         "    let payload: Data = Data()\n"
         "    func send() {\n"
-        "        payload.append(\"x\")\n"
+        '        payload.append("x")\n'
         "    }\n"
-        "}\n")
+        "}\n"
+    )
     r = extract(sorted(tmp_path.glob("*.swift")), cache_root=tmp_path, parallel=False)
     lbl = _labels_by_id(r)
     by_id = {n["id"]: n for n in r["nodes"]}
-    data_ids = [n["id"] for n in r["nodes"]
-                if n.get("label") == "Data"
-                and str(n.get("source_file", "")).endswith("Model.swift")]
+    data_ids = [
+        n["id"]
+        for n in r["nodes"]
+        if n.get("label") == "Data" and str(n.get("source_file", "")).endswith("Model.swift")
+    ]
     assert data_ids, "the user class Data must still exist as a node"
     for e in r["edges"]:
-        if e.get("target") in data_ids and e.get("relation") in ("calls", "references") \
-                and e.get("context") == "call":
+        if (
+            e.get("target") in data_ids
+            and e.get("relation") in ("calls", "references")
+            and e.get("context") == "call"
+        ):
             src_sf = str(by_id.get(e["source"], {}).get("source_file", ""))
             assert not src_sf.endswith("Uploader.swift"), (
-                f"builtin-typed receiver bound to user Data: "
-                f"{lbl.get(e['source'])!r} -> Data ({e})"
+                f"builtin-typed receiver bound to user Data: {lbl.get(e['source'])!r} -> Data ({e})"
             )
 
 
 def test_swift_user_receiver_type_still_resolves(tmp_path):
-    # Guard must be a no-op for genuine user types: a member call on a
-    # user-typed property still resolves cross-file (#1356 inference table).
-    (tmp_path / "Engine.swift").write_text(
-        "class AudioEngine {\n"
-        "    func play() {}\n"
-        "}\n")
+    (tmp_path / "Engine.swift").write_text("class AudioEngine {\n    func play() {}\n}\n")
     (tmp_path / "Player.swift").write_text(
         "class Player {\n"
         "    let engine: AudioEngine = AudioEngine()\n"
         "    func start() {\n"
         "        engine.play()\n"
         "    }\n"
-        "}\n")
+        "}\n"
+    )
     r = extract(sorted(tmp_path.glob("*.swift")), cache_root=tmp_path, parallel=False)
     lbl = _labels_by_id(r)
     resolved = {

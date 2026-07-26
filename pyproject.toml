@@ -49,9 +49,6 @@ Repository = "https://github.com/Graphify-Labs/graphify"
 Issues = "https://github.com/Graphify-Labs/graphify/issues"
 
 [project.optional-dependencies]
-# starlette is pulled in transitively by mcp, but graphify/serve.py imports it
-# directly for the HTTP transport, so declare it here and floor it above the
-# CVE-2026-48818 / CVE-2026-54283 fixes (both resolved by 1.3.1) (#1391, #1396).
 mcp = ["mcp", "starlette>=1.3.1"]
 neo4j = ["neo4j"]
 falkordb = ["falkordb"]
@@ -71,14 +68,7 @@ gemini = ["openai", "tiktoken"]
 openai = ["openai", "tiktoken"]
 chinese = ["jieba"]
 sql = ["tree-sitter-sql"]
-# extract_pascal() uses tree-sitter-pascal for AST-quality extraction (more
-# accurate calls/inherits edges) and falls back to a regex extractor when it is
-# absent (#781), so this stays optional. Unlike tree-sitter-dm below, it ships
-# prebuilt wheels for every platform (win/macOS/Linux), so no C toolchain needed.
 pascal = ["tree-sitter-pascal"]
-# tree-sitter-dm (BYOND DreamMaker) ships only a Windows wheel, so on Linux/Mac it
-# must compile from source (needs a C toolchain + python3-dev). Keeping it optional
-# avoids breaking the default `uv tool install graphifyy` for everyone (#1104).
 dm = ["tree-sitter-dm"]
 terraform = ["tree-sitter-hcl"]
 all = ["mcp", "starlette>=1.3.1", "neo4j", "falkordb", "pypdf>=6.12.0", "markdownify", "watchdog", "graspologic; python_version < '3.13'", "python-docx", "openpyxl", "faster-whisper; python_version >= '3.11'", "yt-dlp>=2026.6.9", "matplotlib", "numpy>=2.0; python_version >= '3.13'", "openai", "tiktoken", "boto3", "anthropic", "tree-sitter-sql", "jieba", "tree-sitter-dm", "tree-sitter-hcl", "tree-sitter-pascal"]
@@ -107,8 +97,6 @@ dev = [
 ]
 
 [tool.uv]
-# Install via: uv tool install graphifyy
-# Run without installing: uvx graphifyy install
 package = true
 
 [tool.setuptools]
@@ -116,11 +104,6 @@ packages = ["graphify", "graphify.extractors", "graphify.exporters"]
 include-package-data = false
 
 [tool.setuptools.package-data]
-# The skill bodies ship as graphify/skill*.md (the SKILL.md a host installs is
-# copied from one of these). The progressive-disclosure references sidecar ships
-# under graphify/skills/<host>/references/, and the always-on injection blocks
-# under graphify/always_on/. There is no graphify/skills/<host>/SKILL.md in the
-# repo, so no SKILL.md glob is needed here.
 graphify = ["skill.md", "skill-codex.md", "skill-opencode.md", "skill-kilo.md", "command-kilo.md", "skill-aider.md", "skill-amp.md", "skill-agents.md", "skill-copilot.md", "skill-claw.md", "skill-windows.md", "skill-droid.md", "skill-trae.md", "skill-kiro.md", "skill-vscode.md", "skill-pi.md", "skill-devin.md", "skills/*/references/*.md", "always_on/*.md"]
 
 [tool.pytest.ini_options]
@@ -139,7 +122,6 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-# Keep the committed baseline conservative until upstream adopts a broader lint policy.
 select = ["E9", "F63", "F7", "F82"]
 
 [tool.pyright]

@@ -67,15 +67,17 @@ from graphify.ids import make_id as _shared_make_id
 from graphify.security import sanitize_label
 
 
-MCP_CONFIG_FILENAMES: frozenset[str] = frozenset({
-    ".mcp.json",
-    "claude_desktop_config.json",
-    "mcp.json",
-    "mcp_servers.json",
-})
+MCP_CONFIG_FILENAMES: frozenset[str] = frozenset(
+    {
+        ".mcp.json",
+        "claude_desktop_config.json",
+        "mcp.json",
+        "mcp_servers.json",
+    }
+)
 
-_MAX_BYTES = 1_048_576  # 1 MiB — same cap as extract_json
-_MAX_SERVERS_PER_FILE = 200  # generous; flags pathological configs
+_MAX_BYTES = 1_048_576
+_MAX_SERVERS_PER_FILE = 200
 
 
 def is_mcp_config_path(path: Path) -> bool:
@@ -115,8 +117,6 @@ def extract_mcp_config(path: Path) -> dict[str, Any]:
 
     servers = doc.get("mcpServers")
     if not isinstance(servers, dict):
-        # Some tools nest the map (e.g., {"mcp": {"servers": {...}}}). Try one
-        # well-known alternate shape but do not search exhaustively.
         nested = doc.get("mcp")
         if isinstance(nested, dict):
             servers = nested.get("servers")
@@ -131,7 +131,8 @@ def extract_mcp_config(path: Path) -> dict[str, Any]:
     seen_edge_keys: set[tuple[str, str, str]] = set()
 
     _add_node(
-        nodes, seen_node_ids,
+        nodes,
+        seen_node_ids,
         nid=file_nid,
         label=path.name,
         kind="mcp_config_file",
@@ -145,8 +146,6 @@ def extract_mcp_config(path: Path) -> dict[str, Any]:
         if not isinstance(server_name, str) or not server_name:
             continue
         if not isinstance(spec, dict):
-            # Skip non-object server entries silently — the broken entry is
-            # the user's, not ours.
             continue
         if server_count >= _MAX_SERVERS_PER_FILE:
             break
@@ -181,15 +180,17 @@ def _emit_server(
     """Emit nodes/edges for one entry under ``mcpServers``."""
     server_nid = _make_id(file_stem, "mcp_server", server_name)
     _add_node(
-        nodes, seen_node_ids,
+        nodes,
+        seen_node_ids,
         nid=server_nid,
         label=server_name,
         kind="mcp_server",
         source_file=source_file,
-        line=1,  # JSON doesn't expose line numbers without a parser pass
+        line=1,
     )
     _add_edge(
-        edges, seen_edge_keys,
+        edges,
+        seen_edge_keys,
         source=file_nid,
         target=server_nid,
         relation="contains",
@@ -202,7 +203,8 @@ def _emit_server(
         cmd_label = command.strip()
         cmd_nid = _make_id("mcp_command", cmd_label)
         _add_node(
-            nodes, seen_node_ids,
+            nodes,
+            seen_node_ids,
             nid=cmd_nid,
             label=cmd_label,
             kind="mcp_command",
@@ -210,7 +212,8 @@ def _emit_server(
             line=1,
         )
         _add_edge(
-            edges, seen_edge_keys,
+            edges,
+            seen_edge_keys,
             source=server_nid,
             target=cmd_nid,
             relation="references",
@@ -225,7 +228,8 @@ def _emit_server(
         if package:
             pkg_nid = _make_id("mcp_package", package)
             _add_node(
-                nodes, seen_node_ids,
+                nodes,
+                seen_node_ids,
                 nid=pkg_nid,
                 label=package,
                 kind="mcp_package",
@@ -233,7 +237,8 @@ def _emit_server(
                 line=1,
             )
             _add_edge(
-                edges, seen_edge_keys,
+                edges,
+                seen_edge_keys,
                 source=server_nid,
                 target=pkg_nid,
                 relation="references",
@@ -244,13 +249,13 @@ def _emit_server(
 
     env = spec.get("env")
     if isinstance(env, dict):
-        # ONLY KEYS. Values may contain secrets and are never read here.
         for env_name in env.keys():
             if not isinstance(env_name, str) or not env_name:
                 continue
             env_nid = _make_id("env_var", env_name)
             _add_node(
-                nodes, seen_node_ids,
+                nodes,
+                seen_node_ids,
                 nid=env_nid,
                 label=env_name,
                 kind="env_var",
@@ -258,7 +263,8 @@ def _emit_server(
                 line=1,
             )
             _add_edge(
-                edges, seen_edge_keys,
+                edges,
+                seen_edge_keys,
                 source=server_nid,
                 target=env_nid,
                 relation="requires_env",
@@ -267,17 +273,10 @@ def _emit_server(
             )
 
 
-# ── Package detection from args ───────────────────────────────────────────────
-
-# Patterns observed in real MCP server configs:
-#   ["-y", "@modelcontextprotocol/server-filesystem", "/data"]   (npx)
-#   ["-y", "@org/pkg@1.2.3"]
-#   ["mcp-server-fetch"]                                          (uvx / python)
-#   ["mcp-server-time", "--local-timezone=UTC"]
-#   ["@scoped/some-mcp"]                                          (pnpx)
-#   ["mcp-server-fetch"]                                          (uvx direct)
 _NPM_PKG_RE = re.compile(r"^@[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*(?:@[\w.\-+]+)?$")
-_PY_MCP_PKG_RE = re.compile(r"^[a-z0-9][a-z0-9._-]*-mcp(?:-[a-z0-9._-]+)?$|^mcp-[a-z0-9][a-z0-9._-]*$")
+_PY_MCP_PKG_RE = re.compile(
+    r"^[a-z0-9][a-z0-9._-]*-mcp(?:-[a-z0-9._-]+)?$|^mcp-[a-z0-9][a-z0-9._-]*$"
+)
 _ARG_FLAG_RE = re.compile(r"^-{1,2}\w")
 
 
@@ -313,9 +312,6 @@ def _strip_version(pkg: str) -> str:
     return pkg if version_at == -1 else pkg[:version_at]
 
 
-# ── Node / edge construction (Graphify schema) ────────────────────────────────
-
-
 def _add_node(
     nodes: list[dict[str, Any]],
     seen: set[str],
@@ -330,14 +326,16 @@ def _add_node(
     if not nid or nid in seen:
         return
     seen.add(nid)
-    nodes.append({
-        "id": nid,
-        "label": sanitize_label(label),
-        "file_type": "code",
-        "source_file": source_file,
-        "source_location": f"L{line}",
-        "metadata": {"mcp_kind": kind},
-    })
+    nodes.append(
+        {
+            "id": nid,
+            "label": sanitize_label(label),
+            "file_type": "code",
+            "source_file": source_file,
+            "source_location": f"L{line}",
+            "metadata": {"mcp_kind": kind},
+        }
+    )
 
 
 def _add_edge(
@@ -373,14 +371,9 @@ def _add_edge(
     edges.append(edge)
 
 
-# ── ID helpers (kept local; mirror extract.py shape) ──────────────────────────
-
-
 def _make_id(*parts: str) -> str:
     """Build a stable node ID via the single shared recipe (#1378)."""
     return _shared_make_id(*parts)
 
 
-# Canonical recipe imported directly (no import cycle: extractors.base imports
-# only graphify.ids), so this can no longer drift from extract._file_stem.
 from graphify.extractors.base import _file_stem  # noqa: E402

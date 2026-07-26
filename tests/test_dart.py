@@ -66,7 +66,6 @@ class TestDart(unittest.TestCase):
         nodes = result["nodes"]
         edges = result["edges"]
 
-        # A. File node check
         file_node = next(
             (n for n in nodes if n["file_type"] == "code" and n["label"] == "test_app_bloc.dart"),
             None,
@@ -74,7 +73,6 @@ class TestDart(unittest.TestCase):
         self.assertIsNotNone(file_node)
         self.assertEqual(file_node["source_file"], str(file_path))
 
-        # B. Class & Enum extraction check
         user_bloc_node = next((n for n in nodes if n["label"] == "UserBloc"), None)
         self.assertIsNotNone(user_bloc_node)
         self.assertEqual(user_bloc_node["source_file"], str(file_path))
@@ -82,8 +80,6 @@ class TestDart(unittest.TestCase):
         user_role_node = next((n for n in nodes if n["label"] == "UserRole"), None)
         self.assertIsNotNone(user_role_node)
 
-        # C. Inherits & Generics
-        # Inherits Bloc (Should be global ID "bloc" without stem, source_file is None)
         inherits_bloc = next(
             (
                 e
@@ -99,7 +95,6 @@ class TestDart(unittest.TestCase):
         self.assertIsNotNone(bloc_node)
         self.assertIsNone(bloc_node["source_file"])
 
-        # References UserEvent, UserState generics (Should be global IDs without stem, source_file is None)
         ref_event = next(
             (
                 e
@@ -128,7 +123,6 @@ class TestDart(unittest.TestCase):
         )
         self.assertIsNotNone(ref_state)
 
-        # D. Generic Class Annotations (Should be global annotation ID, source_file is None)
         injectable_annotation = next((n for n in nodes if n["label"] == "@injectable"), None)
         self.assertIsNotNone(injectable_annotation)
         self.assertEqual(injectable_annotation["id"], "annotation_injectable")
@@ -146,7 +140,6 @@ class TestDart(unittest.TestCase):
         )
         self.assertIsNotNone(configures_injectable)
 
-        # Mixin check: `with MyMixin` → mixes_in (not implements)
         ref_mixin = next(
             (
                 e
@@ -159,7 +152,6 @@ class TestDart(unittest.TestCase):
         )
         self.assertIsNotNone(ref_mixin)
 
-        # Interface check: `implements Disposable` → implements (not mixes_in)
         ref_disposable = next(
             (
                 e
@@ -172,7 +164,6 @@ class TestDart(unittest.TestCase):
         )
         self.assertIsNotNone(ref_disposable)
 
-        # Confirm no implements edge targets MyMixin, no mixes_in edge targets Disposable
         bad_mixin_implements = next(
             (
                 e
@@ -197,7 +188,6 @@ class TestDart(unittest.TestCase):
         )
         self.assertIsNone(bad_disposable_mixes_in)
 
-        # E. Extensions (target class string should be global without stem, source_file is None)
         ext_node = next((n for n in nodes if n["label"] == "StringExtensions"), None)
         self.assertIsNotNone(ext_node)
 
@@ -207,11 +197,9 @@ class TestDart(unittest.TestCase):
         self.assertIsNotNone(extends_string)
         self.assertEqual(extends_string["target"], "string")
 
-        # F. Variable declarations
         provider_var = next((n for n in nodes if n["label"] == "authServiceProvider"), None)
         self.assertIsNotNone(provider_var)
 
-        # G. Universal Generic Invocation mappings (Auto-resolved without hardcoding packages!)
         ref_custom = next(
             (
                 e
@@ -240,7 +228,6 @@ class TestDart(unittest.TestCase):
         )
         self.assertIsNotNone(ref_net)
 
-        # H. Imports and Exports (Should have global ID, source_file is None)
         import_node = next((n for n in nodes if n["id"] == "package_flutter_material_dart"), None)
         self.assertIsNotNone(import_node)
         self.assertIsNone(import_node["source_file"])
@@ -341,7 +328,6 @@ class TestDart(unittest.TestCase):
         nodes = result["nodes"]
         edges = result["edges"]
 
-        # Check classes
         base_class = next((n for n in nodes if n["label"] == "MyBaseClass"), None)
         self.assertIsNotNone(base_class)
 
@@ -350,11 +336,9 @@ class TestDart(unittest.TestCase):
 
         mixin_class = next((n for n in nodes if n["label"] == "MyMixinClass"), None)
         self.assertIsNotNone(mixin_class)
-        # Ensure we didn't mistakenly capture a node named "class"
         class_false_positive = next((n for n in nodes if n["label"] == "class"), None)
         self.assertIsNone(class_false_positive)
 
-        # Check late & final fields
         late_field = next((n for n in nodes if n["label"] == "lateField"), None)
         self.assertIsNotNone(late_field)
 
@@ -364,7 +348,6 @@ class TestDart(unittest.TestCase):
         init_field = next((n for n in nodes if n["label"] == "initField"), None)
         self.assertIsNotNone(init_field)
 
-        # Check records & destructuring
         typed_rec = next((n for n in nodes if n["label"] == "typedRecord"), None)
         self.assertIsNotNone(typed_rec)
 
@@ -373,22 +356,18 @@ class TestDart(unittest.TestCase):
         rec_b = next((n for n in nodes if n["label"] == "recB"), None)
         self.assertIsNotNone(rec_b)
 
-        # Ensure deep nested variable switch-expression 'localVal' is not extracted as a top-level define
         local_val = next((n for n in nodes if n["label"] == "localVal"), None)
         self.assertIsNone(local_val)
 
-        # Check record-returning method
         get_coord = next((n for n in nodes if n["label"] == "getCoordinates"), None)
         self.assertIsNotNone(get_coord)
 
-        # Check Riverpod codegen defines
         mynotifier_provider = next((n for n in nodes if n["label"] == "myNotifierProvider"), None)
         self.assertIsNotNone(mynotifier_provider)
 
         myvalue_provider = next((n for n in nodes if n["label"] == "myValueProvider"), None)
         self.assertIsNotNone(myvalue_provider)
 
-        # Check Riverpod watcher references
         ref_edge = next(
             (
                 e
@@ -399,7 +378,6 @@ class TestDart(unittest.TestCase):
         )
         self.assertIsNotNone(ref_edge)
 
-        # Check Bloc constructor events & emissions
         login_edge = next(
             (e for e in edges if e["target"] == "authlogin" and e["context"] == "bloc_event"), None
         )
@@ -411,7 +389,6 @@ class TestDart(unittest.TestCase):
         )
         self.assertIsNotNone(emit_edge)
 
-        # Check Widget Bloc trigger
         trigger_edge = next(
             (e for e in edges if e["target"] == "authlogin" and e["context"] == "bloc_add_event"),
             None,
@@ -443,24 +420,20 @@ class TestDart(unittest.TestCase):
         nodes = result["nodes"]
         edges = result["edges"]
 
-        # 1. Namespaced Extends/Implements
         widget_node = next((n for n in nodes if n["label"] == "MyWidget"), None)
         self.assertIsNotNone(widget_node)
 
-        # Base class should be 'foo.Bar' -> normalized to 'foo_bar' or 'bar'
         extends_edge = next(
             (e for e in edges if e["source"] == widget_node["id"] and e["relation"] == "inherits"),
             None,
         )
         self.assertIsNotNone(extends_edge)
-        self.assertNotEqual(extends_edge["target"], "foo")  # Ensure it didn't clip
+        self.assertNotEqual(extends_edge["target"], "foo")
 
-        # 2. Spaced Generics in Variables
         self.assertIsNotNone(next((n for n in nodes if n["label"] == "myVar"), None))
         self.assertIsNotNone(next((n for n in nodes if n["label"] == "myList"), None))
         self.assertIsNotNone(next((n for n in nodes if n["label"] == "authService"), None))
 
-        # 3. Spaced Generics & Namespaces in Methods
         self.assertIsNotNone(next((n for n in nodes if n["label"] == "myMethod"), None))
         self.assertIsNotNone(next((n for n in nodes if n["label"] == "init"), None))
 
@@ -492,7 +465,6 @@ class TestDart(unittest.TestCase):
         nodes = result["nodes"]
         edges = result["edges"]
 
-        # 1. Mixin 'on' relation
         auth_mixin = next((n for n in nodes if n["label"] == "AuthMixin"), None)
         self.assertIsNotNone(auth_mixin)
         inherits_base = next(
@@ -507,11 +479,9 @@ class TestDart(unittest.TestCase):
         )
         self.assertIsNotNone(inherits_base)
 
-        # 2. Typedefs
         json_map = next((n for n in nodes if n["label"] == "JsonMap"), None)
         self.assertIsNotNone(json_map)
 
-        # 3. Variable DI Type (AuthService)
         api_var = next((n for n in nodes if n["label"] == "api"), None)
         self.assertIsNotNone(api_var)
         ref_auth = next(
@@ -526,11 +496,9 @@ class TestDart(unittest.TestCase):
         )
         self.assertIsNotNone(ref_auth)
 
-        # 4. Factories
         from_json = next((n for n in nodes if n["label"] == "fromJson"), None)
         self.assertIsNotNone(from_json)
 
-        # 5. Universal Navigation
         nav_home = next(
             (e for e in edges if e["relation"] == "navigates" and e["context"] == "route_path"),
             None,
@@ -547,7 +515,6 @@ class TestDart(unittest.TestCase):
         )
         self.assertIsNotNone(nav_profile)
 
-        # 6. Extension Types
         user_id = next((n for n in nodes if n["label"] == "UserId"), None)
         self.assertIsNotNone(user_id)
         impl_obj = next(
@@ -564,7 +531,6 @@ class TestDart(unittest.TestCase):
 
     def test_roadmap_bug_fixes(self):
         """Test all 5 roadmap bug fixes (Bug A, B, C, D, E)."""
-        # Create parent and part child files to test Bug D (Part of file redirect)
         parent_file = self.temp_path / "parent_lib.dart"
         parent_file.write_text("library parent_lib;\npart 'child_part.dart';", encoding="utf-8")
 
@@ -583,16 +549,13 @@ class TestDart(unittest.TestCase):
         child_file = self.temp_path / "child_part.dart"
         child_file.write_text(child_code, encoding="utf-8")
 
-        # Parse child file and verify redirect
         result = extract_dart(child_file)
         nodes = result["nodes"]
         edges = result["edges"]
 
-        # A. Bug D redirect: No child file node should be created in nodes
         child_node = next((n for n in nodes if n["label"] == "child_part.dart"), None)
         self.assertIsNone(child_node)
 
-        # B. Check that defines edge source is parent file ID
         parent_fid = _make_id(str(parent_file.resolve()))
         child_class = next((n for n in nodes if n["label"] == "ChildClass"), None)
         self.assertIsNotNone(child_class)
@@ -604,30 +567,22 @@ class TestDart(unittest.TestCase):
         self.assertIsNotNone(def_edge)
         self.assertEqual(def_edge["source"], parent_fid)
 
-        # C. Bug A safe generic inheritance commas split: check referenced generics
-        # Bloc<Pair<UserEvent, MyState>, State> should reference 'Pair<UserEvent, MyState>' and 'State'
-        # 'Pair<UserEvent, MyState>' will be clean matched to 'Pair' node
         pair_node = next((n for n in nodes if n["id"] == "pair"), None)
         self.assertIsNotNone(pair_node)
         state_node = next((n for n in nodes if n["id"] == "state"), None)
         self.assertIsNotNone(state_node)
-        # Ensure 'MyState>' or 'UserEvent' are NOT mistakenly generated as top-level generic reference nodes from broken comma-split!
         bad_node1 = next((n for n in nodes if "mystate" in n["id"]), None)
         self.assertIsNone(bad_node1)
 
-        # D. Bug B double generics DI lookup: locator<Repository<User>>()
         repo_node = next((n for n in nodes if n["id"] == "repository"), None)
         self.assertIsNotNone(repo_node)
 
-        # E. Bug E object destructuring variables: myVar, myAge
         self.assertIsNotNone(next((n for n in nodes if n["label"] == "myVar"), None))
         self.assertIsNotNone(next((n for n in nodes if n["label"] == "myAge"), None))
-        # Ensure "name: myVar" or ":myVar" are NOT registered as variables!
         self.assertIsNone(
             next((n for n in nodes if "name" in n["label"] or "age" in n["label"]), None)
         )
 
-        # F. Bug C GoRouter query parameter route mapping
         nav_edge = next(
             (e for e in edges if e["relation"] == "navigates" and e["context"] == "route_path"),
             None,

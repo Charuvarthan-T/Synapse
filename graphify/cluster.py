@@ -1,4 +1,5 @@
 """Community detection on NetworkX graphs. Uses Leiden (graspologic) if available, falls back to Louvain (networkx). Splits oversized communities. Returns cohesion scores."""
+
 from __future__ import annotations
 import contextlib
 import inspect
@@ -46,6 +47,7 @@ def _partition(G: nx.Graph, resolution: float = 1.0) -> dict[str, int]:
 
     try:
         from graspologic.partition import leiden
+
         lsig = inspect.signature(leiden).parameters
         kwargs: dict = {}
         if "random_seed" in lsig:
@@ -54,8 +56,6 @@ def _partition(G: nx.Graph, resolution: float = 1.0) -> dict[str, int]:
             kwargs["trials"] = 1
         if "resolution" in lsig:
             kwargs["resolution"] = resolution
-        # Suppress graspologic output to prevent ANSI escape codes from
-        # corrupting PowerShell 5.1 scroll buffer (issue #19)
         old_stderr = sys.stderr
         try:
             sys.stderr = io.StringIO()
@@ -67,9 +67,6 @@ def _partition(G: nx.Graph, resolution: float = 1.0) -> dict[str, int]:
     except ImportError:
         pass
 
-    # Fallback: networkx louvain (available since networkx 2.7).
-    # Inspect kwargs to stay compatible across NetworkX versions — max_level
-    # was added in a later release and prevents hangs on large sparse graphs.
     kwargs: dict = {"seed": 42, "threshold": 1e-4, "resolution": resolution}
     if "max_level" in inspect.signature(nx.community.louvain_communities).parameters:
         kwargs["max_level"] = 10
@@ -77,15 +74,13 @@ def _partition(G: nx.Graph, resolution: float = 1.0) -> dict[str, int]:
     return {node: cid for cid, nodes in enumerate(communities) for node in nodes}
 
 
-_MAX_COMMUNITY_FRACTION = 0.25   # communities larger than 25% of graph get split
-_MIN_SPLIT_SIZE = 10             # only split if community has at least this many nodes
-_COHESION_SPLIT_THRESHOLD = 0.05 # re-split communities with cohesion below this
-_COHESION_SPLIT_MIN_SIZE = 50    # only cohesion-split if community has at least this many nodes
+_MAX_COMMUNITY_FRACTION = 0.25
+_MIN_SPLIT_SIZE = 10
+_COHESION_SPLIT_THRESHOLD = 0.05
+_COHESION_SPLIT_MIN_SIZE = 50
 
 
-def label_communities_by_hub(
-    G: nx.Graph, communities: dict[int, list[str]]
-) -> dict[int, str]:
+def label_communities_by_hub(G: nx.Graph, communities: dict[int, list[str]]) -> dict[int, str]:
     """Deterministic, LLM-free community labels: name each community after its
     highest-degree member — the structural hub — so a report reads ``auth`` /
     ``log_action`` instead of ``Community 70``. Degree is measured on the full graph
@@ -101,7 +96,6 @@ def label_communities_by_hub(
         if not present:
             labels[cid] = f"Community {cid}"
             continue
-        # highest degree wins; ties broken by node id (ascending) for determinism
         hub = min(present, key=lambda n: (-G.degree(n), str(n)))
         name = str(G.nodes[hub].get("label") or hub).strip()
         if name.endswith("()"):
@@ -159,7 +153,6 @@ def cluster(
     if G.number_of_edges() == 0:
         return {i: [n] for i, n in enumerate(sorted(G.nodes))}
 
-    # Compute hub exclusion set before removing anything so degree is based on full graph
     hub_nodes: set[str] = set()
     if exclude_hubs_percentile is not None:
         degrees = sorted(d for _, d in G.degree())
@@ -168,9 +161,6 @@ def cluster(
             threshold = degrees[idx]
             hub_nodes = {n for n, d in G.degree() if d > threshold}
 
-    # Leiden warns and drops isolates - handle them separately
-    # Also exclude hub nodes from partitioning so they don't pull unrelated
-    # subsystems into the same community
     excluded = hub_nodes
     isolates = [n for n in G.nodes() if G.degree(n) == 0 and n not in excluded]
     connected_nodes = [n for n in G.nodes() if G.degree(n) > 0 and n not in excluded]
@@ -182,13 +172,11 @@ def cluster(
         for node, cid in partition.items():
             raw.setdefault(cid, []).append(node)
 
-    # Each isolate becomes its own single-node community
     next_cid = max(raw.keys(), default=-1) + 1
     for node in isolates:
         raw[next_cid] = [node]
         next_cid += 1
 
-    # Reattach excluded hubs by majority-vote neighbour community
     if hub_nodes:
         node_community: dict[str, int] = {n: cid for cid, nodes in raw.items() for n in nodes}
         for hub in sorted(hub_nodes):
@@ -206,7 +194,6 @@ def cluster(
                 node_community[hub] = next_cid
                 next_cid += 1
 
-    # Split oversized communities
     max_size = max(_MIN_SPLIT_SIZE, int(G.number_of_nodes() * _MAX_COMMUNITY_FRACTION))
     final_communities: list[list[str]] = []
     for nodes in raw.values():
@@ -215,23 +202,18 @@ def cluster(
         else:
             final_communities.append(nodes)
 
-    # Second pass: re-split low-cohesion communities caused by doc-hub nodes
-    # that bridge otherwise-unrelated subsystems (e.g. CLAUDE.md connected to everything).
     second_pass: list[list[str]] = []
     for nodes in final_communities:
-        if len(nodes) >= _COHESION_SPLIT_MIN_SIZE and cohesion_score(G, nodes) < _COHESION_SPLIT_THRESHOLD:
+        if (
+            len(nodes) >= _COHESION_SPLIT_MIN_SIZE
+            and cohesion_score(G, nodes) < _COHESION_SPLIT_THRESHOLD
+        ):
             splits = _split_community(G, nodes)
             second_pass.extend(splits if len(splits) > 1 else [nodes])
         else:
             second_pass.append(nodes)
     final_communities = second_pass
 
-    # Re-index by size descending. The tuple(sorted(nodes)) tiebreak makes this a
-    # TOTAL order, so an identical grouping always gets identical community IDs.
-    # Without it, the hundreds of equal-sized small communities are ordered by the
-    # partitioner's (not seed-stable) enumeration order, so their integer IDs
-    # permute run-to-run - which reads as massive "community churn" in a per-node
-    # cid diff even though the actual grouping is reproducible (#1090 follow-up).
     final_communities.sort(key=lambda nodes: (-len(nodes), tuple(sorted(map(str, nodes)))))
     return {i: sorted(nodes) for i, nodes in enumerate(final_communities)}
 
@@ -240,7 +222,6 @@ def _split_community(G: nx.Graph, nodes: list[str]) -> list[list[str]]:
     """Run a second Leiden pass on a community subgraph to split it further."""
     subgraph = G.subgraph(nodes)
     if subgraph.number_of_edges() == 0:
-        # No edges - split into individual nodes
         return [[n] for n in sorted(nodes)]
     try:
         sub_partition = _partition(subgraph)

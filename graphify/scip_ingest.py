@@ -71,15 +71,8 @@ def ingest_scip_json(
     if not isinstance(documents, list):
         return {"nodes": nodes, "edges": edges}
 
-    # ---- pass 1: build symbol → node_id indices -----------------------------
-    # Two indices so relationship resolution can be document-aware:
-    #   per_doc:  (symbol_id, doc_path) → node_id  (same-document precedence)
-    #   global:   symbol_id              → list[node_id] (cross-document fallback,
-    #                                                     used only when unambiguous)
     per_doc_index: dict[tuple[str, str], str] = {}
     global_index: dict[str, list[str]] = {}
-    # Per-symbol metadata kept for pass-2 node emission (avoids re-walking
-    # the document tree).
     symbol_records: list[dict[str, Any]] = []
     for document in documents:
         if not isinstance(document, dict):
@@ -97,9 +90,6 @@ def ingest_scip_json(
                 continue
             node_id = _make_scip_node_id(symbol_id, doc_path)
             per_doc_index.setdefault((symbol_id, doc_path), node_id)
-            # Dedupe node_ids in the global index — duplicate symbol records
-            # within the SAME document produce identical node_ids, and we
-            # don't want them to look like cross-document ambiguity.
             candidates = global_index.setdefault(symbol_id, [])
             if node_id not in candidates:
                 candidates.append(node_id)
@@ -113,7 +103,6 @@ def ingest_scip_json(
                 }
             )
 
-    # ---- pass 2: emit nodes + relationship edges -----------------------------
     for record in symbol_records:
         _emit_symbol_node(record, nodes, seen_node_ids)
         _emit_relationships(
@@ -153,7 +142,7 @@ def _emit_symbol_node(
     sourceline = _first_occurrence_line(occurrences)
     suffix = symbol_id.split("#")[-1] if "#" in symbol_id else symbol_id
     label = display_name or suffix or symbol_id
-    seen_node_ids.add(node_id)  # label uses display_name or suffix (never empty for valid symbols)
+    seen_node_ids.add(node_id)
     nodes.append(
         {
             "id": node_id,
@@ -207,9 +196,6 @@ def _emit_relationships(
             global_index,
         )
         if target_node_id is None:
-            # External relationship target: emit a stub node so the edge
-            # is never dangling. The stub uses the source document's path
-            # as its host context.
             target_node_id = _make_scip_node_id(target_symbol, doc_path)
             if target_node_id not in seen_node_ids:
                 seen_node_ids.add(target_node_id)
@@ -346,9 +332,7 @@ def _make_scip_node_id(symbol: str, source_file: str) -> str:
 
 def _scip_kind_to_file_type(kind: str) -> str:
     """Map SCIP symbol kind to a Graphify file_type."""
-    # All SCIP symbols are code entities (functions, methods, classes, …);
-    # the `kind` is preserved in metadata for downstream consumers.
-    _ = kind  # acknowledged but not currently used for file_type routing
+    _ = kind
     return "code"
 
 

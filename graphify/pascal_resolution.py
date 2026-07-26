@@ -21,6 +21,7 @@ ancestor in the chain), so walking `inherits` is a structurally justified
 resolution, not a heuristic guess; guessing by name across an entire
 multi-thousand-file corpus is not the same bet.
 """
+
 from __future__ import annotations
 
 _PASCAL_SUFFIXES = (".pas", ".pp", ".dpr", ".dpk", ".inc")
@@ -56,12 +57,6 @@ def resolve_pascal_inherited_calls(
     node_by_id = {n.get("id"): n for n in all_nodes}
 
     class_bases: dict[str, list[str]] = {}
-    # method_nid -> its owning class nid, so a raw call's caller_nid (a method
-    # or free-function nid) can be mapped to the CLASS whose inherits chain
-    # should be walked. Derived from `all_edges` (already remapped/finalized
-    # by the id-disambiguation passes that run before resolvers, same as
-    # caller_nid itself) rather than carried as a separate field on the raw
-    # call -- a field the generic id-remap machinery would not know to update.
     owner_of: dict[str, str] = {}
     class_procs: dict[str, dict[str, list[str]]] = {}
     for e in all_edges:
@@ -74,13 +69,6 @@ def resolve_pascal_inherited_calls(
             if mnode is None:
                 continue
             name_lower = str(mnode.get("label", "")).removesuffix("()").lower()
-            # Count DISTINCT methods, not edge multiplicity: the tree-sitter
-            # Pascal extractor emits one `method` edge for the interface
-            # declaration and one for the implementation, so the same
-            # method_nid arrives twice. Deduping keeps the single-owner
-            # god-node guard below (`len(candidates) == 1`) measuring real
-            # same-name collisions across classes, not the same method
-            # double-counted -- otherwise every inherited call looks ambiguous.
             bucket = class_procs.setdefault(owner, {}).setdefault(name_lower, [])
             if method_nid not in bucket:
                 bucket.append(method_nid)
@@ -116,14 +104,16 @@ def resolve_pascal_inherited_calls(
         if pair in existing_pairs:
             continue
         existing_pairs.add(pair)
-        all_edges.append({
-            "source": caller,
-            "target": target,
-            "relation": "calls",
-            "context": "call",
-            "confidence": "EXTRACTED",
-            "confidence_score": 1.0,
-            "source_file": rc.get("source_file", ""),
-            "source_location": rc.get("source_location"),
-            "weight": 1.0,
-        })
+        all_edges.append(
+            {
+                "source": caller,
+                "target": target,
+                "relation": "calls",
+                "context": "call",
+                "confidence": "EXTRACTED",
+                "confidence_score": 1.0,
+                "source_file": rc.get("source_file", ""),
+                "source_location": rc.get("source_location"),
+                "weight": 1.0,
+            }
+        )

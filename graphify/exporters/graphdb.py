@@ -1,4 +1,5 @@
 """graphdb — moved verbatim from graphify/export.py."""
+
 from __future__ import annotations
 
 from graphify.analyze import _node_community_map
@@ -23,14 +24,15 @@ def push_to_neo4j(
     try:
         from neo4j import GraphDatabase
     except ImportError as e:
-        raise ImportError(
-            "neo4j driver not installed. Run: pip install neo4j"
-        ) from e
+        raise ImportError("neo4j driver not installed. Run: pip install neo4j") from e
 
     node_community = _node_community_map(communities) if communities else {}
 
     def _safe_rel(relation: str) -> str:
-        return re.sub(r"[^A-Z0-9_]", "_", relation.upper().replace(" ", "_").replace("-", "_")) or "RELATED_TO"
+        return (
+            re.sub(r"[^A-Z0-9_]", "_", relation.upper().replace(" ", "_").replace("-", "_"))
+            or "RELATED_TO"
+        )
 
     def _safe_label(label: str) -> str:
         """Sanitize a Neo4j node label to prevent Cypher injection."""
@@ -44,7 +46,8 @@ def push_to_neo4j(
     with driver.session() as session:
         for node_id, data in G.nodes(data=True):
             props = {
-                k: v for k, v in data.items()
+                k: v
+                for k, v in data.items()
                 if isinstance(v, (str, int, float, bool)) and not k.startswith("_")
             }
             props["id"] = node_id
@@ -62,7 +65,8 @@ def push_to_neo4j(
         for u, v, data in G.edges(data=True):
             rel = _safe_rel(data.get("relation", "RELATED_TO"))
             props = {
-                k: v for k, v in data.items()
+                k: v
+                for k, v in data.items()
                 if isinstance(v, (str, int, float, bool)) and not k.startswith("_")
             }
             session.run(
@@ -76,6 +80,7 @@ def push_to_neo4j(
 
     driver.close()
     return {"nodes": nodes_pushed, "edges": edges_pushed}
+
 
 def push_to_falkordb(
     G: nx.Graph,
@@ -108,16 +113,17 @@ def push_to_falkordb(
     try:
         from falkordb import FalkorDB
     except ImportError as e:
-        raise ImportError(
-            "falkordb SDK not installed. Run: pip install falkordb"
-        ) from e
+        raise ImportError("falkordb SDK not installed. Run: pip install falkordb") from e
 
     from urllib.parse import urlparse
 
     node_community = _node_community_map(communities) if communities else {}
 
     def _safe_rel(relation: str) -> str:
-        return re.sub(r"[^A-Z0-9_]", "_", relation.upper().replace(" ", "_").replace("-", "_")) or "RELATED_TO"
+        return (
+            re.sub(r"[^A-Z0-9_]", "_", relation.upper().replace(" ", "_").replace("-", "_"))
+            or "RELATED_TO"
+        )
 
     def _safe_label(label: str) -> str:
         """Sanitize a FalkorDB node label to prevent Cypher injection."""
@@ -125,10 +131,6 @@ def push_to_falkordb(
         return sanitized if sanitized else "Entity"
 
     parsed = urlparse(uri if "://" in uri else f"redis://{uri}")
-    # FalkorDB auth is optional. Only send credentials when a password is
-    # provided; otherwise connect anonymously and ignore any bolt-style default
-    # username (e.g. Neo4j's "neo4j"), which FalkorDB rejects as an unknown ACL
-    # user. Credentials embedded in the URI take precedence over the args.
     connect_user = parsed.username or (user if password else None)
     connect_password = parsed.password or (password or None)
     db = FalkorDB(
@@ -143,7 +145,8 @@ def push_to_falkordb(
 
     for node_id, data in G.nodes(data=True):
         props = {
-            k: v for k, v in data.items()
+            k: v
+            for k, v in data.items()
             if isinstance(v, (str, int, float, bool)) and not k.startswith("_")
         }
         props["id"] = node_id
@@ -160,12 +163,12 @@ def push_to_falkordb(
     for u, v, data in G.edges(data=True):
         rel = _safe_rel(data.get("relation", "RELATED_TO"))
         props = {
-            k: v for k, v in data.items()
+            k: v
+            for k, v in data.items()
             if isinstance(v, (str, int, float, bool)) and not k.startswith("_")
         }
         graph.query(
-            f"MATCH (a {{id: $src}}), (b {{id: $tgt}}) "
-            f"MERGE (a)-[r:{rel}]->(b) SET r += $props",
+            f"MATCH (a {{id: $src}}), (b {{id: $tgt}}) MERGE (a)-[r:{rel}]->(b) SET r += $props",
             {"src": u, "tgt": v, "props": props},
         )
         edges_pushed += 1

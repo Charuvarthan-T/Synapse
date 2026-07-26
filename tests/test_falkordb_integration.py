@@ -9,6 +9,7 @@ The test auto-skips when the `falkordb` SDK is not installed or no FalkorDB is
 reachable, so it is a no-op in the default CI (which runs no external services).
 Host/port are overridable via FALKORDB_HOST / FALKORDB_PORT.
 """
+
 from __future__ import annotations
 
 import json
@@ -38,7 +39,6 @@ def _connect():
 @pytest.fixture()
 def db():
     client = _connect()
-    # Start from a clean slate and clean up afterwards.
     try:
         client.select_graph(GRAPH_NAME).delete()
     except Exception:
@@ -57,9 +57,7 @@ def test_push_to_falkordb_creates_expected_graph(db):
     extraction = json.loads((FIXTURES / "extraction.json").read_text())
     G = build_from_json(extraction)
 
-    result = push_to_falkordb(
-        G, uri=f"{HOST}:{PORT}", graph_name=GRAPH_NAME
-    )
+    result = push_to_falkordb(G, uri=f"{HOST}:{PORT}", graph_name=GRAPH_NAME)
 
     assert result["nodes"] == G.number_of_nodes()
     assert result["edges"] == G.number_of_edges()

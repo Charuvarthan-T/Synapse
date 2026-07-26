@@ -12,11 +12,6 @@ from graphify.scip_ingest import (
 )
 
 
-# ---------------------------------------------------------------------------
-# Valid JSON parsing — full-document smoke tests
-# ---------------------------------------------------------------------------
-
-
 def test_ingest_empty_doc_returns_empty_lists() -> None:
     """Empty dict input produces empty nodes and edges."""
     result = ingest_scip_json({})
@@ -115,7 +110,6 @@ def test_ingest_symbol_trailing_hash_no_display_name_has_non_empty_label() -> No
                         "kind": "class",
                         "occurrences": [],
                         "relationships": [],
-                        # no display_name
                     }
                 ],
             }
@@ -251,11 +245,6 @@ def test_ingest_multiple_documents() -> None:
 
     paths = {n["source_file"] for n in result["nodes"]}
     assert paths == {"a.py", "b.py"}
-
-
-# ---------------------------------------------------------------------------
-# Reference/definition resolution — relationship → edge mapping
-# ---------------------------------------------------------------------------
 
 
 def _make_symbol_doc(symbol_id: str, kind: str, rels: list[object]) -> dict[str, object]:
@@ -397,11 +386,6 @@ def test_ingest_duplicate_edges_are_deduplicated() -> None:
     assert len(result["edges"]) == 1
 
 
-# ---------------------------------------------------------------------------
-# Edge emission — edge dict structure
-# ---------------------------------------------------------------------------
-
-
 def test_ingest_edge_structure_complete() -> None:
     """Verify every field in the emitted edge dict."""
     doc = _make_symbol_doc(
@@ -454,7 +438,6 @@ def test_ingest_node_id_contains_source_file_and_symbol_suffix() -> None:
     )
     result = ingest_scip_json(doc)
     node_id = result["nodes"][0]["id"]
-    # Should start with scip_ and contain the suffix
     assert node_id.startswith("scip_")
     assert "run" in node_id
 
@@ -513,11 +496,6 @@ def test_ingest_duplicate_symbols_in_same_file_are_deduplicated() -> None:
     }
     result = ingest_scip_json(doc)
     assert len(result["nodes"]) == 1
-
-
-# ---------------------------------------------------------------------------
-# Invalid JSON / non-dict input
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -616,11 +594,6 @@ def test_ingest_relationship_item_not_a_dict_is_skipped() -> None:
     assert len(result["edges"]) == 1
 
 
-# ---------------------------------------------------------------------------
-# Empty documents / missing keys
-# ---------------------------------------------------------------------------
-
-
 def test_ingest_document_without_symbols_key() -> None:
     """Document dict without 'symbols' key is treated as empty list."""
     doc = {"documents": [{"relative_path": "src/main.py", "language": "python"}]}
@@ -647,11 +620,6 @@ def test_ingest_symbol_without_kind_defaults_to_unknown() -> None:
     }
     result = ingest_scip_json(doc)
     assert result["nodes"][0]["metadata"]["scip_kind"] == "unknown"
-
-
-# ---------------------------------------------------------------------------
-# Path validation / edge cases
-# ---------------------------------------------------------------------------
 
 
 def test_ingest_default_source_file_is_empty_string() -> None:
@@ -713,8 +681,6 @@ def test_ingest_document_without_language_defaults_to_function_param() -> None:
         ]
     }
     result = ingest_scip_json(doc, language="typescript")
-    # language is passed to _ingest_symbol but not directly exposed on nodes.
-    # Verify that the node was still created (language defaults don't break ingestion).
     assert len(result["nodes"]) == 1
 
 
@@ -762,7 +728,6 @@ def test_ingest_symbol_with_non_dict_occurrence_is_skipped() -> None:
         ]
     }
     result = ingest_scip_json(doc)
-    # The first occurrence "bad" is not a dict → range parsing skipped → source_location stays empty
     assert result["nodes"][0]["source_location"] == ""
 
 
@@ -867,17 +832,11 @@ def test_ingest_symbol_without_relationships_key_still_creates_node() -> None:
     assert len(result["edges"]) == 0
 
 
-# ---------------------------------------------------------------------------
-# _make_scip_node_id — node id generation
-# ---------------------------------------------------------------------------
-
-
 def test_make_scip_node_id_with_hash_separator() -> None:
     """Symbol with # uses suffix after last #."""
     node_id = _make_scip_node_id("python/main.py:MyClass#run()", "src/main.py")
     assert node_id.startswith("scip_")
     assert "run" in node_id
-    # Should NOT contain raw parentheses
     assert "(" not in node_id
     assert ")" not in node_id
 
@@ -892,7 +851,6 @@ def test_make_scip_node_id_without_hash() -> None:
 def test_make_scip_node_id_special_characters_are_sanitised() -> None:
     """Non-alphanumeric characters are replaced with underscores."""
     node_id = _make_scip_node_id("foo.bar#baz!@qux", "test.py")
-    # Everything after last # becomes: baz!@qux → baz__qux
     assert "scip_baz__qux" in node_id
 
 
@@ -920,17 +878,10 @@ def test_make_scip_node_id_symbol_affects_hash() -> None:
 def test_make_scip_node_id_empty_after_sanitisation_falls_back() -> None:
     """If sanitised suffix is empty, uses just the hash."""
     node_id = _make_scip_node_id("#", "src/f.py")
-    # The suffix after # is empty string, so node_id should be scip_<hash>
     assert node_id.startswith("scip_")
-    # Verify it's just scip_ + 12 hex chars
     import re
 
     assert re.match(r"^scip_[0-9a-f]{12}$", node_id)
-
-
-# ---------------------------------------------------------------------------
-# _scip_kind_to_file_type — always returns "code"
-# ---------------------------------------------------------------------------
 
 
 def test_scip_kind_to_file_type_always_code() -> None:
@@ -940,11 +891,6 @@ def test_scip_kind_to_file_type_always_code() -> None:
     assert _scip_kind_to_file_type("variable") == "code"
     assert _scip_kind_to_file_type("") == "code"
     assert _scip_kind_to_file_type("arbitrary_string") == "code"
-
-
-# ---------------------------------------------------------------------------
-# _build_scip_metadata — metadata dict construction
-# ---------------------------------------------------------------------------
 
 
 def test_build_scip_metadata_with_description() -> None:
@@ -967,11 +913,6 @@ def test_build_scip_metadata_without_description() -> None:
     assert "scip_description" not in meta
 
 
-# ---------------------------------------------------------------------------
-# Edge-case: very large symbol count
-# ---------------------------------------------------------------------------
-
-
 def test_ingest_many_symbols() -> None:
     """Ingestion handles a large number of symbols gracefully."""
     symbols = [
@@ -984,11 +925,6 @@ def test_ingest_many_symbols() -> None:
     assert len(result["edges"]) == 0
 
 
-# ---------------------------------------------------------------------------
-# Edge-case: relationship with missing source_location (line 0)
-# ---------------------------------------------------------------------------
-
-
 def test_ingest_edge_with_zero_sourceline_has_empty_location() -> None:
     """When sourceline is 0, source_location on edge is empty string."""
     doc = {
@@ -999,7 +935,7 @@ def test_ingest_edge_with_zero_sourceline_has_empty_location() -> None:
                     {
                         "symbol": "A#",
                         "kind": "class",
-                        "occurrences": [],  # no occurrences → sourceline 0
+                        "occurrences": [],
                         "relationships": [{"symbol": "B#", "is_reference": True}],
                     }
                 ],
@@ -1008,11 +944,6 @@ def test_ingest_edge_with_zero_sourceline_has_empty_location() -> None:
     }
     result = ingest_scip_json(doc)
     assert result["edges"][0]["source_location"] == ""
-
-
-# ---------------------------------------------------------------------------
-# Cycle 2.4 v2: endpoint-safe edges + build_from_json round-trip (F1)
-# ---------------------------------------------------------------------------
 
 
 def test_relationship_target_in_same_document_resolves_via_index():
@@ -1036,7 +967,6 @@ def test_relationship_target_in_same_document_resolves_via_index():
     ids = {n["id"] for n in result["nodes"]}
     assert len(result["edges"]) == 1
     edge = result["edges"][0]
-    # Both endpoints exist in nodes
     assert edge["source"] in ids
     assert edge["target"] in ids
 
@@ -1068,7 +998,6 @@ def test_relationship_target_across_documents_resolves_via_index():
     edge = result["edges"][0]
     assert edge["source"] == by_symbol["Caller#"]
     assert edge["target"] == by_symbol["Callee#"]
-    # The target node was emitted with src/b.py as source_file (its real home)
     callee_node = next(n for n in result["nodes"] if n["id"] == by_symbol["Callee#"])
     assert callee_node["source_file"] == "src/b.py"
 
@@ -1093,9 +1022,7 @@ def test_relationship_target_unknown_emits_stub_node():
     by_symbol = {n["metadata"]["scip_symbol"]: n for n in result["nodes"]}
     assert "ExternalLib#fn" in by_symbol
     stub = by_symbol["ExternalLib#fn"]
-    # Stub has scip_kind=external in metadata
     assert stub["metadata"]["scip_kind"] == "external"
-    # Edge endpoints both resolve to existing nodes
     ids = {n["id"] for n in result["nodes"]}
     edge = result["edges"][0]
     assert edge["source"] in ids
@@ -1130,14 +1057,8 @@ def test_relationship_edges_survive_validate_extraction_and_build():
     errors = validate_extraction(result)
     assert errors == [], f"validate_extraction failures: {errors}"
     graph = build_from_json(result)
-    # Two edges should survive into the graph
     edge_count = sum(1 for _ in graph.edges())
     assert edge_count == 2, f"expected 2 edges in graph, got {edge_count}"
-
-
-# ---------------------------------------------------------------------------
-# Cycle 2.4 v2: nested untrusted input guards (F2)
-# ---------------------------------------------------------------------------
 
 
 def test_non_string_relative_path_falls_back_to_default():
@@ -1165,7 +1086,6 @@ def test_non_string_language_falls_back():
             }
         ]
     }
-    # Should not raise
     result = ingest_scip_json(doc)
     assert len(result["nodes"]) == 1
 
@@ -1177,7 +1097,7 @@ def test_non_string_symbol_id_is_skipped():
             {
                 "relative_path": "src/a.py",
                 "symbols": [
-                    {"symbol": 123, "kind": "function"},  # invalid
+                    {"symbol": 123, "kind": "function"},
                     {"symbol": "Valid#", "kind": "function"},
                 ],
             }
@@ -1214,7 +1134,7 @@ def test_relationship_symbol_non_string_is_skipped():
                         "symbol": "Foo#",
                         "kind": "function",
                         "relationships": [
-                            {"symbol": 123, "is_reference": True},  # invalid
+                            {"symbol": 123, "is_reference": True},
                             {"symbol": "RealTarget#", "is_reference": True},
                         ],
                     }
@@ -1223,7 +1143,6 @@ def test_relationship_symbol_non_string_is_skipped():
         ]
     }
     result = ingest_scip_json(doc)
-    # One real edge survives; the int-symbol relationship is dropped
     assert len(result["edges"]) == 1
     assert result["edges"][0]["metadata"]["scip_relationship"]["symbol"] == "RealTarget#"
 
@@ -1253,7 +1172,6 @@ def test_non_string_display_name_falls_back():
         ]
     }
     result = ingest_scip_json(doc)
-    # Label falls back to the suffix after '#'
     assert result["nodes"][0]["label"] == "bar"
 
 
@@ -1268,7 +1186,6 @@ def test_documentation_with_non_string_entries_is_ignored():
         ]
     }
     result = ingest_scip_json(doc)
-    # Only string first-elements become descriptions
     assert "scip_description" not in result["nodes"][0]["metadata"]
 
 
@@ -1316,11 +1233,6 @@ def test_occurrence_negative_line_falls_back_to_zero():
     assert result["nodes"][0]["source_location"] == ""
 
 
-# ---------------------------------------------------------------------------
-# Cycle 2.4 v3: document-aware relationship resolution (F1)
-# ---------------------------------------------------------------------------
-
-
 def test_duplicate_local_symbol_resolves_to_same_document():
     """When two docs both have `F#`, a relationship from b.py's F# to F# must
     resolve to b.py's own F# node, not a.py's."""
@@ -1343,13 +1255,11 @@ def test_duplicate_local_symbol_resolves_to_same_document():
         ]
     }
     result = ingest_scip_json(doc)
-    # Find the two F# nodes
     f_nodes = [n for n in result["nodes"] if n["metadata"]["scip_symbol"] == "F#"]
     assert len(f_nodes) == 2
     b_f_node = next(n for n in f_nodes if n["source_file"] == "b.py")
     a_f_node = next(n for n in f_nodes if n["source_file"] == "a.py")
     assert b_f_node["id"] != a_f_node["id"]
-    # The edge: source must be b.py's F#, target must ALSO be b.py's F# (same-doc precedence)
     assert len(result["edges"]) == 1
     edge = result["edges"][0]
     assert edge["source"] == b_f_node["id"]
@@ -1381,7 +1291,6 @@ def test_unique_cross_document_symbol_still_resolves():
     by_symbol = {n["metadata"]["scip_symbol"]: n["id"] for n in result["nodes"]}
     edge = result["edges"][0]
     assert edge["target"] == by_symbol["UniqueCallee#"]
-    # Confirm the target node is in src/b.py (where it was DEFINED)
     callee = next(n for n in result["nodes"] if n["id"] == by_symbol["UniqueCallee#"])
     assert callee["source_file"] == "src/b.py"
 
@@ -1413,23 +1322,15 @@ def test_ambiguous_duplicate_target_across_docs_creates_stub():
         ]
     }
     result = ingest_scip_json(doc)
-    # Two Shared# nodes (one per defining doc) + a stub for c.py's reference + a Caller#
     shared_in_c = [
         n
         for n in result["nodes"]
         if n["metadata"]["scip_symbol"] == "Shared#" and n["source_file"] == "c.py"
     ]
     assert len(shared_in_c) == 1
-    # The stub from c.py is marked external (refused-to-guess fallback)
     assert shared_in_c[0]["metadata"]["scip_kind"] == "external"
-    # The edge points at this stub (not at a.py's or b.py's Shared#)
     edge = result["edges"][0]
     assert edge["target"] == shared_in_c[0]["id"]
-
-
-# ---------------------------------------------------------------------------
-# Cycle 2.4 v3: strict boolean flags (F2)
-# ---------------------------------------------------------------------------
 
 
 def test_relationship_truthy_string_flag_is_ignored():
@@ -1446,7 +1347,7 @@ def test_relationship_truthy_string_flag_is_ignored():
                         "relationships": [
                             {
                                 "symbol": "B#",
-                                "is_implementation": "false",  # truthy STRING, not boolean True
+                                "is_implementation": "false",
                                 "is_reference": True,
                             }
                         ],
@@ -1514,11 +1415,6 @@ def test_relationship_boolean_true_routes_correctly():
         )
 
 
-# ---------------------------------------------------------------------------
-# Cycle 2.4 v3: bool-int subclass guard for occurrence lines (F3)
-# ---------------------------------------------------------------------------
-
-
 def test_occurrence_bool_line_falls_back_to_zero():
     """range[0] = True (which is technically an int subclass) must not produce 'LTrue'."""
     doc = {
@@ -1536,7 +1432,6 @@ def test_occurrence_bool_line_falls_back_to_zero():
         ]
     }
     result = ingest_scip_json(doc)
-    # Boolean line value rejected; source_location is empty (not "LTrue")
     assert result["nodes"][0]["source_location"] == ""
 
 
@@ -1549,7 +1444,6 @@ def test_duplicate_same_document_definition_does_not_create_false_ambiguity():
             {
                 "relative_path": "a.py",
                 "symbols": [
-                    # Two records for Helper# in the SAME file → same node id.
                     {"symbol": "Helper#", "kind": "function"},
                     {"symbol": "Helper#", "kind": "function"},
                 ],
@@ -1568,18 +1462,11 @@ def test_duplicate_same_document_definition_does_not_create_false_ambiguity():
     }
     result = ingest_scip_json(doc)
     helper_nodes = [n for n in result["nodes"] if n["metadata"]["scip_symbol"] == "Helper#"]
-    # Only ONE Helper# node emitted (dedup), and it lives in a.py
     assert len(helper_nodes) == 1
     assert helper_nodes[0]["source_file"] == "a.py"
-    assert helper_nodes[0]["metadata"]["scip_kind"] == "function"  # real definition, not 'external'
-    # Edge from b.py's Caller# routes to a.py's real Helper# (NOT a stub)
+    assert helper_nodes[0]["metadata"]["scip_kind"] == "function"
     edge = result["edges"][0]
     assert edge["target"] == helper_nodes[0]["id"]
-
-
-# ---------------------------------------------------------------------------
-# sanitize_metadata wiring — SCIP descriptions / relationship payloads
-# ---------------------------------------------------------------------------
 
 
 def test_ingest_node_metadata_html_escaped() -> None:

@@ -10,6 +10,7 @@ for method (and its parameter) decorators. Targets resolve through the same
 sourceless-stub path as type references, so a decorator imported from another
 module collapses onto its real definition.
 """
+
 from pathlib import Path
 
 from graphify.extract import _file_stem, _make_id, extract
@@ -42,24 +43,21 @@ def _has_deco(result: dict, owner_nid: str, deco: str) -> bool:
 
 
 def test_class_decorator_on_exported_class(tmp_path):
-    # The canonical Angular shape: decorator sits on the wrapping export_statement.
-    f = _write(tmp_path / "src" / "c.ts",
-               "@Component({ selector: 'app' })\n"
-               "export class AppComponent {}\n")
+    f = _write(
+        tmp_path / "src" / "c.ts", "@Component({ selector: 'app' })\nexport class AppComponent {}\n"
+    )
     r = extract([f], cache_root=tmp_path)
     assert _has_deco(r, _class_nid("src/c.ts", "AppComponent"), "Component")
 
 
 def test_class_decorator_on_plain_class(tmp_path):
-    f = _write(tmp_path / "src" / "s.ts",
-               "@Injectable()\nclass Service {}\n")
+    f = _write(tmp_path / "src" / "s.ts", "@Injectable()\nclass Service {}\n")
     r = extract([f], cache_root=tmp_path)
     assert _has_deco(r, _class_nid("src/s.ts", "Service"), "Injectable")
 
 
 def test_stacked_class_decorators(tmp_path):
-    f = _write(tmp_path / "src" / "s.ts",
-               "@Injectable()\n@Entity()\nexport class Repo {}\n")
+    f = _write(tmp_path / "src" / "s.ts", "@Injectable()\n@Entity()\nexport class Repo {}\n")
     r = extract([f], cache_root=tmp_path)
     nid = _class_nid("src/s.ts", "Repo")
     assert _has_deco(r, nid, "Injectable")
@@ -67,21 +65,18 @@ def test_stacked_class_decorators(tmp_path):
 
 
 def test_method_decorator_attributes_to_method(tmp_path):
-    f = _write(tmp_path / "src" / "c.ts",
-               "export class C {\n"
-               "  @HostListener('click') onClick() {}\n"
-               "}\n")
+    f = _write(
+        tmp_path / "src" / "c.ts", "export class C {\n  @HostListener('click') onClick() {}\n}\n"
+    )
     r = extract([f], cache_root=tmp_path)
     assert _has_deco(r, _method_nid("src/c.ts", "C", "onClick"), "HostListener")
-    # and NOT to the class
     assert not _has_deco(r, _class_nid("src/c.ts", "C"), "HostListener")
 
 
 def test_stacked_method_decorators(tmp_path):
-    f = _write(tmp_path / "src" / "c.ts",
-               "export class C {\n"
-               "  @Get('/') @UseGuards(Auth) list() {}\n"
-               "}\n")
+    f = _write(
+        tmp_path / "src" / "c.ts", "export class C {\n  @Get('/') @UseGuards(Auth) list() {}\n}\n"
+    )
     r = extract([f], cache_root=tmp_path)
     nid = _method_nid("src/c.ts", "C", "list")
     assert _has_deco(r, nid, "Get")
@@ -89,12 +84,10 @@ def test_stacked_method_decorators(tmp_path):
 
 
 def test_field_decorator_attributes_to_class(tmp_path):
-    # The field is not a graph node, so its decorator attributes to the class.
-    f = _write(tmp_path / "src" / "c.ts",
-               "export class C {\n"
-               "  @Input() name: string;\n"
-               "  @Column() age: number;\n"
-               "}\n")
+    f = _write(
+        tmp_path / "src" / "c.ts",
+        "export class C {\n  @Input() name: string;\n  @Column() age: number;\n}\n",
+    )
     r = extract([f], cache_root=tmp_path)
     nid = _class_nid("src/c.ts", "C")
     assert _has_deco(r, nid, "Input")
@@ -102,17 +95,16 @@ def test_field_decorator_attributes_to_class(tmp_path):
 
 
 def test_parameter_decorator_attributes_to_constructor(tmp_path):
-    f = _write(tmp_path / "src" / "c.ts",
-               "export class C {\n"
-               "  constructor(@Inject(TOKEN) private s: Svc) {}\n"
-               "}\n")
+    f = _write(
+        tmp_path / "src" / "c.ts",
+        "export class C {\n  constructor(@Inject(TOKEN) private s: Svc) {}\n}\n",
+    )
     r = extract([f], cache_root=tmp_path)
     assert _has_deco(r, _method_nid("src/c.ts", "C", "constructor"), "Inject")
 
 
 def test_namespaced_decorator_uses_property_name(tmp_path):
-    f = _write(tmp_path / "src" / "c.ts",
-               "@core.Component({})\nexport class Widget {}\n")
+    f = _write(tmp_path / "src" / "c.ts", "@core.Component({})\nexport class Widget {}\n")
     r = extract([f], cache_root=tmp_path)
     assert _has_deco(r, _class_nid("src/c.ts", "Widget"), "Component")
 
@@ -133,20 +125,15 @@ def test_external_decorator_stub_disambiguated_per_file(tmp_path):
     b = _write(tmp_path / "src" / "b.ts", "@Injectable()\nexport class B {}\n")
     r = extract([a, b], cache_root=tmp_path)
 
-    # Each class emits exactly one decorator-context edge to an `Injectable`
-    # node (checked by label, since the stub id is now path-qualified).
     id_to_label = {n["id"]: n.get("label") for n in r["nodes"]}
     deco_edges = [
-        e for e in r["edges"]
-        if e["relation"] == "references" and e.get("context") == "decorator"
+        e for e in r["edges"] if e["relation"] == "references" and e.get("context") == "decorator"
     ]
     a_targets = [e["target"] for e in deco_edges if e["source"] == _class_nid("src/a.ts", "A")]
     b_targets = [e["target"] for e in deco_edges if e["source"] == _class_nid("src/b.ts", "B")]
     assert len(a_targets) == 1 and id_to_label.get(a_targets[0]) == "Injectable"
     assert len(b_targets) == 1 and id_to_label.get(b_targets[0]) == "Injectable"
 
-    # v0.9.0 full-path IDs + #1462 stub disambiguation: external stubs are split
-    # per file, so the two no longer converge on one shared hub.
     assert a_targets[0] != b_targets[0], (
         "external decorator stubs are disambiguated per file in v0.9.0+; "
         "they no longer converge on a single shared stub"

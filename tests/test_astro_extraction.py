@@ -7,6 +7,7 @@ a top-level ERROR node because the template is not valid JS, so the JS AST pass
 recovers nothing. The :func:`extract_astro` regex pass salvages imports from the
 frontmatter and any `<script>` blocks — same strategy as :func:`extract_svelte`.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -51,7 +52,6 @@ const { title } = Astro.props;
 </Layout>
 """,
     )
-    # Sibling files so the resolver lands on real node ids, not phantoms.
     layout = _write(tmp_path / "src/layouts/Layout.astro", "---\n---\n<slot />\n")
     hero = _write(tmp_path / "src/components/Hero.astro", "---\n---\n<h1>hi</h1>\n")
 
@@ -111,7 +111,6 @@ def test_extract_astro_no_frontmatter_does_not_crash(tmp_path):
         "<h1>no frontmatter here</h1>\n",
     )
     result = extract_astro(page)
-    # Empty/no-imports result is acceptable; the extractor must just not crash.
     assert isinstance(result, dict)
     assert _import_targets(result, relation="imports_from") == set()
 

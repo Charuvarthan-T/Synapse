@@ -4,6 +4,7 @@ Feeding a whole SFC to the JS grammar produces a top-level ERROR node, dropping
 imports and symbols. :func:`extract_vue` masks the non-script regions and parses
 the ``<script>`` with the TypeScript grammar, recovering the full graph.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -51,12 +52,9 @@ def test_mask_preserves_line_numbers_and_blanks_markup():
     )
     masked, lang = _vue_mask_non_script(src)
     assert lang == "ts"
-    # Same number of lines (newlines preserved) so line numbers are stable.
     assert masked.count("\n") == src.count("\n")
-    # Template content is gone; the script body survives verbatim.
     assert "div" not in masked
     assert "const msg = 'hi'" in masked
-    # The script body sits on the same line it does in the source (line 6).
     assert masked.splitlines()[5].strip() == "const msg = 'hi'"
 
 
@@ -104,7 +102,6 @@ function onClick(): void {
     by_label = {n["label"]: n for n in result["nodes"]}
     assert "count" in by_label
     assert "onClick()" in by_label
-    # count is declared on line 8, onClick on line 10 of the SFC.
     assert by_label["count"]["source_location"] == "L8"
     assert by_label["onClick()"]["source_location"] == "L10"
 
@@ -127,7 +124,6 @@ function use(x: Thing): Thing {
 """,
     )
     result = extract_vue(comp)
-    # The imported type is referenced from the script.
     assert _make_id(str(tmp_path / "types.ts")) in _targets(result, relation="imports_from")
 
 
@@ -191,7 +187,6 @@ def test_template_only_file_does_not_crash(tmp_path):
     comp = _write(tmp_path / "Static.vue", "<template>\n  <h1>hi</h1>\n</template>\n")
     result = extract_vue(comp)
     assert isinstance(result, dict)
-    # Only the file node; no script means no imports/symbols.
     assert _targets(result, relation="imports_from") == set()
 
 
@@ -243,7 +238,6 @@ function go(): void {
     assert (by_label["go()"], by_label["helper()"], "calls") in edges
 
 
-
 def test_generic_component_open_tag_with_angle_brackets(tmp_path):
     """A Vue 3.3+ generic= attribute containing '>' (e.g. Record<string, unknown>)
     must not prematurely end the <script> open tag and swallow the body (#1468)."""
@@ -258,10 +252,8 @@ const value = helper()
 """,
     )
     result = extract_vue(comp)
-    # the import inside the script body is recovered (body wasn't masked away)
     assert _make_id(str(tmp_path / "utils/helper.ts")) in _targets(result, relation="imports_from")
-    # and no stray '">' leaked from the open tag into a parse error
     masked, lang = _vue_mask_non_script(comp.read_text(encoding="utf-8"))
     assert lang == "ts"
-    assert 'generic="T extends Record' not in masked  # open tag fully blanked
-    assert "import { helper }" in masked               # body preserved
+    assert 'generic="T extends Record' not in masked
+    assert "import { helper }" in masked

@@ -9,8 +9,6 @@ def _write_manifest(path, content):
 
 def test_cargo_introspect_workspace_internal_dependency_only(tmp_path):
     """Real workspace: pin raw graph fields while excluding registry-only deps."""
-    # This exercises actual Cargo.toml discovery from disk, proving internal path
-    # dependencies become edges while external registry packages stay out of the graph.
     _write_manifest(
         tmp_path / "Cargo.toml",
         """
@@ -75,7 +73,6 @@ edition = "2021"
 
 def test_cargo_introspect_malformed_toml_reports_parser_error(tmp_path):
     """Malformed manifests surface the TOML parser failure, not an arbitrary crash."""
-    # Pin the class name so this works with stdlib tomllib and Python 3.10 tomli.
     _write_manifest(
         tmp_path / "Cargo.toml",
         """
@@ -92,8 +89,6 @@ name = "broken"
 
 def test_cargo_introspect_degenerate_manifests_return_empty_or_skip_bad_deps(tmp_path):
     """Degenerate but parseable manifests should not invent graph data or crash."""
-    # Empty and nameless packages prove crate nodes require package identity; the
-    # scalar dependencies case proves malformed dependency sections are ignored safely.
     empty_manifest = tmp_path / "empty"
     empty_manifest.mkdir()
     _write_manifest(empty_manifest / "Cargo.toml", "")
@@ -146,8 +141,6 @@ dependencies = "not-a-table"
 
 def test_cargo_introspect_old_manifest_keeps_internal_path_dep_and_skips_external(tmp_path):
     """Legacy manifests still resolve path deps and ignore bare-string externals."""
-    # Older Cargo files may omit modern metadata and use bare version strings; the
-    # graph should keep only workspace-internal relationships.
     _write_manifest(
         tmp_path / "Cargo.toml",
         """
@@ -193,8 +186,6 @@ version = "0.1.0"
 
 def test_cargo_introspect_modern_virtual_and_root_package_workspaces(tmp_path):
     """Modern workspace forms cover virtual roots, workspace deps, and root packages."""
-    # Virtual manifests and root-package workspaces discover members differently;
-    # both must produce exact internal graph shapes without registry-only edges.
     virtual_root = tmp_path / "virtual"
     virtual_root.mkdir()
     _write_manifest(
@@ -305,8 +296,6 @@ root_pkg = { path = "../.." }
 
 def test_cargo_introspect_large_workspace_dependency_chain(tmp_path):
     """Large deterministic workspace proves chain extraction scales by shape, not timing."""
-    # The exact 200-node/199-edge chain guards against truncation, glob misses, or
-    # accidental timing-based assertions that would make the test flaky.
     crate_count = 200
     _write_manifest(
         tmp_path / "Cargo.toml",

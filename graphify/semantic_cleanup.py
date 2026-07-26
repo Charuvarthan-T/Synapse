@@ -1,13 +1,3 @@
-# Semantic fragment sanitizer — converts sentence-like rationale nodes into
-# attributes on related nodes and removes invalid file_type values.
-#
-# Called from the skill merge path (see skill-devin.md) and from the in-process
-# `graphify merge-chunks` command — both ingest untrusted agent-written chunk
-# JSON, and validate_semantic_fragment() rejects malformed/oversized payloads and
-# crafted node/edge IDs before they touch the graph. The primary build/load paths
-# (build_from_json, load_graph_json) deliberately do NOT run this: they must keep
-# loading valid pre-existing graphs whose AST node IDs predate the stricter
-# semantic-ID charset.
 from __future__ import annotations
 
 import json
@@ -16,28 +6,18 @@ from pathlib import Path
 
 from .build import _normalize_hyperedge_members
 
-# Labels longer than this many characters, or containing >= this many words,
-# are candidates for being sentence-like rationale text rather than entity names.
 _RATIONALE_MIN_CHARS = 80
 _RATIONALE_MIN_WORDS = 8
 
-# Validation limits for untrusted semantic-fragment payloads. See
-# validate_semantic_fragment(). Issue #825: returned-JSON normalization for
-# OpenCode and Codex agents requires a Python enforcement boundary so a
-# malicious or runaway agent response cannot exhaust memory or escape the
-# graphify-out chunk directory via crafted node/edge IDs.
 MAX_SEMANTIC_FRAGMENT_BYTES = 25 * 1024 * 1024
 MAX_SEMANTIC_FRAGMENT_NODES = 10_000
 MAX_SEMANTIC_FRAGMENT_EDGES = 100_000
 MAX_SEMANTIC_FRAGMENT_HYPEREDGES = 10_000
 MAX_SEMANTIC_HYPEREDGE_NODES = 256
 MAX_SEMANTIC_ID_LENGTH = 256
-VALID_SEMANTIC_FILE_TYPES = frozenset({"code", "document", "paper", "image", "rationale", "concept"})
-# Unicode word characters are allowed: build's normalize_id preserves CJK /
-# Cyrillic / accented-Latin identifiers, so an ASCII-only gate would reject valid
-# ids that the loader accepts. The explicit path-separator / ".." check in
-# _validate_semantic_id still blocks directory escape (#825); "/", "\\", spaces,
-# "@", "#" etc. are not \w and remain rejected.
+VALID_SEMANTIC_FILE_TYPES = frozenset(
+    {"code", "document", "paper", "image", "rationale", "concept"}
+)
 _SEMANTIC_ID_RE = re.compile(r"^[\w.:-]+$")
 
 
@@ -81,12 +61,6 @@ def validate_semantic_fragment(fragment: object) -> list[str]:
             errors.append(f"nodes[{i}] must be an object")
             continue
         _validate_semantic_id(errors, f"nodes[{i}].id", node.get("id"))
-        # file_type is intentionally NOT rejected here. It carries no security
-        # risk (it can't exhaust memory or escape a directory), and
-        # build_from_json already coerces every value via _FILE_TYPE_SYNONYMS
-        # (unknown -> "concept", #840). Rejecting a whole chunk over a synonym
-        # like "markdown"/"tool"/"framework" that the loader would happily map is
-        # pure data loss, so leave file_type normalization to build.
 
     for i, edge in enumerate(edges):
         if not isinstance(edge, dict):
@@ -110,9 +84,6 @@ def validate_semantic_fragment(fragment: object) -> list[str]:
             if not isinstance(he, dict):
                 errors.append(f"hyperedges[{i}] must be an object")
                 continue
-            # Fold alias member keys (members/node_ids) onto `nodes` (#1561) so
-            # an alias-keyed hyperedge isn't rejected here for "nodes must be a
-            # list" before it ever reaches build's normalization.
             _normalize_hyperedge_members(he)
             _validate_semantic_id(errors, f"hyperedges[{i}].id", he.get("id"))
             he_nodes = he.get("nodes")
@@ -196,15 +167,12 @@ def sanitize_semantic_fragment(fragment: dict) -> dict:
     edges: list[dict] = fragment.get("edges", [])
     hyperedges: list[dict] = fragment.get("hyperedges", []) or []
 
-    # ---- build lookup maps --------------------------------------------------
     node_by_id: dict[str, dict] = {}
     for n in nodes:
         nid = n.get("id", "")
         if nid:
             node_by_id[nid] = n
 
-    # Pre-collect node IDs that source a `rationale_for` edge — these are
-    # candidates for sentence-like cleanup even when file_type is allowed.
     rationale_for_sources: set[str] = set()
     for e in edges:
         if e.get("relation") == "rationale_for":
@@ -212,38 +180,26 @@ def sanitize_semantic_fragment(fragment: dict) -> dict:
             if src:
                 rationale_for_sources.add(src)
 
-    # ---- pass 1: identify nodes to remove + rationale candidates -----------
     rationale_candidates: list[dict] = []
     remove_ids: set[str] = set()
     keep_nodes: list[dict] = []
     for n in nodes:
         nid = n.get("id", "")
         if not nid:
-            # Node without an id cannot be referenced — discard.
             continue
         ft = n.get("file_type", "")
         label = n.get("label", "")
         if ft in _invalid_ft:
-            # Explicitly-invalid file_type ("rationale" or "concept"): if
-            # the label looks like a sentence we may convert to attribute.
             if _is_sentence_like_rationale_label(label):
                 rationale_candidates.append(n)
             remove_ids.add(nid)
             continue
         if nid in rationale_for_sources and _is_sentence_like_rationale_label(label):
-            # Allowed file_type, but the node sources a `rationale_for` edge
-            # AND its label is sentence-like prose. Treat it as rationale
-            # cleanup material rather than a real graph entity.
             rationale_candidates.append(n)
             remove_ids.add(nid)
             continue
         keep_nodes.append(n)
 
-    # ---- pass 2: convert sentence-nodes → rationale attributes --------------
-    # Only `rationale_for` edges propagate the rationale text. Other outgoing
-    # edges (e.g. references, conceptually_related_to) are NOT used as
-    # attribute-propagation paths — that would corrupt unrelated nodes by
-    # attaching rationale meant for a different target.
     rationale_attrs: dict[str, list[str]] = {}
     for rn in rationale_candidates:
         rn_id = rn.get("id", "")
@@ -262,7 +218,6 @@ def sanitize_semantic_fragment(fragment: dict) -> dict:
         if target_id in node_by_id and target_id not in remove_ids:
             _append_rationale_attr(node_by_id[target_id], texts)
 
-    # ---- pass 3: strip edges referencing removed nodes ----------------------
     keep_edges: list[dict] = []
     for e in edges:
         src = e.get("source", "")
@@ -271,23 +226,18 @@ def sanitize_semantic_fragment(fragment: dict) -> dict:
             continue
         keep_edges.append(e)
 
-    # ---- pass 4: filter hyperedges to surviving node IDs --------------------
     surviving_ids: set[str] = {n.get("id", "") for n in keep_nodes}
     surviving_ids.discard("")
     keep_hyperedges: list[dict] = []
     for he in hyperedges:
         if not isinstance(he, dict):
             continue
-        # Fold alias member keys (members/node_ids) onto `nodes` (#1561) so an
-        # alias-keyed hyperedge isn't silently dropped below for a missing
-        # `nodes` list before build can canonicalize it.
         _normalize_hyperedge_members(he)
         he_nodes = he.get("nodes")
         if not isinstance(he_nodes, list):
             continue
         filtered = [ref for ref in he_nodes if isinstance(ref, str) and ref in surviving_ids]
         if len(filtered) < 2:
-            # A hyperedge needs at least two surviving members to be meaningful.
             continue
         if len(filtered) != len(he_nodes):
             he = dict(he)
@@ -317,7 +267,6 @@ def _is_sentence_like_rationale_label(label: str) -> bool:
         word_count = len(label.split())
         if word_count < _RATIONALE_MIN_WORDS:
             return False
-    # Must look like actual prose: has sentence-ending punctuation or a colon.
     return bool(re.search(r"[.!?:]", label))
 
 

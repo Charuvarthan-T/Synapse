@@ -3,6 +3,7 @@
 Mocks subprocess.run + shutil.which so the suite runs on CI without
 the `claude` binary or a live network call.
 """
+
 from __future__ import annotations
 
 import json
@@ -16,19 +17,31 @@ _ENVELOPE = {
     "type": "result",
     "subtype": "success",
     "is_error": False,
-    "result": json.dumps({
-        "nodes": [
-            {"id": "foo_module", "label": "Foo", "file_type": "document", "source_file": "foo.md"},
-            {"id": "foo_greet", "label": "greet", "file_type": "code", "source_file": "foo.md"},
-        ],
-        "edges": [
-            {"source": "foo_module", "target": "foo_greet",
-             "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0},
-        ],
-        "hyperedges": [],
-        "input_tokens": 0,
-        "output_tokens": 0,
-    }),
+    "result": json.dumps(
+        {
+            "nodes": [
+                {
+                    "id": "foo_module",
+                    "label": "Foo",
+                    "file_type": "document",
+                    "source_file": "foo.md",
+                },
+                {"id": "foo_greet", "label": "greet", "file_type": "code", "source_file": "foo.md"},
+            ],
+            "edges": [
+                {
+                    "source": "foo_module",
+                    "target": "foo_greet",
+                    "relation": "references",
+                    "confidence": "EXTRACTED",
+                    "confidence_score": 1.0,
+                },
+            ],
+            "hyperedges": [],
+            "input_tokens": 0,
+            "output_tokens": 0,
+        }
+    ),
     "stop_reason": "end_turn",
     "usage": {
         "input_tokens": 6,
@@ -44,8 +57,10 @@ _ENVELOPE = {
 def fake_claude(monkeypatch):
     completed = MagicMock(returncode=0, stdout=json.dumps(_ENVELOPE), stderr="")
     monkeypatch.setattr(llm, "_response_is_hollow", lambda raw, parsed: False)
-    with patch("shutil.which", return_value="/fake/bin/claude"), \
-         patch("subprocess.run", return_value=completed) as run:
+    with (
+        patch("shutil.which", return_value="/fake/bin/claude"),
+        patch("subprocess.run", return_value=completed) as run,
+    ):
         yield run
 
 
@@ -67,8 +82,10 @@ def test_finish_reason_length_on_max_tokens(monkeypatch):
     envelope = dict(_ENVELOPE, stop_reason="max_tokens")
     completed = MagicMock(returncode=0, stdout=json.dumps(envelope), stderr="")
     monkeypatch.setattr(llm, "_response_is_hollow", lambda raw, parsed: False)
-    with patch("shutil.which", return_value="/fake/bin/claude"), \
-         patch("subprocess.run", return_value=completed):
+    with (
+        patch("shutil.which", return_value="/fake/bin/claude"),
+        patch("subprocess.run", return_value=completed),
+    ):
         result = llm._call_claude_cli("dummy", max_tokens=8192)
     assert result["finish_reason"] == "length"
 
@@ -81,16 +98,20 @@ def test_raises_when_cli_missing():
 
 def test_raises_on_nonzero_exit():
     completed = MagicMock(returncode=2, stdout="", stderr="auth failed")
-    with patch("shutil.which", return_value="/fake/bin/claude"), \
-         patch("subprocess.run", return_value=completed):
+    with (
+        patch("shutil.which", return_value="/fake/bin/claude"),
+        patch("subprocess.run", return_value=completed),
+    ):
         with pytest.raises(RuntimeError, match="exited 2"):
             llm._call_claude_cli("dummy", max_tokens=8192)
 
 
 def test_raises_on_garbage_envelope():
     completed = MagicMock(returncode=0, stdout="not json", stderr="")
-    with patch("shutil.which", return_value="/fake/bin/claude"), \
-         patch("subprocess.run", return_value=completed):
+    with (
+        patch("shutil.which", return_value="/fake/bin/claude"),
+        patch("subprocess.run", return_value=completed),
+    ):
         with pytest.raises(RuntimeError, match="unparseable JSON envelope"):
             llm._call_claude_cli("dummy", max_tokens=8192)
 
@@ -117,14 +138,6 @@ def test_no_session_persistence_flag_in_subprocess(fake_claude):
     assert "--no-session-persistence" in call_args
 
 
-# ---------- extraction instructions delivered in the user turn ----------
-# Newer Claude Code CLIs (>= ~2.1) do not honour a --system-prompt that asks
-# for raw JSON: they keep their coding-agent context and reply conversationally
-# to a bare file dump, which parses to zero nodes and gets bisected forever.
-# The instructions must ride in the user turn instead. See the fix for the
-# "hollow response" / infinite-bisection failure on Claude Code 2.1.x.
-
-
 def test_no_system_prompt_flag_in_subprocess(fake_claude):
     """--system-prompt must NOT be used: the CLI ignores its 'raw JSON only'
     directive and replies with prose, breaking extraction."""
@@ -138,11 +151,8 @@ def test_extraction_instructions_ride_in_user_turn(fake_claude):
     all be delivered via stdin (the user turn)."""
     llm._call_claude_cli("UNIQUE_SOURCE_MARKER", max_tokens=8192)
     sent = fake_claude.call_args.kwargs["input"]
-    # schema text from _extraction_system
     assert "graphify semantic extraction agent" in sent
-    # explicit imperative appended before the source
     assert "output ONLY the JSON object" in sent
-    # the caller's source payload is preserved
     assert "UNIQUE_SOURCE_MARKER" in sent
 
 
@@ -152,15 +162,6 @@ def test_user_turn_preserves_untrusted_source_guardrails(fake_claude):
     llm._call_claude_cli("dummy", max_tokens=8192)
     sent = fake_claude.call_args.kwargs["input"]
     assert "untrusted_source" in sent
-
-
-# ---------- structured output via --json-schema (#2076) ----------
-# Newer Claude Code CLIs treat a bare file-dump prompt as an agentic task and
-# REPORT the extraction in prose instead of returning JSON, so the graph comes
-# out empty and adaptive-retry bisects forever. When the CLI supports
-# `--json-schema`, graphify constrains the output shape structurally so the
-# model must emit the object regardless of framing. Older CLIs that predate the
-# flag fall back to the user-turn prompt, unchanged.
 
 
 def test_json_schema_flag_added_when_cli_supports_it(monkeypatch, fake_claude):
@@ -182,7 +183,7 @@ def test_json_schema_flag_absent_when_cli_lacks_it(monkeypatch, fake_claude):
     result = llm._call_claude_cli("dummy source", max_tokens=8192)
     argv = fake_claude.call_args.args[0]
     assert "--json-schema" not in argv
-    assert len(result["nodes"]) == 2  # result envelope still carries the JSON
+    assert len(result["nodes"]) == 2
 
 
 def test_supports_json_schema_detects_flag_in_help():
@@ -211,9 +212,6 @@ def test_supports_json_schema_false_and_cached_on_probe_error():
     assert run.call_count == 1
 
 
-# ---------- Windows path resolution (#1072) ----------
-
-
 def test_windows_prefers_claude_cmd_over_bare_claude(monkeypatch):
     """On Windows, npm installs `claude.ps1` alongside `claude.cmd`.
     `CreateProcess` cannot execute `.ps1` directly (raises WinError 2),
@@ -223,17 +221,16 @@ def test_windows_prefers_claude_cmd_over_bare_claude(monkeypatch):
     monkeypatch.setattr(llm, "_response_is_hollow", lambda raw, parsed: False)
 
     def fake_which(name):
-        # Simulate Windows PATHEXT=.PS1;.CMD ordering: bare "claude"
-        # resolves to the .ps1 (unexecutable by CreateProcess), while
-        # "claude.cmd" resolves to the .cmd shim.
         return {
             "claude": r"C:\Users\u\AppData\Roaming\npm\claude.ps1",
             "claude.cmd": r"C:\Users\u\AppData\Roaming\npm\claude.cmd",
         }.get(name)
 
-    with patch("platform.system", return_value="Windows"), \
-         patch("shutil.which", side_effect=fake_which), \
-         patch("subprocess.run", return_value=completed) as run:
+    with (
+        patch("platform.system", return_value="Windows"),
+        patch("shutil.which", side_effect=fake_which),
+        patch("subprocess.run", return_value=completed) as run,
+    ):
         llm._call_claude_cli("dummy", max_tokens=8192)
 
     argv = run.call_args.args[0]
@@ -256,9 +253,11 @@ def test_windows_falls_back_to_bare_claude_when_cmd_missing(monkeypatch):
             return "/usr/local/bin/claude"
         return None
 
-    with patch("platform.system", return_value="Windows"), \
-         patch("shutil.which", side_effect=fake_which), \
-         patch("subprocess.run", return_value=completed) as run:
+    with (
+        patch("platform.system", return_value="Windows"),
+        patch("shutil.which", side_effect=fake_which),
+        patch("subprocess.run", return_value=completed) as run,
+    ):
         llm._call_claude_cli("dummy", max_tokens=8192)
 
     argv = run.call_args.args[0]
@@ -268,8 +267,7 @@ def test_windows_falls_back_to_bare_claude_when_cmd_missing(monkeypatch):
 def test_windows_raises_when_neither_cmd_nor_bare_claude_present():
     """If neither `claude.cmd` nor `claude` are on PATH on Windows,
     raise the standard not-found error."""
-    with patch("platform.system", return_value="Windows"), \
-         patch("shutil.which", return_value=None):
+    with patch("platform.system", return_value="Windows"), patch("shutil.which", return_value=None):
         with pytest.raises(RuntimeError, match="Claude Code CLI not found"):
             llm._call_claude_cli("dummy", max_tokens=8192)
 
@@ -280,16 +278,15 @@ def test_non_windows_uses_bare_claude(monkeypatch):
     completed = MagicMock(returncode=0, stdout=json.dumps(_ENVELOPE), stderr="")
     monkeypatch.setattr(llm, "_response_is_hollow", lambda raw, parsed: False)
 
-    with patch("platform.system", return_value="Linux"), \
-         patch("shutil.which", return_value="/usr/local/bin/claude"), \
-         patch("subprocess.run", return_value=completed) as run:
+    with (
+        patch("platform.system", return_value="Linux"),
+        patch("shutil.which", return_value="/usr/local/bin/claude"),
+        patch("subprocess.run", return_value=completed) as run,
+    ):
         llm._call_claude_cli("dummy", max_tokens=8192)
 
     argv = run.call_args.args[0]
     assert argv[0] == "claude"
-
-
-# ---------- GRAPHIFY_API_TIMEOUT honoured by all backends ----------
 
 
 def test_resolve_api_timeout_default(monkeypatch):
@@ -342,9 +339,11 @@ def test_simple_completion_resolves_cmd_shim_on_windows(monkeypatch):
     def fake_which(name):
         return r"C:\npm\claude.cmd" if name == "claude.cmd" else r"C:\npm\claude"
 
-    with patch("platform.system", return_value="Windows"), \
-         patch("shutil.which", side_effect=fake_which), \
-         patch("subprocess.run", side_effect=fake_run):
+    with (
+        patch("platform.system", return_value="Windows"),
+        patch("shutil.which", side_effect=fake_which),
+        patch("subprocess.run", side_effect=fake_run),
+    ):
         out = llm._call_llm("hi", backend="claude-cli")
 
     assert out == "ok"
@@ -357,16 +356,28 @@ def test_prefers_structured_output_over_prose_result(monkeypatch):
     backend must parse the structured object; parsing the prose would read as an
     empty/hollow extraction and bisect forever."""
     envelope = {
-        "type": "result", "subtype": "success", "is_error": False,
-        "result": "Knowledge graph extracted successfully: 2 nodes, 1 edge.",  # prose only
+        "type": "result",
+        "subtype": "success",
+        "is_error": False,
+        "result": "Knowledge graph extracted successfully: 2 nodes, 1 edge.",
         "structured_output": {
             "nodes": [
-                {"id": "foo_module", "label": "Foo", "file_type": "document", "source_file": "foo.md"},
+                {
+                    "id": "foo_module",
+                    "label": "Foo",
+                    "file_type": "document",
+                    "source_file": "foo.md",
+                },
                 {"id": "foo_greet", "label": "greet", "file_type": "code", "source_file": "foo.md"},
             ],
             "edges": [
-                {"source": "foo_module", "target": "foo_greet",
-                 "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0},
+                {
+                    "source": "foo_module",
+                    "target": "foo_greet",
+                    "relation": "references",
+                    "confidence": "EXTRACTED",
+                    "confidence_score": 1.0,
+                },
             ],
             "hyperedges": [],
         },
@@ -375,8 +386,10 @@ def test_prefers_structured_output_over_prose_result(monkeypatch):
         "modelUsage": {"claude-opus-4-7[1m]": {}},
     }
     completed = MagicMock(returncode=0, stdout=json.dumps(envelope), stderr="")
-    with patch("shutil.which", return_value="/fake/bin/claude"), \
-         patch("subprocess.run", return_value=completed):
+    with (
+        patch("shutil.which", return_value="/fake/bin/claude"),
+        patch("subprocess.run", return_value=completed),
+    ):
         result = llm._call_claude_cli("dummy", max_tokens=8192)
     assert len(result["nodes"]) == 2, "must parse structured_output, not the prose result"
     assert len(result["edges"]) == 1

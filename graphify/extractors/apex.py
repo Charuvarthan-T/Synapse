@@ -1,4 +1,5 @@
 """Apex extractor. Moved verbatim from graphify/extract.py."""
+
 from __future__ import annotations
 
 
@@ -10,6 +11,7 @@ def extract_apex(path: Path) -> dict:
     """Extract classes, interfaces, enums, methods, and Salesforce constructs from
     Apex .cls and .trigger files using regex (no tree-sitter grammar on PyPI)."""
     import re as _re
+
     try:
         source = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
@@ -26,25 +28,30 @@ def extract_apex(path: Path) -> dict:
     def add_node(nid: str, label: str, line: int) -> None:
         if nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({
-                "id": nid,
-                "label": label,
-                "file_type": "code",
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": "code",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                }
+            )
+
+    def add_edge(
+        src: str, tgt: str, relation: str, line: int, confidence: str = "EXTRACTED"
+    ) -> None:
+        edges.append(
+            {
+                "source": src,
+                "target": tgt,
+                "relation": relation,
+                "confidence": confidence,
                 "source_file": str_path,
                 "source_location": f"L{line}",
-            })
-
-    def add_edge(src: str, tgt: str, relation: str, line: int,
-                 confidence: str = "EXTRACTED") -> None:
-        edges.append({
-            "source": src,
-            "target": tgt,
-            "relation": relation,
-            "confidence": confidence,
-            "source_file": str_path,
-            "source_location": f"L{line}",
-            "weight": 1.0,
-        })
+                "weight": 1.0,
+            }
+        )
 
     add_node(file_nid, path.name, 1)
 
@@ -81,12 +88,33 @@ def extract_apex(path: Path) -> dict:
     soql_re = _re.compile(r"\[\s*SELECT\b[^\]]+FROM\s+(\w+)", _re.IGNORECASE)
     dml_re = _re.compile(r"\b(insert|update|delete|upsert|merge|undelete)\s+\w", _re.IGNORECASE)
 
-    _CONTROL_FLOW = frozenset({
-        "if", "else", "for", "while", "do", "switch", "try", "catch",
-        "finally", "return", "throw", "new", "void", "null",
-        "true", "false", "this", "super", "class", "interface", "enum",
-        "trigger", "on",
-    })
+    _CONTROL_FLOW = frozenset(
+        {
+            "if",
+            "else",
+            "for",
+            "while",
+            "do",
+            "switch",
+            "try",
+            "catch",
+            "finally",
+            "return",
+            "throw",
+            "new",
+            "void",
+            "null",
+            "true",
+            "false",
+            "this",
+            "super",
+            "class",
+            "interface",
+            "enum",
+            "trigger",
+            "on",
+        }
+    )
 
     current_class_nid: str | None = None
     pending_annotations: list[str] = []
@@ -152,8 +180,12 @@ def extract_apex(path: Path) -> dict:
                 continue
             iface_nid = _make_id(stem, iface_name)
             add_node(iface_nid, iface_name, lineno)
-            add_edge(file_nid if current_class_nid is None else current_class_nid,
-                     iface_nid, "contains", lineno)
+            add_edge(
+                file_nid if current_class_nid is None else current_class_nid,
+                iface_nid,
+                "contains",
+                lineno,
+            )
             if im.group(2):
                 for parent in im.group(2).split(","):
                     parent = parent.strip()
@@ -175,8 +207,12 @@ def extract_apex(path: Path) -> dict:
                 continue
             enum_nid = _make_id(stem, enum_name)
             add_node(enum_nid, enum_name, lineno)
-            add_edge(file_nid if current_class_nid is None else current_class_nid,
-                     enum_nid, "contains", lineno)
+            add_edge(
+                file_nid if current_class_nid is None else current_class_nid,
+                enum_nid,
+                "contains",
+                lineno,
+            )
             pending_annotations = []
             continue
 
@@ -189,7 +225,10 @@ def extract_apex(path: Path) -> dict:
                     method_label = f".{method_name}()"
                     add_node(method_nid, method_label, lineno)
                     add_edge(current_class_nid, method_nid, "method", lineno)
-                    if "auraenabled" in pending_annotations or "invocablemethod" in pending_annotations:
+                    if (
+                        "auraenabled" in pending_annotations
+                        or "invocablemethod" in pending_annotations
+                    ):
                         add_edge(file_nid, method_nid, "contains", lineno, confidence="INFERRED")
                     pending_annotations = []
                     continue

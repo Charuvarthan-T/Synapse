@@ -95,7 +95,6 @@ def test_load_validated_semantic_fragment_rejects_oversize_before_parse(tmp_path
     """Oversize files are rejected by stat() — payload is never parsed."""
     monkeypatch.setattr(sc, "MAX_SEMANTIC_FRAGMENT_BYTES", 64)
     chunk = tmp_path / ".graphify_chunk_99.json"
-    # Write something that would PARSE successfully if read, but exceeds the size guard.
     chunk.write_text("[" + ",".join(['"x"'] * 50) + "]")
     fragment, errors = sc.load_validated_semantic_fragment(chunk)
     assert fragment is None
@@ -109,11 +108,6 @@ def test_load_validated_semantic_fragment_rejects_invalid_json(tmp_path):
     fragment, errors = sc.load_validated_semantic_fragment(chunk)
     assert fragment is None
     assert any("invalid json" in e.lower() for e in errors)
-
-
-# ---------------------------------------------------------------------------
-# Hyperedge validation (F2)
-# ---------------------------------------------------------------------------
 
 
 def test_validate_hyperedge_rejects_bad_id():
@@ -149,11 +143,6 @@ def test_validate_hyperedge_caps_count(monkeypatch):
     ]
     errors = sc.validate_semantic_fragment(fragment)
     assert any("hyperedges has 3" in e for e in errors)
-
-
-# ---------------------------------------------------------------------------
-# Sanitizer behavior (F3 + F4 + rationale conversion)
-# ---------------------------------------------------------------------------
 
 
 def test_sanitize_drops_rationale_filetype_node():
@@ -260,12 +249,10 @@ def test_sanitize_filters_hyperedges_after_node_removal():
     }
     out = sc.sanitize_semantic_fragment(fragment)
     he_ids = {he["id"] for he in out["hyperedges"]}
-    # group_a survives with garbage filtered out
     assert "group_a" in he_ids
     group_a = next(he for he in out["hyperedges"] if he["id"] == "group_a")
     assert "garbage" not in group_a["nodes"]
     assert set(group_a["nodes"]) == {"real_node", "other"}
-    # group_b had only 1 surviving member → dropped
     assert "group_b" not in he_ids
 
 
@@ -283,7 +270,6 @@ def test_sanitize_drops_hyperedge_with_only_unknown_refs():
 def test_sanitize_boundary_sentence_threshold():
     """Boundary: a label with exactly 8 words + colon is sentence-like;
     a 7-word label without sentence punctuation is not."""
-    # 8 words, has colon → sentence-like
     long_label = "Note: alpha beta gamma delta epsilon zeta eta"
     fragment = {
         "nodes": [
@@ -298,7 +284,6 @@ def test_sanitize_boundary_sentence_threshold():
     anchor = out["nodes"][0]
     assert "alpha" in anchor.get("rationale", "")
 
-    # 7 words no terminal punctuation → not sentence-like
     short_label = "alpha beta gamma delta epsilon zeta eta"
     fragment = {
         "nodes": [
@@ -309,8 +294,6 @@ def test_sanitize_boundary_sentence_threshold():
         "hyperedges": [],
     }
     out = sc.sanitize_semantic_fragment(fragment)
-    # n2 has file_type=rationale, so it's still removed via pass 1 — but should NOT
-    # become a rationale attribute on anchor (no rationale_for edge, no sentence pattern).
     assert {n["id"] for n in out["nodes"]} == {"anchor"}
     assert "rationale" not in out["nodes"][0]
 
@@ -342,9 +325,7 @@ def test_sanitize_rationale_only_propagates_through_rationale_for_edges():
     out = sc.sanitize_semantic_fragment(fragment)
     ids = {n["id"]: n for n in out["nodes"]}
     assert "why_node" not in ids
-    # rationale_target should have the rationale attribute
     assert "tree-sitter" in ids["rationale_target"].get("rationale", "")
-    # unrelated_target should NOT have rationale leaked from the `references` edge
     assert "rationale" not in ids["unrelated_target"]
 
 
@@ -374,8 +355,6 @@ def test_validate_accepts_node_ids_keyed_hyperedge():
     `nodes` list — validate normalizes first."""
     fragment = _valid_fragment()
     fragment["nodes"].append({"id": "second", "label": "Second", "file_type": "code"})
-    fragment["hyperedges"] = [
-        {"id": "grp", "label": "G", "node_ids": ["module_func", "second"]}
-    ]
+    fragment["hyperedges"] = [{"id": "grp", "label": "G", "node_ids": ["module_func", "second"]}]
     errors = sc.validate_semantic_fragment(fragment)
     assert errors == []

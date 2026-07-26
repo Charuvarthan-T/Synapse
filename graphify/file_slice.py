@@ -22,15 +22,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-# Plain-text document types where boundary-based slicing is meaningful and where
-# `_file_to_text` is a straight ``read_text`` (so a char range matches the bytes
-# the model is shown). Deliberately excludes code (.py, .ts, ...) and binary
-# docs (.pdf) — those are never sliced.
 _SPLITTABLE_TEXT_SUFFIXES = frozenset({".md", ".mdx", ".markdown", ".txt", ".rst"})
 
-# Boundary preferences, strongest first. A Markdown heading (``\n#``) keeps a
-# section with its title; a blank line keeps a paragraph intact; a bare newline
-# avoids cutting mid-line. If none is found in the window we hard-cut.
 _BOUNDARY_SEPARATORS = ("\n#", "\n\n", "\n")
 
 
@@ -50,7 +43,6 @@ class FileSlice:
     total: int
 
 
-# A unit of extraction work: either a whole file (``Path``) or one slice of one.
 Unit = "Path | FileSlice"
 
 
@@ -76,9 +68,9 @@ def _best_cut(text: str, start: int, end: int) -> int:
     window = text[start:end]
     for sep in _BOUNDARY_SEPARATORS:
         idx = window.rfind(sep)
-        if idx > 0:  # a boundary strictly inside the window (non-empty prev slice)
+        if idx > 0:
             if sep == "\n#":
-                return start + idx + 1  # keep the newline with the previous slice
+                return start + idx + 1
             return start + idx + len(sep)
     return end
 
@@ -97,16 +89,14 @@ def slice_boundaries(text: str, max_chars: int) -> list[tuple[int, int]]:
     while pos < n:
         hard = min(pos + max_chars, n)
         end = _best_cut(text, pos, hard) if hard < n else n
-        if end <= pos:  # defensive: never stall
+        if end <= pos:
             end = hard
         bounds.append((pos, end))
         pos = end
     return bounds
 
 
-def expand_oversized_files(
-    files: list[Path], max_chars: int
-) -> list["Path | FileSlice"]:
+def expand_oversized_files(files: list[Path], max_chars: int) -> list["Path | FileSlice"]:
     """Replace each oversized splittable-text file with a list of ``FileSlice``s.
 
     Files at or below ``max_chars`` (and all non-splittable files) pass through
@@ -136,7 +126,7 @@ def expand_oversized_files(
 def read_slice_text(fs: FileSlice) -> str:
     """Read just this slice's characters from its parent file."""
     text = fs.path.read_text(encoding="utf-8", errors="replace")
-    return text[fs.start:fs.end]
+    return text[fs.start : fs.end]
 
 
 def bisect_slice(fs: FileSlice) -> tuple[FileSlice, FileSlice] | None:

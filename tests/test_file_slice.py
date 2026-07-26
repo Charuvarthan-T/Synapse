@@ -16,8 +16,6 @@ from graphify.file_slice import (
 )
 
 
-# ── slice_boundaries: coverage + bounds invariants ──────────────────────────
-
 def test_slice_boundaries_small_text_is_one_range():
     text = "short doc"
     assert slice_boundaries(text, 100) == [(0, len(text))]
@@ -27,19 +25,15 @@ def test_slice_boundaries_small_text_is_one_range():
 def test_slice_boundaries_full_coverage_and_bounds(max_chars):
     text = ("# Heading\n\n" + "lorem ipsum " * 40 + "\n\n") * 20
     bounds = slice_boundaries(text, max_chars)
-    # contiguous, gap-free, non-overlapping, covering the whole text
     assert bounds[0][0] == 0
     assert bounds[-1][1] == len(text)
     for (s0, e0), (s1, e1) in zip(bounds, bounds[1:]):
         assert e0 == s1
-    # concatenation reproduces the text exactly (no dropped content)
     assert "".join(text[s:e] for s, e in bounds) == text
-    # every slice respects the budget
     assert all((e - s) <= max_chars for s, e in bounds)
 
 
 def test_slice_boundaries_single_huge_line_still_progresses():
-    # No newline at all → must hard-cut and still cover everything.
     text = "x" * 5000
     bounds = slice_boundaries(text, 1000)
     assert "".join(text[s:e] for s, e in bounds) == text
@@ -50,13 +44,10 @@ def test_slice_boundaries_prefers_heading_boundary():
     a = "# A\n" + "a" * 30 + "\n"
     b = "# B\n" + "b" * 30 + "\n"
     text = a + b
-    bounds = slice_boundaries(text, len(a) + 5)  # forces a split near the A/B seam
-    # the second slice should start at the "# B" heading
+    bounds = slice_boundaries(text, len(a) + 5)
     second_start = bounds[1][0]
-    assert text[second_start:second_start + 3] == "# B"
+    assert text[second_start : second_start + 3] == "# B"
 
-
-# ── expand_oversized_files ──────────────────────────────────────────────────
 
 def _write(p: Path, text: str) -> Path:
     p.write_text(text, encoding="utf-8")
@@ -76,19 +67,17 @@ def test_expand_oversized_markdown_is_sliced_with_full_coverage(tmp_path):
     slices = [u for u in units if isinstance(u, FileSlice)]
     assert len(slices) >= 2
     assert all(isinstance(u, FileSlice) for u in units)
-    # slices reconstruct the whole file
     assert "".join(read_slice_text(s) for s in slices) == text
     assert all((s.end - s.start) <= 2000 for s in slices)
-    # every slice points back at the parent file (anti-fragmentation)
     assert all(s.path == f for s in slices)
     assert slices[0].total == len(slices)
 
 
 def test_expand_does_not_slice_code_even_when_oversized(tmp_path):
-    f = _write(tmp_path / "mod.py", "x = 1\n" * 6000)  # >> max_chars but code
+    f = _write(tmp_path / "mod.py", "x = 1\n" * 6000)
     assert not is_splittable_text(f)
     units = expand_oversized_files([f], max_chars=2000)
-    assert units == [f]  # stays whole — code needs whole-symbol context
+    assert units == [f]
 
 
 def test_expand_unreadable_file_passes_through(tmp_path):
@@ -97,10 +86,9 @@ def test_expand_unreadable_file_passes_through(tmp_path):
     assert units == [missing]
 
 
-# ── anti-fragmentation: slices share one source_file in the prompt ──────────
-
 def test_read_files_keys_every_slice_to_parent_path(tmp_path):
     import re
+
     text = ("# H\n\n" + "lorem " * 300 + "\n\n") * 20
     f = _write(tmp_path / "doc.md", text)
     units = expand_oversized_files([f], max_chars=llm._FILE_CHAR_CAP)
@@ -108,11 +96,8 @@ def test_read_files_keys_every_slice_to_parent_path(tmp_path):
     assert len(slices) >= 2
     prompt = llm._read_files(units, tmp_path)
     rels = re.findall(r'<untrusted_source path="([^"]+)"', prompt)
-    # one block per slice, all pointing at the same parent path
     assert rels == ["doc.md"] * len(slices)
 
-
-# ── unit helpers, estimation, partition, packing ────────────────────────────
 
 def test_unit_path_resolves_slice_and_path(tmp_path):
     f = tmp_path / "a.md"
@@ -142,12 +127,9 @@ def test_pack_chunks_handles_slices(tmp_path):
     f = _write(tmp_path / "big.md", text)
     units = expand_oversized_files([f], max_chars=llm._FILE_CHAR_CAP)
     chunks = llm._pack_chunks_by_tokens(units, token_budget=2000)
-    # all units land in some chunk; flattening recovers them all
     flat = [u for ch in chunks for u in ch]
     assert len(flat) == len(units)
 
-
-# ── bisect_slice (adaptive-retry path) ──────────────────────────────────────
 
 def test_bisect_slice_splits_at_newline(tmp_path):
     f = _write(tmp_path / "a.md", "alpha\n" * 100)
@@ -156,7 +138,7 @@ def test_bisect_slice_splits_at_newline(tmp_path):
     assert halves is not None
     left, right = halves
     assert left.start == fs.start and right.end == fs.end
-    assert left.end == right.start  # contiguous, no gap
+    assert left.end == right.start
     assert fs.start < left.end < fs.end
 
 

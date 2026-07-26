@@ -1,4 +1,5 @@
 """Fortran extractor. Moved verbatim from graphify/extract.py."""
+
 from __future__ import annotations
 
 
@@ -7,6 +8,7 @@ from graphify.extractors.base import _file_stem, _make_id, _read_text
 
 
 _FORTRAN_CPP_EXTS = {".F", ".F90", ".F95", ".F03", ".F08"}
+
 
 def _cpp_preprocess(path: Path) -> bytes:
     """Run cpp -w -P on a capital-F Fortran file and return preprocessed bytes.
@@ -24,12 +26,10 @@ def _cpp_preprocess(path: Path) -> bytes:
     """
     import shutil
     import subprocess
+
     if not shutil.which("cpp"):
         return path.read_bytes()
     try:
-        # Pass an absolute path so a corpus file named like "-I/etc/x.F90" cannot
-        # be parsed by cpp as an option (cpp does not accept a "--" end-of-options
-        # terminator). An absolute path always begins with "/".
         result = subprocess.run(
             ["cpp", "-w", "-P", "-nostdinc", "-I", "/dev/null", str(path.resolve())],
             capture_output=True,
@@ -40,6 +40,7 @@ def _cpp_preprocess(path: Path) -> bytes:
     except Exception:
         pass
     return path.read_bytes()
+
 
 def extract_fortran(path: Path) -> dict:
     """Extract programs, modules, subroutines, functions, use statements, and calls from Fortran files.
@@ -72,17 +73,25 @@ def extract_fortran(path: Path) -> dict:
     def add_node(nid: str, label: str, line: int) -> None:
         if nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({
-                "id": nid,
-                "label": label,
-                "file_type": "code",
-                "source_file": str_path,
-                "source_location": f"L{line}",
-            })
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": "code",
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                }
+            )
 
-    def add_edge(src: str, tgt: str, relation: str, line: int,
-                 confidence: str = "EXTRACTED", weight: float = 1.0,
-                 context: str | None = None) -> None:
+    def add_edge(
+        src: str,
+        tgt: str,
+        relation: str,
+        line: int,
+        confidence: str = "EXTRACTED",
+        weight: float = 1.0,
+        context: str | None = None,
+    ) -> None:
         edge = {
             "source": src,
             "target": tgt,
@@ -112,22 +121,17 @@ def extract_fortran(path: Path) -> dict:
             return nid
         nid = _make_id(name)
         if nid not in seen_ids:
-            # The name isn't defined in this file, so this is a cross-file reference
-            # (e.g. a `Thing` type annotation imported from another module). Emit a
-            # SOURCELESS stub — like the inheritance-base path below — so the
-            # corpus-level rewire can collapse it onto the real definition. A sourced
-            # stub here makes _disambiguate_colliding_node_ids bake the referencing
-            # file's path (with extension) into the id and blocks the rewire, which is
-            # the phantom-duplicate-node bug (#1402).
             seen_ids.add(nid)
-            nodes.append({
-                "id": nid,
-                "label": name,
-                "file_type": "code",
-                "source_file": "",
-                "source_location": "",
-                "origin_file": str_path,
-            })
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": name,
+                    "file_type": "code",
+                    "source_file": "",
+                    "source_location": "",
+                    "origin_file": str_path,
+                }
+            )
         return nid
 
     def emit_signature_refs(scope_node, fn_nid: str, is_function: bool) -> None:
@@ -151,7 +155,6 @@ def extract_fortran(path: Path) -> dict:
                 if res_id is not None:
                     result_name = _read_text(res_id, source).lower()
             else:
-                # implicit result variable: same name as the function
                 result_name = _fortran_name(stmt)
         for child in scope_node.children:
             if child.type != "variable_declaration":
@@ -183,27 +186,33 @@ def extract_fortran(path: Path) -> dict:
         t = node.type
         if t in ("subroutine", "function", "module", "program", "internal_procedures"):
             return
-        # call FOO(args) — tree-sitter-fortran uses subroutine_call
         if t == "subroutine_call":
             name_node = next((c for c in node.children if c.type == "identifier"), None)
             if name_node:
                 callee = _read_text(name_node, source).lower()
                 target_nid = _make_id(stem, callee)
-                add_edge(scope_nid, target_nid, "calls", node.start_point[0] + 1,
-                         confidence="EXTRACTED", context="call")
-        # x = compute(args) — function invocations are `call_expression`, which
-        # shares Fortran's `name(...)` syntax with array indexing. Only emit a
-        # call edge when the callee resolves to a procedure defined in this file
-        # (an array variable produces no matching node), so array accesses can't
-        # fabricate spurious `calls` edges.
+                add_edge(
+                    scope_nid,
+                    target_nid,
+                    "calls",
+                    node.start_point[0] + 1,
+                    confidence="EXTRACTED",
+                    context="call",
+                )
         elif t == "call_expression":
             name_node = next((c for c in node.children if c.type == "identifier"), None)
             if name_node:
                 callee = _read_text(name_node, source).lower()
                 target_nid = _make_id(stem, callee)
                 if target_nid in seen_ids and target_nid != scope_nid:
-                    add_edge(scope_nid, target_nid, "calls", node.start_point[0] + 1,
-                             confidence="EXTRACTED", context="call")
+                    add_edge(
+                        scope_nid,
+                        target_nid,
+                        "calls",
+                        node.start_point[0] + 1,
+                        confidence="EXTRACTED",
+                        context="call",
+                    )
         for child in node.children:
             walk_calls(child, scope_nid)
 
@@ -235,7 +244,6 @@ def extract_fortran(path: Path) -> dict:
                     walk(child, nid)
             return
 
-        # subroutines/functions inside a module live under internal_procedures
         if t == "internal_procedures":
             for child in node.children:
                 walk(child, scope_nid)
@@ -283,8 +291,9 @@ def extract_fortran(path: Path) -> dict:
 
         if t == "use_statement":
             line = node.start_point[0] + 1
-            # tree-sitter-fortran uses module_name node for the used module
-            name_node = next((c for c in node.children if c.type in ("module_name", "name", "identifier")), None)
+            name_node = next(
+                (c for c in node.children if c.type in ("module_name", "name", "identifier")), None
+            )
             if name_node:
                 mod_name = _read_text(name_node, source).lower()
                 imp_nid = _make_id(mod_name)
@@ -298,8 +307,10 @@ def extract_fortran(path: Path) -> dict:
     walk(root, file_nid)
 
     _stmt_headers = {
-        "subroutine_statement", "function_statement",
-        "program_statement", "module_statement",
+        "subroutine_statement",
+        "function_statement",
+        "program_statement",
+        "module_statement",
     }
     for scope_nid, body_node in scope_bodies:
         for child in body_node.children:

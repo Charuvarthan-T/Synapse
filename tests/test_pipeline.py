@@ -3,6 +3,7 @@ End-to-end pipeline test: detect → extract → build → cluster → analyze �
 Uses the existing test fixtures (code + markdown). No LLM calls - AST extraction only.
 Catches regressions in how modules connect, not just individual module behaviour.
 """
+
 import json
 import tempfile
 from pathlib import Path
@@ -22,25 +23,20 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 def run_pipeline(tmp_path: Path) -> dict:
     """Run the full pipeline on the fixtures directory. Returns a dict of outputs."""
-    # Step 1: detect
     detection = detect(FIXTURES)
     assert detection["total_files"] > 0
-    # fixtures corpus is intentionally small (< 5k words), so needs_graph may be False
     assert "files" in detection
 
-    # Step 2: extract (AST only - no LLM)
     code_files = [Path(f) for f in detection["files"].get("code", [])]
     assert len(code_files) > 0
     extraction = extract(code_files)
     assert len(extraction["nodes"]) > 0
     assert len(extraction["edges"]) > 0
 
-    # Step 3: build
     G = build_from_json(extraction)
     assert G.number_of_nodes() > 0
     assert G.number_of_edges() > 0
 
-    # Step 4: cluster
     communities = cluster(G)
     assert len(communities) > 0
     cohesion = score_all(G, communities)
@@ -48,7 +44,6 @@ def run_pipeline(tmp_path: Path) -> dict:
     for score in cohesion.values():
         assert 0.0 <= score <= 1.0
 
-    # Step 5: analyze
     gods = god_nodes(G)
     assert len(gods) > 0
     assert all("id" in g and "degree" in g for g in gods)
@@ -60,14 +55,23 @@ def run_pipeline(tmp_path: Path) -> dict:
     questions = suggest_questions(G, communities, labels)
     assert isinstance(questions, list)
 
-    # Step 6: report
     tokens = {"input": 0, "output": 0}
-    report = generate(G, communities, cohesion, labels, gods, surprises, detection, tokens, str(FIXTURES), suggested_questions=questions)
+    report = generate(
+        G,
+        communities,
+        cohesion,
+        labels,
+        gods,
+        surprises,
+        detection,
+        tokens,
+        str(FIXTURES),
+        suggested_questions=questions,
+    )
     assert "God Nodes" in report
     assert "Communities" in report
     assert len(report) > 100
 
-    # Step 7: export - JSON
     json_path = tmp_path / "graph.json"
     to_json(G, communities, str(json_path))
     assert json_path.exists()
@@ -75,7 +79,6 @@ def run_pipeline(tmp_path: Path) -> dict:
     assert "nodes" in data and "links" in data
     assert all("community" in n for n in data["nodes"])
 
-    # Step 8: export - HTML
     html_path = tmp_path / "graph.html"
     to_html(G, communities, str(html_path), community_labels=labels)
     assert html_path.exists()
@@ -83,9 +86,10 @@ def run_pipeline(tmp_path: Path) -> dict:
     assert "vis-network" in html
     assert "RAW_NODES" in html
 
-    # Step 9: export - Obsidian vault
     vault_path = tmp_path / "obsidian"
-    n_notes = to_obsidian(G, communities, str(vault_path), community_labels=labels, cohesion=cohesion)
+    n_notes = to_obsidian(
+        G, communities, str(vault_path), community_labels=labels, cohesion=cohesion
+    )
     assert n_notes > 0
     assert (vault_path / ".obsidian" / "graph.json").exists()
     md_files = list(vault_path.glob("*.md"))

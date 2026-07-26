@@ -1,4 +1,5 @@
 """Token-reduction benchmark - measures how much context graphify saves vs naive full-corpus approach."""
+
 from __future__ import annotations
 import json
 import sys
@@ -11,7 +12,7 @@ from graphify.serve import _query_terms
 from graphify.paths import default_graph_json as _default_graph_json
 
 
-_CHARS_PER_TOKEN = 4  # standard approximation
+_CHARS_PER_TOKEN = 4
 
 
 def _safe(unicode_char: str, ascii_fallback: str) -> str:
@@ -67,11 +68,15 @@ def _query_subgraph_tokens(G: nx.Graph, question: str, depth: int = 3) -> int:
     lines = []
     for nid in visited:
         d = G.nodes[nid]
-        lines.append(f"NODE {d.get('label', nid)} src={d.get('source_file', '')} loc={d.get('source_location', '')}")
+        lines.append(
+            f"NODE {d.get('label', nid)} src={d.get('source_file', '')} loc={d.get('source_location', '')}"
+        )
     for u, v in edges_seen:
         if u in visited and v in visited:
             d = edge_data(G, u, v)
-            lines.append(f"EDGE {G.nodes[u].get('label', u)} --{d.get('relation', '')}--> {G.nodes[v].get('label', v)}")
+            lines.append(
+                f"EDGE {G.nodes[u].get('label', u)} --{d.get('relation', '')}--> {G.nodes[v].get('label', v)}"
+            )
 
     return _estimate_tokens("\n".join(lines))
 
@@ -101,6 +106,7 @@ def run_benchmark(
     """
     graph_path = graph_path or _default_graph_json()
     from graphify.security import check_graph_file_size_cap
+
     check_graph_file_size_cap(Path(graph_path))
     data = json.loads(Path(graph_path).read_text(encoding="utf-8"))
     try:
@@ -109,17 +115,18 @@ def run_benchmark(
         G = json_graph.node_link_graph(data)
 
     if corpus_words is None:
-        # Rough estimate: each node label is ~3 words, plus source context
         corpus_words = G.number_of_nodes() * 50
 
-    corpus_tokens = corpus_words * 100 // 75  # words → tokens (100 words ≈ 133 tokens)
+    corpus_tokens = corpus_words * 100 // 75
 
     qs = questions or _SAMPLE_QUESTIONS
     per_question = []
     for q in qs:
         qt = _query_subgraph_tokens(G, q)
         if qt > 0:
-            per_question.append({"question": q, "query_tokens": qt, "reduction": round(corpus_tokens / qt, 1)})
+            per_question.append(
+                {"question": q, "query_tokens": qt, "reduction": round(corpus_tokens / qt, 1)}
+            )
 
     if not per_question:
         return {"error": "No matching nodes found for sample questions. Build the graph first."}
@@ -147,7 +154,9 @@ def print_benchmark(result: dict) -> None:
     print(f"\ngraphify token reduction benchmark")
     print(_hr(50))
     arrow = _safe("→", "->")
-    print(f"  Corpus:          {result['corpus_words']:,} words {arrow} ~{result['corpus_tokens']:,} tokens (naive)")
+    print(
+        f"  Corpus:          {result['corpus_words']:,} words {arrow} ~{result['corpus_tokens']:,} tokens (naive)"
+    )
     print(f"  Graph:           {result['nodes']:,} nodes, {result['edges']:,} edges")
     print(f"  Avg query cost:  ~{result['avg_query_tokens']:,} tokens")
     print(f"  Reduction:       {result['reduction_ratio']}x fewer tokens per query")

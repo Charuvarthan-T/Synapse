@@ -8,6 +8,7 @@ no `imports_from` edge at all (while the equivalent ESM `import * as x from
 "./m"` did). The fix gives the import-equals form exact parity with the ESM
 namespace import: one file-level `imports_from` edge.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -23,10 +24,7 @@ def _write(path: Path, text: str) -> Path:
 
 def _has_edge(result: dict, source: str, target: str, relation: str = "imports_from") -> bool:
     expected = (_file_node_id(Path(source)), _file_node_id(Path(target)), relation)
-    actual = {
-        (edge["source"], edge["target"], edge["relation"])
-        for edge in result["edges"]
-    }
+    actual = {(edge["source"], edge["target"], edge["relation"]) for edge in result["edges"]}
     return expected in actual
 
 
@@ -55,10 +53,6 @@ def test_import_require_single_quotes(tmp_path: Path):
 
 
 def test_import_require_bare_module_targets_ref_stub(tmp_path: Path):
-    # A bare module (`require("fs")`) is external, so it emits an imports_from
-    # edge to a ref-namespaced stub — NOT the bare `_make_id("fs")` id, which
-    # would collide with any local file named fs.* via build.py's alias index
-    # (#1638). Parity with the ESM external path (test_external_module_unchanged).
     importer = _write(
         tmp_path / "src/io.ts",
         'import fs = require("fs");\nexport const data = fs.readFileSync("x");\n',
@@ -68,12 +62,11 @@ def test_import_require_bare_module_targets_ref_stub(tmp_path: Path):
 
     src = _file_node_id(Path("src/io.ts"))
     import_targets = {
-        e["target"] for e in result["edges"]
+        e["target"]
+        for e in result["edges"]
         if e["source"] == src and e["relation"] == "imports_from"
     }
-    # An external stub edge still exists...
     assert import_targets, "bare-module import-equals should still emit an external stub edge"
-    # ...but it is ref-namespaced and never the bare, collision-prone id.
     assert _make_id("fs") not in import_targets
     assert any(t.startswith("ref") for t in import_targets), import_targets
 
@@ -112,8 +105,5 @@ def test_esm_imports_unaffected(tmp_path: Path):
 
     assert _has_edge(result, "src/app.ts", "src/bar.ts")
     src = _file_node_id(Path("src/app.ts"))
-    sym = [
-        e for e in result["edges"]
-        if e["source"] == src and e["relation"] == "imports"
-    ]
+    sym = [e for e in result["edges"] if e["source"] == src and e["relation"] == "imports"]
     assert sym, "named-import symbol edge should still be emitted"

@@ -1,4 +1,5 @@
 """Tests for the Ollama backend additions in graphify/llm.py."""
+
 from __future__ import annotations
 
 import pytest
@@ -6,12 +7,15 @@ import pytest
 from graphify.llm import detect_backend, BACKENDS, _validate_ollama_base_url
 
 
-@pytest.mark.parametrize("url", [
-    "http://169.254.169.254/v1",
-    "http://169.254.1.5:11434/v1",
-    "http://metadata.google.internal/v1",
-    "http://0.0.0.0:11434/v1",
-])
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://169.254.169.254/v1",
+        "http://169.254.1.5:11434/v1",
+        "http://metadata.google.internal/v1",
+        "http://0.0.0.0:11434/v1",
+    ],
+)
 def test_ollama_blocks_link_local_and_metadata(url):
     """Link-local / cloud-metadata Ollama targets fail closed (F3)."""
     with pytest.raises(ValueError):
@@ -22,7 +26,7 @@ def test_ollama_loopback_and_lan_do_not_raise(capsys):
     """Loopback is silent; a general LAN host warns but is allowed (F3)."""
     _validate_ollama_base_url("http://localhost:11434/v1")
     assert capsys.readouterr().err == ""
-    _validate_ollama_base_url("http://192.168.1.50:11434/v1")  # LAN: warn, not raise
+    _validate_ollama_base_url("http://192.168.1.50:11434/v1")
     assert "non-loopback" in capsys.readouterr().err
 
 
@@ -31,7 +35,7 @@ def test_ollama_alias_resolving_to_link_local_blocked(monkeypatch):
     from graphify import llm
 
     def fake_getaddrinfo(host, *a, **k):
-        return [(2, 1, 6, "", ("169.254.169.254", 0))]  # alias -> metadata IP
+        return [(2, 1, 6, "", ("169.254.169.254", 0))]
 
     monkeypatch.setattr("socket.getaddrinfo", fake_getaddrinfo)
     with pytest.raises(ValueError):
@@ -40,10 +44,8 @@ def test_ollama_alias_resolving_to_link_local_blocked(monkeypatch):
 
 def test_ollama_warn_false_still_hard_blocks_but_stays_quiet(capsys):
     """warn=False suppresses the LAN warning but never the metadata hard-block (F3)."""
-    # LAN host with warn=False: allowed, and no warning emitted (early-gate use).
     _validate_ollama_base_url("http://192.168.1.50:11434/v1", warn=False)
     assert capsys.readouterr().err == ""
-    # metadata host with warn=False: still raises.
     with pytest.raises(ValueError):
         _validate_ollama_base_url("http://169.254.169.254/v1", warn=False)
 
@@ -70,8 +72,6 @@ def test_detect_backend_kimi_beats_ollama(monkeypatch):
 
 
 def test_detect_backend_claude_beats_ollama(monkeypatch):
-    # ANTHROPIC_API_KEY (paid, intentional) should win over OLLAMA_BASE_URL
-    # (env-driven, easy to set accidentally) -- security fix F-002/F-029.
     monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
@@ -104,15 +104,17 @@ def test_ollama_api_key_sentinel(monkeypatch):
     }
     with patch("graphify.llm._call_openai_compat", return_value=fake_result) as mock_call:
         from graphify.llm import extract_files_direct
+
         with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False) as f:
             f.write("x = 1\n")
             tmp = Path(f.name)
         try:
             extract_files_direct([tmp], backend="ollama", root=tmp.parent)
-            # Should have called _call_openai_compat with api_key="ollama"
             assert mock_call.called
             call_kwargs = mock_call.call_args
-            api_key_used = call_kwargs.args[1] if call_kwargs.args else call_kwargs.kwargs.get("api_key", "")
+            api_key_used = (
+                call_kwargs.args[1] if call_kwargs.args else call_kwargs.kwargs.get("api_key", "")
+            )
             assert api_key_used == "ollama"
         finally:
             tmp.unlink(missing_ok=True)

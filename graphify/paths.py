@@ -41,18 +41,12 @@ def _atomic_replace(path: "str | Path", write_fn) -> None:
     to its target (rather than replacing the link with a regular file), keeping
     the shared-output/worktree symlink setups this module documents working.
     """
-    # Resolve symlinks so the temp lands on the target's filesystem (same-fs
-    # atomic rename) and the replace writes through the link, not over it.
     real = Path(os.path.realpath(str(path)))
     real.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=str(real.parent), prefix=f".{real.name}.", suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             write_fn(f)
-        # mkstemp creates the temp file 0600; match the destination's existing
-        # mode (or the umask default for a new file) so an atomic replace never
-        # silently tightens a previously group/world-readable output to
-        # owner-only. Best-effort — a chmod failure must not fail the write.
         try:
             mode = stat.S_IMODE(os.stat(real).st_mode)
         except OSError:
@@ -66,10 +60,8 @@ def _atomic_replace(path: "str | Path", write_fn) -> None:
         try:
             os.replace(tmp, str(real))
         except PermissionError:
-            # Windows: os.replace fails (WinError 5/32) when the destination is
-            # briefly locked by another handle (antivirus, an open reader). Fall
-            # back to copy-then-delete, matching graphify.cache's atomic writer.
             import shutil
+
             shutil.copy2(tmp, str(real))
             os.unlink(tmp)
     except BaseException:
@@ -85,27 +77,18 @@ def write_text_atomic(path: "str | Path", text: str) -> None:
     _atomic_replace(path, lambda f: f.write(text))
 
 
-def write_json_atomic(path: "str | Path", obj, *, indent: "int | None" = None, ensure_ascii: bool = True) -> None:
+def write_json_atomic(
+    path: "str | Path", obj, *, indent: "int | None" = None, ensure_ascii: bool = True
+) -> None:
     """Atomically write ``obj`` as JSON to ``path``, streaming the encode into the
     temp file rather than materializing the whole string first (matters for very
     large graphs). ``ensure_ascii`` mirrors ``json.dump`` so callers that emit raw
     UTF-8 (non-ASCII labels/paths) keep byte-for-byte output. See :func:`_atomic_replace`."""
     _atomic_replace(path, lambda f: json.dump(obj, f, indent=indent, ensure_ascii=ensure_ascii))
 
-# Directory segments that, when they appear as a whole path component, mark the
-# whole path as a test location. Matched against path *segments* (not raw
-# substrings) so "src/contest.py" / "latest/x.py" / "src/greatest/x.py" do NOT
-# match — only a segment that *equals* one of these names (case-insensitively).
+
 _TEST_DIR_SEGMENTS = frozenset({"tests", "test", "spec", "specs", "__tests__"})
 
-# Filename patterns marking a file as a test, matched against the *filename*
-# only (case-insensitive). These are conventions across ecosystems:
-#   test_*.py            pytest / unittest
-#   *_test.*             Go / Python / Rust
-#   *.test.*             JS/TS (jest, vitest)
-#   *.spec.* / *_spec.*  Jasmine / RSpec / Karma
-#   *.Tests.ps1          PowerShell Pester
-#   *Test.java / *Tests.cs (case-sensitive convention, handled below)
 _TEST_FILENAME_PATTERNS = (
     re.compile(r"^test_.*", re.IGNORECASE),
     re.compile(r".*_test\..+$", re.IGNORECASE),
@@ -113,9 +96,6 @@ _TEST_FILENAME_PATTERNS = (
     re.compile(r".*\.spec\..+$", re.IGNORECASE),
     re.compile(r".*_spec\..+$", re.IGNORECASE),
     re.compile(r".*\.tests\.ps1$", re.IGNORECASE),
-    # Java `FooTest.java` / `FooTests.java`, C# `FooTests.cs` style. Require an
-    # uppercase-led `Test`/`Tests` immediately before the extension so plain
-    # words like "greatest"/"contest.cs" do not match.
     re.compile(r".*Test\.java$"),
     re.compile(r".*Tests\.java$"),
     re.compile(r".*Tests\.cs$"),
@@ -136,19 +116,12 @@ def _is_test_path(path: str) -> bool:
     """
     if not path:
         return False
-    # Accept both POSIX and Windows separators regardless of host OS so the
-    # classifier is stable across the mixed paths that flow through extraction.
     norm = str(path).replace("\\", "/")
     pure = PurePosixPath(norm)
     segments = list(pure.parts)
-    # Strip a leading drive/anchor segment (e.g. "C:/") that PureWindowsPath
-    # would surface; with the manual "\\"->"/" swap above PurePosixPath keeps
-    # the path body intact, but guard against a Windows drive embedded as a
-    # segment just in case.
     for segment in segments:
         if segment.lower() in _TEST_DIR_SEGMENTS:
             return True
-        # A drive-letter colon segment like "c:" is never a test dir.
     filename = pure.name
     if not filename:
         return False
@@ -177,24 +150,24 @@ def _path_proximity_winner(call_site_file: str, candidate_files: dict[str, str])
     call_norm = str(call_site_file).replace("\\", "/")
     call_dir = PurePosixPath(call_norm).parent
 
-    # Tier 1: exact same file.
-    same_file = [cid for cid, f in candidate_files.items()
-                 if str(f).replace("\\", "/") == call_norm]
+    same_file = [
+        cid for cid, f in candidate_files.items() if str(f).replace("\\", "/") == call_norm
+    ]
     if len(same_file) == 1:
         return same_file[0]
     if len(same_file) > 1:
-        return None  # genuinely ambiguous within one file; bail
+        return None
 
-    # Tier 2: same directory.
-    same_dir = [cid for cid, f in candidate_files.items()
-                if PurePosixPath(str(f).replace("\\", "/")).parent == call_dir]
+    same_dir = [
+        cid
+        for cid, f in candidate_files.items()
+        if PurePosixPath(str(f).replace("\\", "/")).parent == call_dir
+    ]
     if len(same_dir) == 1:
         return same_dir[0]
     if len(same_dir) > 1:
         return None
 
-    # Tier 3: longest common path-prefix, computed over path segments. The
-    # winner must be a strict unique maximum, else we bail (guard holds).
     call_parts = call_dir.parts
 
     def _common_prefix_len(f: str) -> int:
@@ -252,11 +225,9 @@ def disambiguate_ambiguous_candidates(
     nontest_cands = [c for c in candidates if c not in set(test_cands)]
 
     if call_is_test:
-        # Prefer a test-local definition (same file) first.
         call_norm = str(call_site_file).replace("\\", "/")
         same_file_test = [
-            c for c in test_cands
-            if str(candidate_files.get(c, "")).replace("\\", "/") == call_norm
+            c for c in test_cands if str(candidate_files.get(c, "")).replace("\\", "/") == call_norm
         ]
         if len(same_file_test) == 1:
             return same_file_test[0]
@@ -265,7 +236,6 @@ def disambiguate_ambiguous_candidates(
         else:
             survivors = nontest_cands or candidates
     else:
-        # Non-test call site: drop test mocks/stubs entirely.
         survivors = nontest_cands
 
     if len(survivors) == 1:
@@ -273,15 +243,12 @@ def disambiguate_ambiguous_candidates(
     if not survivors:
         return None
 
-    # Step 2: path proximity over the survivors.
     return _path_proximity_winner(
         call_site_file,
         {c: candidate_files.get(c, "") for c in survivors},
     )
 
-# Bare directory name even when GRAPHIFY_OUT is an absolute path. Used by the
-# path guards that walk parents looking for the output dir by name, and by the
-# detect scan-exclude so a custom output dir is never re-ingested as source.
+
 GRAPHIFY_OUT_NAME = os.path.basename(os.path.normpath(GRAPHIFY_OUT))
 
 

@@ -2,7 +2,6 @@
 
 
 def __getattr__(name):
-    # Lazy imports so `graphify install` works before heavy deps are in place.
     _map = {
         "extract": ("graphify.extract", "extract"),
         "collect_files": ("graphify.extract", "collect_files"),
@@ -24,6 +23,7 @@ def __getattr__(name):
     }
     if name in _map:
         import importlib
+
         mod_name, attr = _map[name]
         mod = importlib.import_module(mod_name)
         return getattr(mod, attr)

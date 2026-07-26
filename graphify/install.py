@@ -47,13 +47,12 @@ def _always_on(basename: str) -> str:
     try:
         return path.read_text(encoding="utf-8")
     except OSError as exc:
-        # Defer to use-time so a missing/corrupt packaged block can't crash module
-        # import (which would brick every CLI command, not just install). Reached
-        # only by an install/integration path that actually needs this block.
         raise RuntimeError(
             f"graphify install is incomplete: missing always-on block '{basename}' "
             f"at {path}. Reinstall graphifyy (e.g. `uv tool install --reinstall graphifyy`)."
         ) from exc
+
+
 def _refresh_all_version_stamps() -> None:
     """After a successful install, update .graphify_version in all other known skill dirs.
 
@@ -65,7 +64,11 @@ def _refresh_all_version_stamps() -> None:
         vf = skill_dst.parent / ".graphify_version"
         if skill_dst.exists():
             vf.write_text(__version__, encoding="utf-8")
-def _platform_skill_destination(platform_name: str, *, project: bool = False, project_dir: Path | None = None) -> Path:
+
+
+def _platform_skill_destination(
+    platform_name: str, *, project: bool = False, project_dir: Path | None = None
+) -> Path:
     """Return the skill destination for a platform and scope."""
     if platform_name == "gemini":
         if project:
@@ -82,9 +85,10 @@ def _platform_skill_destination(platform_name: str, *, project: bool = False, pr
     if platform_name == "hermes":
         if project:
             return (project_dir or Path(".")) / ".hermes" / "skills" / "graphify" / "SKILL.md"
-        # On Windows, Hermes scans %LOCALAPPDATA%\hermes\skills, not ~/.hermes (#1403).
         if platform.system() == "Windows":
-            local_appdata = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+            local_appdata = Path(
+                os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")
+            )
             return local_appdata / "hermes" / "skills" / "graphify" / "SKILL.md"
         return Path.home() / ".hermes" / "skills" / "graphify" / "SKILL.md"
 
@@ -99,9 +103,6 @@ def _platform_skill_destination(platform_name: str, *, project: bool = False, pr
         return Path.home() / ".config" / "agents" / "skills" / "graphify" / "SKILL.md"
 
     if platform_name == "agents":
-        # The generic Agent-Skills target: project ./.agents/skills, global the
-        # spec's user-global ~/.agents/skills (read by `npx skills` and compliant
-        # frameworks), NOT amp's ~/.config/agents/skills.
         if project:
             return (project_dir or Path(".")) / ".agents" / "skills" / "graphify" / "SKILL.md"
         return Path.home() / ".agents" / "skills" / "graphify" / "SKILL.md"
@@ -109,7 +110,6 @@ def _platform_skill_destination(platform_name: str, *, project: bool = False, pr
     if platform_name in ("antigravity", "antigravity-windows"):
         if project:
             return (project_dir or Path(".")) / ".agents" / "skills" / "graphify" / "SKILL.md"
-        # Global Antigravity skill dir (all workspaces): ~/.gemini/config/skills/
         return Path.home() / ".gemini" / "config" / "skills" / "graphify" / "SKILL.md"
 
     cfg = _PLATFORM_CONFIG[platform_name]
@@ -119,6 +119,8 @@ def _platform_skill_destination(platform_name: str, *, project: bool = False, pr
     if platform_name in ("claude", "windows") and os.environ.get("CLAUDE_CONFIG_DIR"):
         return Path(os.environ["CLAUDE_CONFIG_DIR"]) / "skills" / "graphify" / "SKILL.md"
     return Path.home() / cfg["skill_dst"]
+
+
 def _packaged_skill_refs_dir(platform_name: str) -> Path | None:
     """Return the packaged references source dir for a progressive platform, else None.
 
@@ -151,6 +153,8 @@ def _packaged_skill_refs_dir(platform_name: str) -> Path | None:
     if not bundle_dir.is_dir():
         return None
     return bundle_dir / "references"
+
+
 def _install_skill_references(skill_dst: Path, refs_src: Path) -> None:
     """Atomically install a packaged references/ sidecar next to SKILL.md.
 
@@ -172,7 +176,11 @@ def _install_skill_references(skill_dst: Path, refs_src: Path) -> None:
         if refs_staged.exists():
             shutil.rmtree(refs_staged, ignore_errors=True)
         raise
-def _copy_skill_file(platform_name: str, *, project: bool = False, project_dir: Path | None = None) -> Path:
+
+
+def _copy_skill_file(
+    platform_name: str, *, project: bool = False, project_dir: Path | None = None
+) -> Path:
     """Copy a packaged skill file and write its version stamp.
 
     For progressive platforms (those with ``skill_refs`` set), the packaged
@@ -181,7 +189,9 @@ def _copy_skill_file(platform_name: str, *, project: bool = False, project_dir: 
     ``skill_refs``), any orphan ``references/`` left by a prior progressive
     install is removed so the on-disk layout matches the package.
     """
-    skill_file = "skill.md" if platform_name == "gemini" else _PLATFORM_CONFIG[platform_name]["skill_file"]
+    skill_file = (
+        "skill.md" if platform_name == "gemini" else _PLATFORM_CONFIG[platform_name]["skill_file"]
+    )
     skill_src = Path(__file__).parent / skill_file
     if not skill_src.exists():
         print(f"error: {skill_file} not found in package - reinstall graphify", file=sys.stderr)
@@ -189,8 +199,6 @@ def _copy_skill_file(platform_name: str, *, project: bool = False, project_dir: 
 
     refs_src = _packaged_skill_refs_dir(platform_name)
     if refs_src is not None and not refs_src.exists():
-        # Progressive platform declared a references bundle that is missing from
-        # the package. Fail loud rather than silently shipping an empty sidecar.
         print(
             f"error: references for '{platform_name}' not found in package "
             f"({refs_src}) - reinstall graphify",
@@ -201,20 +209,14 @@ def _copy_skill_file(platform_name: str, *, project: bool = False, project_dir: 
     skill_dst = _platform_skill_destination(platform_name, project=project, project_dir=project_dir)
     skill_dst.parent.mkdir(parents=True, exist_ok=True)
 
-    # Install the references/ sidecar (or clear an orphan one) BEFORE writing
-    # SKILL.md, so SKILL.md is the last artifact laid down. An install that is
-    # interrupted partway then leaves no SKILL.md rather than a SKILL.md that
-    # points at an absent references/ dir.
     if refs_src is not None:
         _install_skill_references(skill_dst, refs_src)
         print(f"  references       ->  {skill_dst.parent / 'references'}")
     else:
-        # Monolith (or progressive-with-no-refs): clear any orphan references/.
         orphan_refs = skill_dst.parent / "references"
         if orphan_refs.exists():
             shutil.rmtree(orphan_refs)
 
-    # SKILL.md last (crash-safety), via an atomic temp + rename.
     tmp_dst = skill_dst.with_suffix(skill_dst.suffix + ".tmp")
     try:
         shutil.copy(skill_src, tmp_dst)
@@ -229,7 +231,11 @@ def _copy_skill_file(platform_name: str, *, project: bool = False, project_dir: 
     (skill_dst.parent / ".graphify_version").write_text(__version__, encoding="utf-8")
     print(f"  skill installed  ->  {skill_dst}")
     return skill_dst
-def _remove_skill_file(platform_name: str, *, project: bool = False, project_dir: Path | None = None) -> bool:
+
+
+def _remove_skill_file(
+    platform_name: str, *, project: bool = False, project_dir: Path | None = None
+) -> bool:
     """Remove a platform skill file and its version stamp without touching other scopes."""
     skill_dst = _platform_skill_destination(platform_name, project=project, project_dir=project_dir)
     removed = False
@@ -251,6 +257,8 @@ def _remove_skill_file(platform_name: str, *, project: bool = False, project_dir
         except OSError:
             break
     return removed
+
+
 def _project_scope_root(path: Path, project_dir: Path) -> Path:
     """Return the top-level project artifact for a project-scoped skill path."""
     try:
@@ -258,14 +266,14 @@ def _project_scope_root(path: Path, project_dir: Path) -> Path:
     except ValueError:
         return path
     return project_dir / rel.parts[0] if rel.parts else path
+
+
 def _remove_claude_skill_registration(project_dir: Path) -> None:
     """Remove the project-scoped Claude skill registration file/section."""
     claude_md = project_dir / ".claude" / "CLAUDE.md"
     if not claude_md.exists():
         return
     content = claude_md.read_text(encoding="utf-8")
-    # Match the exact H1 `# graphify` registration heading, never a substring of a
-    # user's `## graphify`/`### graphify` (#2062). Section runs to the next H1.
     cleaned = _remove_marker_section(content, "# graphify", boundary_prefix="# ")
     if cleaned is None:
         return
@@ -275,6 +283,8 @@ def _remove_claude_skill_registration(project_dir: Path) -> None:
     else:
         claude_md.unlink()
         print(f"  CLAUDE.md        ->  deleted {claude_md}")
+
+
 def _print_project_git_add_hint(paths: list[Path]) -> None:
     unique: list[str] = []
     for path in paths:
@@ -288,6 +298,8 @@ def _print_project_git_add_hint(paths: list[Path]) -> None:
     print()
     print("Project-scoped install. Add to version control:")
     print(f"  git add {' '.join(unique)}")
+
+
 def _claude_pretooluse_hooks(strict: bool = False) -> "list[dict]":
     """graphify's Claude/Codebuddy PreToolUse hooks, resolved at install time.
 
@@ -309,11 +321,14 @@ def _claude_pretooluse_hooks(strict: bool = False) -> "list[dict]":
         exe = f'"{exe}"'
     read_cmd = f"{exe} hook-guard read" + (" --strict" if strict else "")
     return [
-        {"matcher": "Bash|Grep",
-         "hooks": [{"type": "command", "command": f"{exe} hook-guard search"}]},
-        {"matcher": "Read|Glob",
-         "hooks": [{"type": "command", "command": read_cmd}]},
+        {
+            "matcher": "Bash|Grep",
+            "hooks": [{"type": "command", "command": f"{exe} hook-guard search"}],
+        },
+        {"matcher": "Read|Glob", "hooks": [{"type": "command", "command": read_cmd}]},
     ]
+
+
 def _skill_registration(skill_path: str = "~/.claude/skills/graphify/SKILL.md") -> str:
     return (
         "\n# graphify\n"
@@ -322,6 +337,8 @@ def _skill_registration(skill_path: str = "~/.claude/skills/graphify/SKILL.md") 
         "When the user types `/graphify`, use the installed graphify skill "
         "or instructions before doing anything else.\n"
     )
+
+
 _PLATFORM_CONFIG: dict[str, dict] = {
     "claude": {
         "skill_file": "skill.md",
@@ -348,7 +365,6 @@ _PLATFORM_CONFIG: dict[str, dict] = {
         "skill_refs": "kilo",
     },
     "aider": {
-        # Monolith: aider ships the full SKILL.md inline, no references/ sidecar.
         "skill_file": "skill-aider.md",
         "skill_dst": Path(".aider") / "graphify" / "SKILL.md",
         "claude_md": False,
@@ -378,14 +394,12 @@ _PLATFORM_CONFIG: dict[str, dict] = {
         "skill_refs": "trae",
     },
     "trae-cn": {
-        # Reuses trae's split bundle (same skill body + references).
         "skill_file": "skill-trae.md",
         "skill_dst": Path(".trae-cn") / "skills" / "graphify" / "SKILL.md",
         "claude_md": False,
         "skill_refs": "trae",
     },
     "hermes": {
-        # Reuses claw's split bundle.
         "skill_file": "skill-claw.md",
         "skill_dst": Path(".hermes") / "skills" / "graphify" / "SKILL.md",
         "claude_md": False,
@@ -404,21 +418,18 @@ _PLATFORM_CONFIG: dict[str, dict] = {
         "skill_refs": "pi",
     },
     "codebuddy": {
-        # Reuses claude's split bundle (shares skill.md).
         "skill_file": "skill.md",
         "skill_dst": Path(".codebuddy") / "skills" / "graphify" / "SKILL.md",
         "claude_md": False,
         "skill_refs": "claude",
     },
     "antigravity": {
-        # Rides claude's split bundle (shares skill.md).
         "skill_file": "skill.md",
         "skill_dst": Path(".agents") / "skills" / "graphify" / "SKILL.md",
         "claude_md": False,
         "skill_refs": "claude",
     },
     "antigravity-windows": {
-        # Rides windows' split bundle.
         "skill_file": "skill-windows.md",
         "skill_dst": Path(".agents") / "skills" / "graphify" / "SKILL.md",
         "claude_md": False,
@@ -431,46 +442,37 @@ _PLATFORM_CONFIG: dict[str, dict] = {
         "skill_refs": "windows",
     },
     "kimi": {
-        # Reuses claude's split bundle (shares skill.md).
         "skill_file": "skill.md",
         "skill_dst": Path(".kimi") / "skills" / "graphify" / "SKILL.md",
         "claude_md": False,
         "skill_refs": "claude",
     },
     "amp": {
-        # Amp searches .agents/skills (project) and ~/.config/agents/skills (user),
-        # not .amp/skills. The user-scope path is set in _platform_skill_destination.
         "skill_file": "skill-amp.md",
         "skill_dst": Path(".agents") / "skills" / "graphify" / "SKILL.md",
         "claude_md": False,
         "skill_refs": "amp",
     },
     "agents": {
-        # The generic cross-framework Agent-Skills target. Global: ~/.agents/skills
-        # (the spec's user-global location, read by `npx skills` and compliant
-        # frameworks); project: ./.agents/skills. The CLI accepts `skills` as an
-        # alias (see _canonical_platform). Ships its own rendered bundle.
         "skill_file": "skill-agents.md",
         "skill_dst": Path(".agents") / "skills" / "graphify" / "SKILL.md",
         "claude_md": False,
         "skill_refs": "agents",
     },
     "devin": {
-        # Monolith: devin ships the full SKILL.md inline, no references/ sidecar.
         "skill_file": "skill-devin.md",
-        # User scope: ~/.config/devin/skills/graphify/SKILL.md
-        # Project scope: .devin/skills/graphify/SKILL.md (overridden in _platform_skill_destination)
         "skill_dst": Path(".config") / "devin" / "skills" / "graphify" / "SKILL.md",
         "claude_md": False,
     },
 }
-# CLI-only platform aliases, resolved to a real _PLATFORM_CONFIG key before
-# dispatch. `skills` is the friendly alias for the generic `agents` platform
-# (the Agent-Skills ecosystem calls them "skills").
 _PLATFORM_ALIASES: dict[str, str] = {"skills": "agents"}
+
+
 def _canonical_platform(platform_name: str) -> str:
     """Resolve a CLI platform alias to its real _PLATFORM_CONFIG key."""
     return _PLATFORM_ALIASES.get(platform_name, platform_name)
+
+
 def _replace_or_append_section(content: str, marker: str, new_section: str) -> str:
     """Idempotently update or append a graphify-owned section in shared files.
 
@@ -566,9 +568,8 @@ def _print_banner() -> None:
     try:
         if sys.platform == "win32":
             import ctypes
-            ctypes.windll.kernel32.SetConsoleMode(
-                ctypes.windll.kernel32.GetStdHandle(-11), 7
-            )
+
+            ctypes.windll.kernel32.SetConsoleMode(ctypes.windll.kernel32.GetStdHandle(-11), 7)
         A = "\033[38;5;214m"
         D = "\033[38;5;130m"
         R = "\033[0m"
@@ -587,7 +588,11 @@ def _print_banner() -> None:
 """)
     except Exception:
         pass
-def install(platform: str = "claude", *, project: bool = False, project_dir: Path | None = None) -> None:
+
+
+def install(
+    platform: str = "claude", *, project: bool = False, project_dir: Path | None = None
+) -> None:
     _print_banner()
     platform = _canonical_platform(platform)
     if platform == "gemini":
@@ -596,7 +601,6 @@ def install(platform: str = "claude", *, project: bool = False, project_dir: Pat
     if platform == "cursor":
         _cursor_install(Path("."))
         return
-    # On Windows, antigravity needs the PowerShell skill, not the bash one
     if platform == "antigravity" and sys.platform == "win32":
         platform = "antigravity-windows"
     if platform not in _PLATFORM_CONFIG:
@@ -611,7 +615,6 @@ def install(platform: str = "claude", *, project: bool = False, project_dir: Pat
     skill_dst = _copy_skill_file(platform, project=project, project_dir=project_dir)
 
     if platform == "kilo":
-        # Kilo Code also supports a native /graphify command file.
         command_src = Path(__file__).parent / "command-kilo.md"
         if not command_src.exists():
             print(
@@ -625,9 +628,14 @@ def install(platform: str = "claude", *, project: bool = False, project_dir: Pat
         print(f"  command installed ->  {command_dst}")
 
     if cfg["claude_md"]:
-        # Register in the matching Claude Code scope.
-        claude_md = (project_dir / ".claude" / "CLAUDE.md") if project else Path.home() / ".claude" / "CLAUDE.md"
-        registration = _skill_registration(".claude/skills/graphify/SKILL.md" if project else "~/.claude/skills/graphify/SKILL.md")
+        claude_md = (
+            (project_dir / ".claude" / "CLAUDE.md")
+            if project
+            else Path.home() / ".claude" / "CLAUDE.md"
+        )
+        registration = _skill_registration(
+            ".claude/skills/graphify/SKILL.md" if project else "~/.claude/skills/graphify/SKILL.md"
+        )
         if claude_md.exists():
             content = claude_md.read_text(encoding="utf-8")
             if "graphify" in content:
@@ -641,7 +649,6 @@ def install(platform: str = "claude", *, project: bool = False, project_dir: Pat
             print(f"  CLAUDE.md        ->  created at {claude_md}")
 
     if platform == "codebuddy":
-        # Register in ~/.codebuddy/CODEBUDDY.md (CodeBuddy only)
         codebuddy_md = Path.home() / ".codebuddy" / "CODEBUDDY.md"
         registration = _skill_registration("~/.codebuddy/skills/graphify/SKILL.md")
         if codebuddy_md.exists():
@@ -659,8 +666,6 @@ def install(platform: str = "claude", *, project: bool = False, project_dir: Pat
     if platform == "opencode":
         _install_opencode_plugin(project_dir if project else Path("."))
 
-    # Refresh version stamps in all other previously-installed skill dirs so
-    # stale-version warnings don't fire for platforms not explicitly re-installed.
     if project:
         _print_project_git_add_hint([_project_scope_root(skill_dst, project_dir)])
     else:
@@ -671,16 +676,24 @@ def install(platform: str = "claude", *, project: bool = False, project_dir: Pat
     print()
     print("  /graphify .")
     print()
+
+
 def _print_install_usage() -> None:
     platforms = ", ".join([*_PLATFORM_CONFIG, "gemini", "cursor"])
     print("Usage: graphify install [--project] [--strict] [--platform P|P]")
     print(f"Platforms: {platforms}")
-    print("  --strict  block the first raw file read per session until one "
-          "`graphify query` runs (Claude Code project hook only; needs --project)")
+    print(
+        "  --strict  block the first raw file read per session until one "
+        "`graphify query` runs (Claude Code project hook only; needs --project)"
+    )
+
+
 _CLAUDE_MD_MARKER = "## graphify"
 _CODEBUDDY_MD_MARKER = "## graphify"
 _AGENTS_MD_MARKER = "## graphify"
 _GEMINI_MD_MARKER = "## graphify"
+
+
 def _gemini_hook() -> dict:
     """Gemini CLI BeforeTool hook, resolved to a shell-agnostic `graphify` call."""
     exe = _resolve_graphify_exe()
@@ -690,6 +703,8 @@ def _gemini_hook() -> dict:
         "matcher": "read_file|list_directory",
         "hooks": [{"type": "command", "command": f"{exe} hook-guard gemini"}],
     }
+
+
 def gemini_install(project_dir: Path | None = None, *, project: bool = False) -> None:
     """Copy skill file, write GEMINI.md section, and install BeforeTool hook."""
     project_dir = project_dir or Path(".")
@@ -711,14 +726,20 @@ def gemini_install(project_dir: Path | None = None, *, project: bool = False) ->
         target.write_text(new_content, encoding="utf-8")
         print(f"graphify section written to {target.resolve()}")
 
-    # Always re-install the Gemini hook so an older payload (e.g. pre-issue-#580
-    # wording) is replaced on upgrade.
     _install_gemini_hook(project_dir)
     if project:
-        _print_project_git_add_hint([_project_scope_root(skill_dst, project_dir), project_dir / "GEMINI.md", project_dir / ".gemini"])
+        _print_project_git_add_hint(
+            [
+                _project_scope_root(skill_dst, project_dir),
+                project_dir / "GEMINI.md",
+                project_dir / ".gemini",
+            ]
+        )
     print()
     print("Gemini CLI will now check the knowledge graph before answering")
     print("codebase questions and rebuild it after code changes.")
+
+
 def _refuse_to_modify(settings_path: Path) -> "NoReturn":
     """Abort a hook install rather than clobber a config file we can't parse (#2167)."""
     print(
@@ -727,6 +748,8 @@ def _refuse_to_modify(settings_path: Path) -> "NoReturn":
         file=sys.stderr,
     )
     sys.exit(1)
+
+
 def _read_settings_for_merge(settings_path: Path) -> dict:
     """Load an existing settings/hooks JSON file for a read-modify-write merge.
 
@@ -746,6 +769,8 @@ def _read_settings_for_merge(settings_path: Path) -> dict:
     if not isinstance(settings, dict):
         _refuse_to_modify(settings_path)
     return settings
+
+
 def _write_settings_with_backup(settings_path: Path, settings: dict) -> None:
     """Serialize ``settings`` to ``settings_path``, backing up the previous file.
 
@@ -761,6 +786,8 @@ def _write_settings_with_backup(settings_path: Path, settings: dict) -> None:
         backup = settings_path.with_name(settings_path.name + ".graphify-bak")
         shutil.copy2(settings_path, backup)
     settings_path.write_text(output, encoding="utf-8")
+
+
 def _install_gemini_hook(project_dir: Path) -> None:
     settings_path = project_dir / ".gemini" / "settings.json"
     settings_path.parent.mkdir(parents=True, exist_ok=True)
@@ -771,12 +798,12 @@ def _install_gemini_hook(project_dir: Path) -> None:
     before_tool = hooks.setdefault("BeforeTool", [])
     if not isinstance(before_tool, list):
         _refuse_to_modify(settings_path)
-    hooks["BeforeTool"] = [
-        h for h in before_tool if "graphify" not in str(h)
-    ]
+    hooks["BeforeTool"] = [h for h in before_tool if "graphify" not in str(h)]
     hooks["BeforeTool"].append(_gemini_hook())
     _write_settings_with_backup(settings_path, settings)
     print("  .gemini/settings.json  ->  BeforeTool hook registered")
+
+
 def _uninstall_gemini_hook(project_dir: Path) -> None:
     settings_path = project_dir / ".gemini" / "settings.json"
     if not settings_path.exists():
@@ -792,6 +819,8 @@ def _uninstall_gemini_hook(project_dir: Path) -> None:
     settings["hooks"]["BeforeTool"] = filtered
     settings_path.write_text(json.dumps(settings, indent=2), encoding="utf-8")
     print("  .gemini/settings.json  ->  BeforeTool hook removed")
+
+
 def gemini_uninstall(project_dir: Path | None = None, *, project: bool = False) -> None:
     """Remove the graphify section from GEMINI.md, uninstall hook, and remove skill file."""
     project_dir = project_dir or Path(".")
@@ -813,7 +842,11 @@ def gemini_uninstall(project_dir: Path | None = None, *, project: bool = False) 
         target.unlink()
         print(f"GEMINI.md was empty after removal - deleted {target.resolve()}")
     _uninstall_gemini_hook(project_dir)
+
+
 _VSCODE_INSTRUCTIONS_MARKER = "## graphify"
+
+
 def vscode_install(project_dir: Path | None = None) -> None:
     """Install graphify skill for VS Code Copilot Chat + write .github/copilot-instructions.md."""
     skill_src = Path(__file__).parent / "skill-vscode.md"
@@ -833,7 +866,6 @@ def vscode_install(project_dir: Path | None = None) -> None:
         except OSError:
             pass
         raise
-    # Progressive-capable: install the packaged references/ sidecar when present.
     refs_src = Path(__file__).parent / "skills" / refs_bundle / "references"
     if refs_src.exists():
         _install_skill_references(skill_dst, refs_src)
@@ -856,16 +888,18 @@ def vscode_install(project_dir: Path | None = None) -> None:
             print(f"  {instructions}  ->  already configured (no change)")
         else:
             instructions.write_text(new_content, encoding="utf-8")
-            print(f"  {instructions}  ->  graphify section {'updated' if _VSCODE_INSTRUCTIONS_MARKER in content else 'added'}")
+            print(
+                f"  {instructions}  ->  graphify section {'updated' if _VSCODE_INSTRUCTIONS_MARKER in content else 'added'}"
+            )
     else:
         instructions.write_text(_always_on("vscode-instructions"), encoding="utf-8")
         print(f"  {instructions}  ->  created")
 
     print()
-    print(
-        "VS Code Copilot Chat configured. Type /graphify in the chat panel to build the graph."
-    )
+    print("VS Code Copilot Chat configured. Type /graphify in the chat panel to build the graph.")
     print("Note: for GitHub Copilot CLI (terminal), use: graphify copilot install")
+
+
 def vscode_uninstall(project_dir: Path | None = None) -> None:
     """Remove graphify VS Code Copilot Chat skill and .github/copilot-instructions.md section."""
     skill_dst = Path.home() / ".copilot" / "skills" / "graphify" / "SKILL.md"
@@ -901,6 +935,8 @@ def vscode_uninstall(project_dir: Path | None = None) -> None:
     else:
         instructions.unlink()
         print(f"  {instructions}  ->  deleted (was empty after removal)")
+
+
 _ANTIGRAVITY_RULES_PATH = Path(".agents") / "rules" / "graphify.md"
 _ANTIGRAVITY_WORKFLOW_PATH = Path(".agents") / "workflows" / "graphify.md"
 _ANTIGRAVITY_WORKFLOW = """\
@@ -915,25 +951,22 @@ Follow the graphify skill installed at ~/.gemini/config/skills/graphify/SKILL.md
 
 If no path argument is given, use `.` (current directory).
 """
+
+
 def _kiro_install(project_dir: Path) -> None:
     """Write graphify skill + steering file for Kiro IDE/CLI."""
     project_dir = project_dir or Path(".")
 
-    # Skill file + references/ sidecar + .graphify_version stamp via the shared
-    # progressive-disclosure helper.  Previously this used a bare write_text that
-    # bypassed _copy_skill_file, so the references/ dir and version stamp were
-    # never written even though kiro declares skill_refs: "kiro" (#1142).
     _copy_skill_file("kiro", project=True, project_dir=project_dir)
 
-    # Steering file → .kiro/steering/graphify.md (always-on)
     steering_dir = project_dir / ".kiro" / "steering"
     steering_dir.mkdir(parents=True, exist_ok=True)
     steering_dst = steering_dir / "graphify.md"
-    if steering_dst.exists() and steering_dst.read_text(encoding="utf-8") == _always_on("kiro-steering"):
+    if steering_dst.exists() and steering_dst.read_text(encoding="utf-8") == _always_on(
+        "kiro-steering"
+    ):
         print(f"  .kiro/steering/graphify.md  ->  already configured (no change)")
     else:
-        # File is wholly graphify-owned. Overwrite on upgrade so older
-        # report-first wording does not silently linger (issue #580).
         action = "updated" if steering_dst.exists() else "written"
         steering_dst.write_text(_always_on("kiro-steering"), encoding="utf-8")
         print(f"  .kiro/steering/graphify.md  ->  always-on steering {action}")
@@ -941,12 +974,13 @@ def _kiro_install(project_dir: Path) -> None:
     print()
     print("Kiro will now read the knowledge graph before every conversation.")
     print("Use /graphify to build or update the graph.")
+
+
 def _kiro_uninstall(project_dir: Path) -> None:
     """Remove graphify skill + steering file for Kiro."""
     project_dir = project_dir or Path(".")
     removed = []
 
-    # Skill + .graphify_version + references/ sidecar + empty-dir walk.
     skill_dst = _platform_skill_destination("kiro", project=True, project_dir=project_dir)
     if _remove_skill_file("kiro", project=True, project_dir=project_dir):
         removed.append(str(skill_dst.relative_to(project_dir)))
@@ -957,6 +991,8 @@ def _kiro_uninstall(project_dir: Path) -> None:
         removed.append(str(steering_dst.relative_to(project_dir)))
 
     print("Removed: " + (", ".join(removed) if removed else "nothing to remove"))
+
+
 def _antigravity_finalize(skill_dst: Path, project_dir: Path) -> None:
     """Write Antigravity's always-on layer next to an installed skill.
 
@@ -966,14 +1002,12 @@ def _antigravity_finalize(skill_dst: Path, project_dir: Path) -> None:
     project-scoped ``install --project --platform antigravity`` paths, so both lay
     down the rules/workflows that the uninstall path already expects to remove.
     """
-    # Inject YAML frontmatter for native Antigravity tool discovery.
     if skill_dst.exists():
         content = skill_dst.read_text(encoding="utf-8")
         if not content.startswith("---\n"):
             frontmatter = "---\nname: graphify-manager\ndescription: Rebuild the code graph or perform manual CLI queries when MCP server is offline.\n---\n\n"
             skill_dst.write_text(frontmatter + content, encoding="utf-8")
 
-    # .agents/rules/graphify.md
     rules_path = project_dir / _ANTIGRAVITY_RULES_PATH
     rules_path.parent.mkdir(parents=True, exist_ok=True)
     if rules_path.exists():
@@ -987,7 +1021,6 @@ def _antigravity_finalize(skill_dst: Path, project_dir: Path) -> None:
         rules_path.write_text(_always_on("antigravity-rules"), encoding="utf-8")
         print(f"graphify rule written to {rules_path.resolve()}")
 
-    # .agents/workflows/graphify.md
     wf_path = project_dir / _ANTIGRAVITY_WORKFLOW_PATH
     wf_path.parent.mkdir(parents=True, exist_ok=True)
     if wf_path.exists():
@@ -1000,10 +1033,10 @@ def _antigravity_finalize(skill_dst: Path, project_dir: Path) -> None:
     else:
         wf_path.write_text(_ANTIGRAVITY_WORKFLOW, encoding="utf-8")
         print(f"graphify workflow written to {wf_path.resolve()}")
+
+
 def _antigravity_install(project_dir: Path) -> None:
     """Install graphify for Google Antigravity (global skill + .agents/rules + .agents/workflows)."""
-    # Copy the skill to ~/.gemini/config/skills/graphify/SKILL.md (global), then
-    # lay down the always-on rules/workflows under the project dir.
     install(platform="antigravity")
     _antigravity_finalize(_platform_skill_destination("antigravity"), project_dir)
 
@@ -1020,9 +1053,10 @@ def _antigravity_install(project_dir: Path) -> None:
         '    "args": ["run", "--with", "graphifyy", "--with", "mcp", "-m", "graphify.serve", "${workspace.path}/graphify-out/graph.json"]'
     )
     print("  }")
+
+
 def _antigravity_uninstall(project_dir: Path, *, project: bool = False) -> None:
     """Remove graphify Antigravity rules, workflow, and skill files."""
-    # Remove rules file
     rules_path = project_dir / _ANTIGRAVITY_RULES_PATH
     if rules_path.exists():
         rules_path.unlink()
@@ -1030,13 +1064,11 @@ def _antigravity_uninstall(project_dir: Path, *, project: bool = False) -> None:
     else:
         print("No graphify Antigravity rule found - nothing to do")
 
-    # Remove workflow file
     wf_path = project_dir / _ANTIGRAVITY_WORKFLOW_PATH
     if wf_path.exists():
         wf_path.unlink()
         print(f"graphify workflow removed from {wf_path.resolve()}")
 
-    # Remove skill file
     skill_dst = _platform_skill_destination("antigravity", project=project, project_dir=project_dir)
     if skill_dst.exists():
         skill_dst.unlink()
@@ -1056,6 +1088,8 @@ def _antigravity_uninstall(project_dir: Path, *, project: bool = False) -> None:
             d.rmdir()
         except OSError:
             break
+
+
 _CURSOR_RULE_PATH = Path(".cursor") / "rules" / "graphify.mdc"
 _CURSOR_RULE = """\
 ---
@@ -1080,6 +1114,8 @@ Only use Read/Grep/Glob directly when:
 - Read `graphify-out/GRAPH_REPORT.md` only for broad architecture review when query/path/explain do not surface enough context
 - After modifying code files, run `graphify update .` to keep the graph current (AST-only, no API cost)
 """
+
+
 def _cursor_install(project_dir: Path) -> None:
     """Write .cursor/rules/graphify.mdc with alwaysApply: true."""
     rule_path = (project_dir or Path(".")) / _CURSOR_RULE_PATH
@@ -1087,14 +1123,14 @@ def _cursor_install(project_dir: Path) -> None:
     if rule_path.exists() and rule_path.read_text(encoding="utf-8") == _CURSOR_RULE:
         print(f"graphify rule at {rule_path} already configured (no change)")
         return
-    # File is wholly graphify-owned. Overwrite on upgrade so older
-    # report-first wording does not silently linger (issue #580).
     action = "updated" if rule_path.exists() else "written"
     rule_path.write_text(_CURSOR_RULE, encoding="utf-8")
     print(f"graphify rule {action} at {rule_path.resolve()}")
     print()
     print("Cursor will now always include the knowledge graph context.")
     print("Run /graphify . first to build the graph if you haven't already.")
+
+
 def _cursor_uninstall(project_dir: Path) -> None:
     """Remove .cursor/rules/graphify.mdc."""
     rule_path = (project_dir or Path(".")) / _CURSOR_RULE_PATH
@@ -1103,8 +1139,8 @@ def _cursor_uninstall(project_dir: Path) -> None:
         return
     rule_path.unlink()
     print(f"graphify Cursor rule removed from {rule_path.resolve()}")
-# Devin CLI — .windsurf/rules/graphify.md (always-on context)
-# Devin reads .windsurf/rules/*.md files the same way Windsurf IDE does.
+
+
 _DEVIN_RULES_PATH = Path(".windsurf") / "rules" / "graphify.md"
 _DEVIN_RULES = """\
 ## graphify
@@ -1117,6 +1153,8 @@ Rules:
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context
 - After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
 """
+
+
 def _devin_rules_install(project_dir: Path) -> None:
     """Write .windsurf/rules/graphify.md for always-on Devin context."""
     rules_path = (project_dir or Path(".")) / _DEVIN_RULES_PATH
@@ -1127,6 +1165,8 @@ def _devin_rules_install(project_dir: Path) -> None:
     action = "updated" if rules_path.exists() else "written"
     rules_path.write_text(_DEVIN_RULES, encoding="utf-8")
     print(f"  rules {action}  ->  {rules_path}")
+
+
 def _devin_rules_uninstall(project_dir: Path) -> None:
     """Remove .windsurf/rules/graphify.md."""
     rules_path = (project_dir or Path(".")) / _DEVIN_RULES_PATH
@@ -1134,6 +1174,8 @@ def _devin_rules_uninstall(project_dir: Path) -> None:
         return
     rules_path.unlink()
     print(f"  rules removed  ->  {rules_path}")
+
+
 _KILO_PLUGIN_JS = """\
 // graphify Kilo plugin
 // Injects a knowledge graph reminder before bash tool calls when the graph exists.
@@ -1165,6 +1207,8 @@ export const GraphifyPlugin = async ({ directory }) => {
 _KILO_PLUGIN_PATH = Path(".kilo") / "plugins" / "graphify.js"
 _KILO_CONFIG_JSON_PATH = Path(".kilo") / "kilo.json"
 _KILO_CONFIG_JSONC_PATH = Path(".kilo") / "kilo.jsonc"
+
+
 def _strip_json_comments(raw: str) -> str:
     """Remove JSONC-style comments while leaving string content intact."""
     result: list[str] = []
@@ -1219,6 +1263,8 @@ def _strip_json_comments(raw: str) -> str:
         i += 1
 
     return re.sub(r",(\s*[}\]])", r"\1", "".join(result))
+
+
 def _load_json_like(config_file: Path) -> dict:
     if not config_file.exists():
         return {}
@@ -1230,6 +1276,8 @@ def _load_json_like(config_file: Path) -> dict:
     except (OSError, json.JSONDecodeError):
         return {}
     return loaded if isinstance(loaded, dict) else {}
+
+
 def _kilo_config_path(project_dir: Path) -> Path:
     kilo_dir = (project_dir or Path(".")) / ".kilo"
     json_path = kilo_dir / _KILO_CONFIG_JSON_PATH.name
@@ -1239,10 +1287,14 @@ def _kilo_config_path(project_dir: Path) -> Path:
     if jsonc_path.exists():
         return jsonc_path
     return json_path
+
+
 def _kilo_config_write_path(project_dir: Path) -> Path:
     """Write automated Kilo edits to kilo.json so existing JSONC stays untouched."""
     kilo_dir = (project_dir or Path(".")) / ".kilo"
     return kilo_dir / _KILO_CONFIG_JSON_PATH.name
+
+
 def _install_kilo_plugin(project_dir: Path) -> None:
     """Write graphify.js plugin and register it without rewriting user JSONC."""
     plugin_file = project_dir / _KILO_PLUGIN_PATH
@@ -1267,6 +1319,8 @@ def _install_kilo_plugin(project_dir: Path) -> None:
         print(
             f"  {config_file.relative_to(project_dir)}  ->  plugin already registered (no change)"
         )
+
+
 def _uninstall_kilo_plugin(project_dir: Path) -> None:
     """Remove graphify.js plugin and deregister it without rewriting user JSONC."""
     plugin_file = project_dir / _KILO_PLUGIN_PATH
@@ -1289,11 +1343,9 @@ def _uninstall_kilo_plugin(project_dir: Path) -> None:
             config.pop("plugin")
         write_config_file.parent.mkdir(parents=True, exist_ok=True)
         write_config_file.write_text(json.dumps(config, indent=2), encoding="utf-8")
-        print(
-            f"  {write_config_file.relative_to(project_dir)}  ->  plugin deregistered"
-        )
-# OpenCode tool.execute.before plugin — fires before every tool call.
-# Injects a graph reminder into bash command output when graph.json exists.
+        print(f"  {write_config_file.relative_to(project_dir)}  ->  plugin deregistered")
+
+
 _OPENCODE_PLUGIN_JS = """\
 // graphify OpenCode plugin
 // Injects a knowledge graph reminder before bash tool calls when the graph exists.
@@ -1328,6 +1380,8 @@ export const GraphifyPlugin = async ({ directory }) => {
 """
 _OPENCODE_PLUGIN_PATH = Path(".opencode") / "plugins" / "graphify.js"
 _OPENCODE_CONFIG_PATH = Path(".opencode") / "opencode.json"
+
+
 def _install_opencode_plugin(project_dir: Path) -> None:
     """Write graphify.js plugin and register it in opencode.json."""
     plugin_file = project_dir / _OPENCODE_PLUGIN_PATH
@@ -1352,6 +1406,8 @@ def _install_opencode_plugin(project_dir: Path) -> None:
         print(f"  {_OPENCODE_CONFIG_PATH}  ->  plugin registered")
     else:
         print(f"  {_OPENCODE_CONFIG_PATH}  ->  plugin already registered (no change)")
+
+
 def _uninstall_opencode_plugin(project_dir: Path) -> None:
     """Remove graphify.js plugin and deregister from opencode.json."""
     plugin_file = project_dir / _OPENCODE_PLUGIN_PATH
@@ -1374,6 +1430,8 @@ def _uninstall_opencode_plugin(project_dir: Path) -> None:
             config.pop("plugin")
         config_file.write_text(json.dumps(config, indent=2), encoding="utf-8")
         print(f"  {_OPENCODE_CONFIG_PATH}  ->  plugin deregistered")
+
+
 def _resolve_graphify_exe() -> str:
     """Return the absolute path to the graphify executable, with forward slashes.
 
@@ -1390,9 +1448,9 @@ def _resolve_graphify_exe() -> str:
     ``.replace`` is a no-op on POSIX where paths already use forward slashes.
     """
     import shutil
+
     found = shutil.which("graphify")
     if not found:
-        # Derive from sys.executable: same Scripts/ (Windows) or bin/ (Unix) dir
         scripts_dir = Path(sys.executable).parent
         for name in ("graphify.exe", "graphify"):
             candidate = scripts_dir / name
@@ -1400,6 +1458,8 @@ def _resolve_graphify_exe() -> str:
                 found = str(candidate)
                 break
     return (found or "graphify").replace("\\", "/")
+
+
 def _install_codex_hook(project_dir: Path) -> None:
     """Add graphify PreToolUse hook to .codex/hooks.json."""
     hooks_path = project_dir / ".codex" / "hooks.json"
@@ -1449,6 +1509,8 @@ def _uninstall_codex_hook(project_dir: Path) -> None:
     existing["hooks"]["PreToolUse"] = filtered
     hooks_path.write_text(json.dumps(existing, indent=2), encoding="utf-8")
     print(f"  .codex/hooks.json  ->  PreToolUse hook removed")
+
+
 def _agents_install(project_dir: Path, platform: str) -> None:
     """Write the graphify section to the local AGENTS.md for always-on platforms."""
     target = (project_dir or Path(".")) / "AGENTS.md"
@@ -1475,16 +1537,14 @@ def _agents_install(project_dir: Path, platform: str) -> None:
         _install_kilo_plugin(project_dir or Path("."))
 
     print()
-    print(
-        f"{platform.capitalize()} will now check the knowledge graph before answering"
-    )
+    print(f"{platform.capitalize()} will now check the knowledge graph before answering")
     print("codebase questions and rebuild it after code changes.")
     if platform not in ("codex", "opencode", "kilo"):
         print()
         print("Note: unlike Claude Code, there is no PreToolUse hook equivalent for")
-        print(
-            f"{platform.capitalize()} — the AGENTS.md rules are the always-on mechanism."
-        )
+        print(f"{platform.capitalize()} — the AGENTS.md rules are the always-on mechanism.")
+
+
 def _amp_legacy_cleanup() -> None:
     """Best-effort removal of the pre-fix ~/.amp/skills/graphify install dir.
 
@@ -1497,17 +1557,23 @@ def _amp_legacy_cleanup() -> None:
         shutil.rmtree(legacy, ignore_errors=True)
         if not legacy.exists():
             print(f"  legacy removed   ->  {legacy}")
+
+
 def _amp_install(project_dir: Path | None = None) -> None:
     """User-scope Amp install: skill into ~/.config/agents/skills + AGENTS.md."""
     _amp_legacy_cleanup()
     _copy_skill_file("amp")
     _agents_install(project_dir or Path("."), "amp")
+
+
 def _amp_uninstall(project_dir: Path | None = None) -> None:
     """User-scope Amp uninstall: remove the skill and the AGENTS.md section."""
     removed = _remove_skill_file("amp")
     if removed:
         print("skill removed")
     _agents_uninstall(project_dir or Path("."), platform="amp")
+
+
 def _agents_platform_install(project_dir: Path | None = None) -> None:
     """`graphify agents install`: skill into ~/.agents/skills + AGENTS.md.
 
@@ -1520,13 +1586,19 @@ def _agents_platform_install(project_dir: Path | None = None) -> None:
     """
     _copy_skill_file("agents")
     _agents_install(project_dir or Path("."), "agents")
+
+
 def _agents_platform_uninstall(project_dir: Path | None = None) -> None:
     """`graphify agents uninstall`: remove the skill and the AGENTS.md section."""
     removed = _remove_skill_file("agents")
     if removed:
         print("skill removed")
     _agents_uninstall(project_dir or Path("."), platform="agents")
-def _project_install(platform_name: str, project_dir: Path | None = None, strict: bool = False) -> None:
+
+
+def _project_install(
+    platform_name: str, project_dir: Path | None = None, strict: bool = False
+) -> None:
     """Install platform skill/config files in the current project."""
     project_dir = project_dir or Path(".")
     platform_name = _canonical_platform(platform_name)
@@ -1542,7 +1614,17 @@ def _project_install(platform_name: str, project_dir: Path | None = None, strict
     elif platform_name == "kiro":
         _kiro_install(project_dir)
         _print_project_git_add_hint([project_dir / ".kiro"])
-    elif platform_name in ("aider", "amp", "codex", "opencode", "claw", "droid", "trae", "trae-cn", "hermes"):
+    elif platform_name in (
+        "aider",
+        "amp",
+        "codex",
+        "opencode",
+        "claw",
+        "droid",
+        "trae",
+        "trae-cn",
+        "hermes",
+    ):
         skill_dst = _copy_skill_file(platform_name, project=True, project_dir=project_dir)
         _agents_install(project_dir, platform_name)
         hint_paths = [_project_scope_root(skill_dst, project_dir), project_dir / "AGENTS.md"]
@@ -1554,21 +1636,22 @@ def _project_install(platform_name: str, project_dir: Path | None = None, strict
     elif platform_name == "devin":
         skill_dst = _copy_skill_file("devin", project=True, project_dir=project_dir)
         _devin_rules_install(project_dir)
-        _print_project_git_add_hint([_project_scope_root(skill_dst, project_dir), project_dir / ".windsurf"])
+        _print_project_git_add_hint(
+            [_project_scope_root(skill_dst, project_dir), project_dir / ".windsurf"]
+        )
     elif platform_name == "antigravity":
-        # Project-scoped: skill in .agents/skills/ PLUS the .agents/rules +
-        # .agents/workflows always-on layer (previously this path wrote only the
-        # skill, leaving the rules/workflows the uninstall path removes unset).
         skill_dst = _copy_skill_file("antigravity", project=True, project_dir=project_dir)
         _antigravity_finalize(skill_dst, project_dir)
-        _print_project_git_add_hint([_project_scope_root(skill_dst, project_dir), project_dir / ".agents"])
+        _print_project_git_add_hint(
+            [_project_scope_root(skill_dst, project_dir), project_dir / ".agents"]
+        )
     elif platform_name in ("copilot", "pi", "kimi", "agents"):
-        # Skill-only project install: drop SKILL.md (+ references) at the scope
-        # root. `agents` -> ./.agents/skills/graphify/SKILL.md.
         skill_dst = _copy_skill_file(platform_name, project=True, project_dir=project_dir)
         _print_project_git_add_hint([_project_scope_root(skill_dst, project_dir)])
     else:
         install(platform=platform_name, project=True, project_dir=project_dir)
+
+
 def _project_uninstall(platform_name: str, project_dir: Path | None = None) -> None:
     """Remove project-scoped platform skill/config files only."""
     project_dir = project_dir or Path(".")
@@ -1583,7 +1666,17 @@ def _project_uninstall(platform_name: str, project_dir: Path | None = None) -> N
         _cursor_uninstall(project_dir)
     elif platform_name == "kiro":
         _kiro_uninstall(project_dir)
-    elif platform_name in ("aider", "amp", "codex", "opencode", "claw", "droid", "trae", "trae-cn", "hermes"):
+    elif platform_name in (
+        "aider",
+        "amp",
+        "codex",
+        "opencode",
+        "claw",
+        "droid",
+        "trae",
+        "trae-cn",
+        "hermes",
+    ):
         _remove_skill_file(platform_name, project=True, project_dir=project_dir)
         _agents_uninstall(project_dir, platform=platform_name)
         if platform_name == "codex":
@@ -1603,6 +1696,8 @@ def _project_uninstall(platform_name: str, project_dir: Path | None = None) -> N
         codebuddy_uninstall(project_dir)
     else:
         _remove_skill_file(platform_name, project=True, project_dir=project_dir)
+
+
 def _project_uninstall_all(project_dir: Path | None = None) -> None:
     """Remove project-scoped install files without touching user-scope installs."""
     project_dir = project_dir or Path(".")
@@ -1612,6 +1707,8 @@ def _project_uninstall_all(project_dir: Path | None = None) -> None:
     for platform_name in ("gemini", "cursor"):
         _project_uninstall(platform_name, project_dir)
     print("\nDone.")
+
+
 def _agents_uninstall(project_dir: Path, platform: str = "") -> None:
     """Remove the graphify section from the local AGENTS.md."""
     target = (project_dir or Path(".")) / "AGENTS.md"
@@ -1645,6 +1742,8 @@ def _agents_uninstall(project_dir: Path, platform: str = "") -> None:
         _uninstall_opencode_plugin(project_dir or Path("."))
     elif platform == "kilo":
         _uninstall_kilo_plugin(project_dir or Path("."))
+
+
 def _kilo_uninstall_global() -> list[str]:
     removed = []
     command_dst = Path.home() / ".config" / "kilo" / "command" / "graphify.md"
@@ -1674,15 +1773,21 @@ def _kilo_uninstall_global() -> list[str]:
             break
 
     return removed
+
+
 def _kilo_install(project_dir: Path) -> None:
     """Install native Kilo skill + command globally and always-on project wiring locally."""
     install(platform="kilo")
     _agents_install(project_dir or Path("."), "kilo")
+
+
 def _kilo_uninstall(project_dir: Path) -> None:
     """Remove Kilo always-on project wiring and global skill/command files."""
     _agents_uninstall(project_dir or Path("."), platform="kilo")
     removed = _kilo_uninstall_global()
     print("; ".join(removed) if removed else "nothing to remove")
+
+
 def claude_install(project_dir: Path | None = None, strict: bool = False) -> None:
     """Write the graphify section to the local CLAUDE.md."""
     target = (project_dir or Path(".")) / "CLAUDE.md"
@@ -1701,8 +1806,6 @@ def claude_install(project_dir: Path | None = None, strict: bool = False) -> Non
         target.write_text(new_content, encoding="utf-8")
         print(f"graphify section written to {target.resolve()}")
 
-    # Always re-install the Claude Code PreToolUse hook so an old hook
-    # payload (e.g. pre-issue-#580 wording) is replaced on upgrade.
     _install_claude_hook(project_dir or Path("."), strict=strict)
 
     print()
@@ -1711,6 +1814,8 @@ def claude_install(project_dir: Path | None = None, strict: bool = False) -> Non
     if strict:
         print("Strict mode: the first raw file read per session is blocked until")
         print("one `graphify query` runs (toggle with GRAPHIFY_HOOK_STRICT=0).")
+
+
 def _install_claude_hook(project_dir: Path, strict: bool = False) -> None:
     """Add graphify PreToolUse hook to .claude/settings.json."""
     settings_path = project_dir / ".claude" / "settings.json"
@@ -1725,11 +1830,23 @@ def _install_claude_hook(project_dir: Path, strict: bool = False) -> None:
     if not isinstance(pre_tool, list):
         _refuse_to_modify(settings_path)
 
-    hooks["PreToolUse"] = [h for h in pre_tool if not (isinstance(h, dict) and h.get("matcher") in ("Glob|Grep", "Bash", "Bash|Grep", "Read|Glob") and "graphify" in str(h))]
+    hooks["PreToolUse"] = [
+        h
+        for h in pre_tool
+        if not (
+            isinstance(h, dict)
+            and h.get("matcher") in ("Glob|Grep", "Bash", "Bash|Grep", "Read|Glob")
+            and "graphify" in str(h)
+        )
+    ]
     hooks["PreToolUse"].extend(_claude_pretooluse_hooks(strict=strict))
     _write_settings_with_backup(settings_path, settings)
     _mode = " (strict)" if strict else ""
-    print(f"  .claude/settings.json  ->  PreToolUse hooks registered (Bash|Grep search + Read/Glob){_mode}")
+    print(
+        f"  .claude/settings.json  ->  PreToolUse hooks registered (Bash|Grep search + Read/Glob){_mode}"
+    )
+
+
 def _uninstall_claude_hook(project_dir: Path) -> None:
     """Remove the graphify PreToolUse hook from .claude/settings.json and its
     local-only sibling .claude/settings.local.json.
@@ -1740,6 +1857,8 @@ def _uninstall_claude_hook(project_dir: Path) -> None:
     claude_dir = project_dir / ".claude"
     for name in ("settings.json", "settings.local.json"):
         _strip_graphify_hook(claude_dir / name)
+
+
 def _strip_graphify_hook(settings_path: Path) -> None:
     """Drop graphify PreToolUse hooks from a single Claude settings file, if present."""
     if not settings_path.exists():
@@ -1749,18 +1868,26 @@ def _strip_graphify_hook(settings_path: Path) -> None:
     except json.JSONDecodeError:
         return
     pre_tool = settings.get("hooks", {}).get("PreToolUse", [])
-    filtered = [h for h in pre_tool if not (h.get("matcher") in ("Glob|Grep", "Bash", "Bash|Grep", "Read|Glob") and "graphify" in str(h))]
+    filtered = [
+        h
+        for h in pre_tool
+        if not (
+            h.get("matcher") in ("Glob|Grep", "Bash", "Bash|Grep", "Read|Glob")
+            and "graphify" in str(h)
+        )
+    ]
     if len(filtered) == len(pre_tool):
         return
     settings["hooks"]["PreToolUse"] = filtered
     settings_path.write_text(json.dumps(settings, indent=2), encoding="utf-8")
     print(f"  .claude/{settings_path.name}  ->  PreToolUse hook removed")
+
+
 def uninstall_all(project_dir: Path | None = None, purge: bool = False) -> None:
     """Remove graphify from every platform detected in the current project."""
     pd = project_dir or Path(".")
     print("Uninstalling graphify from all detected platforms...\n")
 
-    # Skill-file / config-section uninstallers
     claude_uninstall(pd)
     codebuddy_uninstall(pd)
     gemini_uninstall(pd)
@@ -1768,20 +1895,15 @@ def uninstall_all(project_dir: Path | None = None, purge: bool = False) -> None:
     _cursor_uninstall(pd)
     _kiro_uninstall(pd)
     _antigravity_uninstall(pd)
-    # AGENTS.md covers: codex, aider, opencode, claw, droid, trae, trae-cn, hermes, copilot
     _agents_uninstall(pd)
-    # Amp also drops a user-scope skill at ~/.config/agents/skills, which the
-    # AGENTS.md cleanup above does not touch.
     _remove_skill_file("amp")
-    # The generic agents platform's user-scope skill lives at ~/.agents/skills,
-    # which neither the AGENTS.md cleanup nor amp's removal reaches.
     _remove_skill_file("agents")
     _uninstall_opencode_plugin(pd)
     _uninstall_codex_hook(pd)
 
-    # Git hook
     try:
         from graphify.hooks import uninstall as hook_uninstall
+
         result = hook_uninstall(pd)
         if result:
             print(result)
@@ -1790,6 +1912,7 @@ def uninstall_all(project_dir: Path | None = None, purge: bool = False) -> None:
 
     if purge:
         import shutil as _shutil
+
         out = pd / _GRAPHIFY_OUT
         if out.exists():
             _shutil.rmtree(out)
@@ -1798,6 +1921,8 @@ def uninstall_all(project_dir: Path | None = None, purge: bool = False) -> None:
             print(f"\n  {_GRAPHIFY_OUT}/  ->  not found (nothing to purge)")
 
     print("\nDone. Run 'pip uninstall graphifyy' to remove the package itself.")
+
+
 def claude_uninstall(project_dir: Path | None = None, *, project: bool = False) -> None:
     """Remove the graphify skill tree (SKILL.md + references/) and the graphify
     section from CLAUDE.md and its local-only variants, plus the PreToolUse hook.
@@ -1821,7 +1946,6 @@ def claude_uninstall(project_dir: Path | None = None, *, project: bool = False) 
     existing = [t for t in md_targets if t.exists()]
     removed_any = False
     for target in existing:
-        # Not short-circuited: every present file must be cleaned, not just the first.
         if _strip_graphify_md_section(target):
             removed_any = True
 
@@ -1831,6 +1955,8 @@ def claude_uninstall(project_dir: Path | None = None, *, project: bool = False) 
         print("graphify section not found in CLAUDE.md - nothing to do")
 
     _uninstall_claude_hook(project_dir)
+
+
 def _strip_graphify_md_section(target: Path) -> bool:
     """Strip the ## graphify section from one CLAUDE.md-style file.
 
@@ -1840,11 +1966,7 @@ def _strip_graphify_md_section(target: Path) -> bool:
     try:
         content = target.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
-        # An unreadable/undecodable CLAUDE.md-style file (e.g. non-UTF-8, or a
-        # directory of that name) must not abort uninstall - nothing to strip.
         return False
-    # Remove graphify's ## graphify section (heading matched exactly, never as a
-    # substring of a user's ### graphify) from the marker to the next H2 or EOF.
     cleaned = _remove_marker_section(content, _CLAUDE_MD_MARKER)
     if cleaned is None:
         return False
@@ -1855,6 +1977,8 @@ def _strip_graphify_md_section(target: Path) -> bool:
         target.unlink()
         print(f"{target.name} was empty after removal - deleted {target.resolve()}")
     return True
+
+
 def codebuddy_install(project_dir: Path | None = None) -> None:
     """Install the graphify skill and CODEBUDDY.md section for CodeBuddy."""
     _copy_skill_file("codebuddy", project=bool(project_dir), project_dir=project_dir)
@@ -1874,12 +1998,13 @@ def codebuddy_install(project_dir: Path | None = None) -> None:
         target.write_text(new_content, encoding="utf-8")
         print(f"graphify section written to {target.resolve()}")
 
-    # Also write CodeBuddy PreToolUse hook to .codebuddy/settings.json
     _install_codebuddy_hook(project_dir or Path("."))
 
     print()
     print("CodeBuddy will now check the knowledge graph before answering")
     print("codebase questions and rebuild it after code changes.")
+
+
 def _install_codebuddy_hook(project_dir: Path) -> None:
     """Add graphify PreToolUse hook to .codebuddy/settings.json."""
     settings_path = project_dir / ".codebuddy" / "settings.json"
@@ -1894,10 +2019,20 @@ def _install_codebuddy_hook(project_dir: Path) -> None:
     if not isinstance(pre_tool, list):
         _refuse_to_modify(settings_path)
 
-    hooks["PreToolUse"] = [h for h in pre_tool if not (isinstance(h, dict) and h.get("matcher") in ("Glob|Grep", "Bash", "Bash|Grep", "Read|Glob") and "graphify" in str(h))]
+    hooks["PreToolUse"] = [
+        h
+        for h in pre_tool
+        if not (
+            isinstance(h, dict)
+            and h.get("matcher") in ("Glob|Grep", "Bash", "Bash|Grep", "Read|Glob")
+            and "graphify" in str(h)
+        )
+    ]
     hooks["PreToolUse"].extend(_claude_pretooluse_hooks())
     _write_settings_with_backup(settings_path, settings)
     print(f"  .codebuddy/settings.json  ->  PreToolUse hooks registered")
+
+
 def _uninstall_codebuddy_hook(project_dir: Path) -> None:
     """Remove graphify PreToolUse hook from .codebuddy/settings.json."""
     settings_path = project_dir / ".codebuddy" / "settings.json"
@@ -1908,12 +2043,21 @@ def _uninstall_codebuddy_hook(project_dir: Path) -> None:
     except json.JSONDecodeError:
         return
     pre_tool = settings.get("hooks", {}).get("PreToolUse", [])
-    filtered = [h for h in pre_tool if not (h.get("matcher") in ("Glob|Grep", "Bash", "Bash|Grep", "Read|Glob") and "graphify" in str(h))]
+    filtered = [
+        h
+        for h in pre_tool
+        if not (
+            h.get("matcher") in ("Glob|Grep", "Bash", "Bash|Grep", "Read|Glob")
+            and "graphify" in str(h)
+        )
+    ]
     if len(filtered) == len(pre_tool):
         return
     settings["hooks"]["PreToolUse"] = filtered
     settings_path.write_text(json.dumps(settings, indent=2), encoding="utf-8")
     print(f"  .codebuddy/settings.json  ->  PreToolUse hook removed")
+
+
 def codebuddy_uninstall(project_dir: Path | None = None, *, project: bool = False) -> None:
     """Remove the graphify skill tree (SKILL.md + references/) and the CODEBUDDY.md section."""
     project_dir = project_dir or Path(".")
@@ -1940,32 +2084,34 @@ def codebuddy_uninstall(project_dir: Path | None = None, *, project: bool = Fals
     _uninstall_codebuddy_hook(project_dir or Path("."))
 
 
-_CLI_INSTALL_COMMANDS = frozenset({
-    "agents",
-    "aider",
-    "amp",
-    "antigravity",
-    "claude",
-    "claw",
-    "codebuddy",
-    "codex",
-    "copilot",
-    "cursor",
-    "devin",
-    "droid",
-    "gemini",
-    "hermes",
-    "install",
-    "kilo",
-    "kiro",
-    "opencode",
-    "pi",
-    "skills",
-    "trae",
-    "trae-cn",
-    "uninstall",
-    "vscode",
-})
+_CLI_INSTALL_COMMANDS = frozenset(
+    {
+        "agents",
+        "aider",
+        "amp",
+        "antigravity",
+        "claude",
+        "claw",
+        "codebuddy",
+        "codex",
+        "copilot",
+        "cursor",
+        "devin",
+        "droid",
+        "gemini",
+        "hermes",
+        "install",
+        "kilo",
+        "kiro",
+        "opencode",
+        "pi",
+        "skills",
+        "trae",
+        "trae-cn",
+        "uninstall",
+        "vscode",
+    }
+)
 
 
 def dispatch_install_cli(cmd: str) -> bool:
@@ -1977,7 +2123,6 @@ def dispatch_install_cli(cmd: str) -> bool:
     if cmd not in _CLI_INSTALL_COMMANDS:
         return False
     if cmd == "install":
-        # Default to windows platform on Windows, claude elsewhere
         default_platform = "windows" if platform.system() == "Windows" else "claude"
         selected_platform: str | None = None
         project_scope = False

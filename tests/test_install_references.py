@@ -10,6 +10,7 @@ dir-copy, version-stamp, reinstall, and uninstall flow can be exercised with
 fixed, asserted content. The fixture backs up the real committed bundle and
 restores it on teardown, so the working tree is never disturbed.
 """
+
 from __future__ import annotations
 
 import os
@@ -84,7 +85,6 @@ def test_install_stages_references_sidecar(tmp_path, fake_bundle):
     assert refs.is_dir()
     assert (refs / "extraction-spec.md").read_text() == "# extraction spec fragment\n"
     assert (refs / "query.md").read_text() == "# query fragment\n"
-    # No leftover staging dir.
     assert not (skill_dir / "references.tmp").exists()
 
 
@@ -105,13 +105,11 @@ def test_reinstall_replaces_references_atomically(tmp_path, fake_bundle):
     _install(tmp_path, platform)
     skill_dir = tmp_path / ".claude" / "skills" / "graphify"
     refs = skill_dir / "references"
-    # Simulate a stale fragment left from an older install.
     (refs / "stale-old.md").write_text("stale\n", encoding="utf-8")
     assert (refs / "stale-old.md").exists()
 
     _install(tmp_path, platform)
 
-    # The stale fragment is gone; the packaged ones are present.
     assert not (refs / "stale-old.md").exists()
     assert (refs / "extraction-spec.md").exists()
     assert (refs / "query.md").exists()
@@ -130,7 +128,6 @@ def test_uninstall_removes_references_then_walks_dirs(tmp_path, fake_bundle):
 
     assert removed
     assert not skill_dir.exists()
-    # The 3-level walk collapsed the now-empty skill dirs.
     assert not (tmp_path / ".claude" / "skills").exists()
 
 
@@ -140,7 +137,6 @@ def test_check_skill_version_warns_on_missing_references(tmp_path, fake_bundle, 
     _install(tmp_path, platform)
     skill_dir = tmp_path / ".claude" / "skills" / "graphify"
     skill = skill_dir / "SKILL.md"
-    # Force the body to reference the sidecar, then delete the sidecar.
     skill.write_text("See references/extraction-spec.md for the schema.\n", encoding="utf-8")
     shutil.rmtree(skill_dir / "references")
 
@@ -157,8 +153,6 @@ def test_check_skill_version_ignores_permission_error(tmp_path, fake_bundle, mon
     skill_dir = tmp_path / ".claude" / "skills" / "graphify"
     skill = skill_dir / "SKILL.md"
 
-    # Drain install output so the no-warning assertions below see only what
-    # _check_skill_version itself emits.
     capsys.readouterr()
 
     original_exists = Path.exists
@@ -195,7 +189,6 @@ def test_hard_fail_when_bundle_dir_present_but_references_missing(tmp_path, monk
     if bundle_dir.exists():
         backup_dir = Path(tempfile.mkdtemp()) / "bundle_backup"
         shutil.move(str(bundle_dir), str(backup_dir))
-    # Bundle dir present, but no references/ subdir inside it.
     bundle_dir.mkdir(parents=True, exist_ok=True)
     (bundle_dir / "SKILL.md").write_text("body\n", encoding="utf-8")
     try:
@@ -229,7 +222,6 @@ def _first_unbuilt_progressive_host():
             continue
         if (skills_root / bundle).exists():
             continue
-        # Resolve the packaged monolith for this host (skill.md for claude-named).
         suffix = "" if name == "claude" else f"-{name}"
         monolith = PKG_DIR / f"skill{suffix}.md"
         if monolith.exists():
@@ -255,7 +247,6 @@ def test_unbuilt_bundle_host_falls_back_to_monolith(tmp_path):
     skill_dir = dst.parent
     assert (skill_dir / "SKILL.md").exists()
     assert not (skill_dir / "references").exists()
-    # Byte-identical to the packaged monolith for that host.
     assert (skill_dir / "SKILL.md").read_bytes() == monolith.read_bytes()
 
 
@@ -270,18 +261,11 @@ def test_claude_install_ships_lean_core_and_references(tmp_path):
     assert skill.exists()
     assert refs.is_dir()
     body = skill.read_text(encoding="utf-8")
-    # The installed SKILL.md is exactly the packaged lean core (skill.md IS the
-    # lean core now, not the old monolith).
     assert body == (PKG_DIR / "skill.md").read_text(encoding="utf-8")
-    # The lean core points at its references and dropped the on-demand content.
     assert "references/extraction-spec.md" in body
-    # The full embedded subagent prompt was moved out into the references.
     assert '"file_type":"code|document|paper|image|rationale|concept"' not in body
-    # The lean core is materially smaller than the old ~1156-line monolith.
     assert len(body.splitlines()) < 800
-    # The version stamp covers SKILL.md + references/ together.
     assert (skill_dir / ".graphify_version").read_text() == mainmod.__version__
-    # The eight on-demand fragments all landed.
     names = sorted(p.name for p in refs.glob("*.md"))
     assert names == [
         "add-watch.md",
@@ -303,6 +287,7 @@ def test_gemini_install_references_all_resolve(tmp_path):
     real claude bundle must leave no dead pointer on disk.
     """
     import re
+
     _install(tmp_path, "gemini")
     skill = tmp_path / ".gemini" / "skills" / "graphify" / "SKILL.md"
     assert skill.exists()
@@ -337,8 +322,8 @@ def test_pyproject_declares_references_globs():
     removed. This test guards the real shipped layout.
     """
     try:
-        import tomllib  # Python 3.11+ stdlib
-    except ModuleNotFoundError:  # Python 3.10
+        import tomllib
+    except ModuleNotFoundError:
         import tomli as tomllib  # type: ignore[no-redef]
 
     pyproject = PKG_DIR.parent / "pyproject.toml"
@@ -348,12 +333,9 @@ def test_pyproject_declares_references_globs():
     pkg_data = data["tool"]["setuptools"]["package-data"]["graphify"]
     assert "skills/*/references/*.md" in pkg_data
     assert "always_on/*.md" in pkg_data
-    # The dead glob that matched no file must not creep back in.
     assert "skills/*/SKILL.md" not in pkg_data
 
 
-# The full progressive-disclosure payload the wheel must ship: 15 skill bodies,
-# 104 references (13 split hosts x 8 each), and 6 always-on injection blocks.
 _EXPECTED_SKILL_BODIES = (
     "skill.md",
     "skill-codex.md",
@@ -372,16 +354,37 @@ _EXPECTED_SKILL_BODIES = (
     "skill-devin.md",
 )
 _SPLIT_HOSTS = (
-    "claude", "codex", "windows", "opencode", "kilo", "copilot",
-    "claw", "droid", "amp", "trae", "kiro", "pi", "vscode",
+    "claude",
+    "codex",
+    "windows",
+    "opencode",
+    "kilo",
+    "copilot",
+    "claw",
+    "droid",
+    "amp",
+    "trae",
+    "kiro",
+    "pi",
+    "vscode",
 )
 _REFERENCE_NAMES = (
-    "add-watch.md", "exports.md", "extraction-spec.md", "github-and-merge.md",
-    "hooks.md", "query.md", "transcribe.md", "update.md",
+    "add-watch.md",
+    "exports.md",
+    "extraction-spec.md",
+    "github-and-merge.md",
+    "hooks.md",
+    "query.md",
+    "transcribe.md",
+    "update.md",
 )
 _ALWAYS_ON_NAMES = (
-    "agents-md.md", "antigravity-rules.md", "claude-md.md",
-    "gemini-md.md", "kiro-steering.md", "vscode-instructions.md",
+    "agents-md.md",
+    "antigravity-rules.md",
+    "claude-md.md",
+    "gemini-md.md",
+    "kiro-steering.md",
+    "vscode-instructions.md",
 )
 
 
@@ -407,7 +410,16 @@ def _build_wheel_names(repo_root):
 
     with tempfile.TemporaryDirectory() as outdir:
         result = subprocess.run(
-            [sys.executable, "-m", "build", "--wheel", "--no-isolation", "--outdir", outdir, str(repo_root)],
+            [
+                sys.executable,
+                "-m",
+                "build",
+                "--wheel",
+                "--no-isolation",
+                "--outdir",
+                outdir,
+                str(repo_root),
+            ],
             capture_output=True,
             text=True,
         )
@@ -435,8 +447,6 @@ def test_built_wheel_ships_the_full_skill_payload():
     repo_root = PKG_DIR.parent
     if not (repo_root / "pyproject.toml").exists():
         pytest.skip("pyproject.toml not adjacent to package (installed wheel)")
-    # In this wave every split-host bundle ships, so its absence is a real failure,
-    # not a reason to skip.
     assert (PKG_DIR / "skills" / "claude" / "references" / "extraction-spec.md").exists(), (
         "the claude bundle must ship in this build; the references sidecar is missing"
     )
@@ -464,17 +474,13 @@ def test_built_wheel_ships_the_full_skill_payload():
     assert not missing_always_on, f"wheel is missing always-on blocks: {missing_always_on}"
     assert len(_ALWAYS_ON_NAMES) == 6
 
-    # The specific headline file that the stale glob would have dropped.
     assert "graphify/skills/claude/references/extraction-spec.md" in names
     assert "graphify/skills/trae/references/hooks.md" in names
-    # amp is now a split host too; its bundle must ship like every other.
     assert "graphify/skills/amp/references/hooks.md" in names
 
 
 def test_monolith_install_clears_orphan_references(tmp_path, fake_bundle):
     """A monolith platform install removes any orphan references/ left behind."""
-    # aider is a monolith (no skill_refs). Seed an orphan references/ dir at its
-    # destination, then install and confirm it is cleared.
     skill_dst = tmp_path / ".aider" / "graphify" / "SKILL.md"
     orphan = skill_dst.parent / "references"
     orphan.mkdir(parents=True)
@@ -506,7 +512,6 @@ def test_amp_user_install_carries_references(tmp_path, monkeypatch):
         main()
         skill_dir = home / ".config" / "agents" / "skills" / "graphify"
         assert (skill_dir / "SKILL.md").exists()
-        # A representative reference from the shipped amp bundle lands too.
         assert (skill_dir / "references" / "exports.md").exists()
         assert (skill_dir / "references" / "hooks.md").exists()
 

@@ -4,6 +4,7 @@ A mixed repo (code + docs) with no API key configured used to hard-fail on the
 doc/paper/image files. `--code-only` skips the semantic pass so the code graph
 still builds, and the no-key error now points users at the flag.
 """
+
 from __future__ import annotations
 
 import os
@@ -13,8 +14,15 @@ import sys
 from pathlib import Path
 
 PYTHON = sys.executable
-_KEY_VARS = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "OPENAI_API_KEY", "OPENAI_BASE_URL",
-             "ANTHROPIC_API_KEY", "MOONSHOT_API_KEY", "DEEPSEEK_API_KEY")
+_KEY_VARS = (
+    "GEMINI_API_KEY",
+    "GOOGLE_API_KEY",
+    "OPENAI_API_KEY",
+    "OPENAI_BASE_URL",
+    "ANTHROPIC_API_KEY",
+    "MOONSHOT_API_KEY",
+    "DEEPSEEK_API_KEY",
+)
 
 
 def _mixed_repo(tmp_path: Path) -> Path:
@@ -31,7 +39,10 @@ def _run(repo: Path, *extra: str):
     env["GRAPHIFY_OUT"] = str(repo / "graphify-out")
     return subprocess.run(
         [PYTHON, "-m", "graphify", "extract", ".", *extra],
-        cwd=repo, capture_output=True, text=True, env=env,
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        env=env,
     )
 
 
@@ -44,6 +55,7 @@ def test_code_only_succeeds_without_key(tmp_path):
     graph = repo / "graphify-out" / "graph.json"
     assert graph.exists(), "code graph must still be written"
     import json
+
     g = json.loads(graph.read_text())
     labels = [n.get("label") for n in g["nodes"]]
     assert any(str(l).startswith("hello") for l in labels), "code was indexed"
@@ -51,7 +63,7 @@ def test_code_only_succeeds_without_key(tmp_path):
 
 def test_mixed_repo_without_key_errors_and_points_at_code_only(tmp_path):
     repo = _mixed_repo(tmp_path)
-    r = _run(repo)  # no --code-only, no key
+    r = _run(repo)
     assert r.returncode != 0, "mixed repo with no key should still error without the flag"
     assert "--code-only" in r.stderr, "the no-key error must point users at --code-only"
 
@@ -61,12 +73,12 @@ def test_extract_usage_advertises_code_only(tmp_path):
     by triggering the no-key error. `graphify extract` with no path prints usage."""
     r = subprocess.run(
         [PYTHON, "-m", "graphify", "extract"],
-        cwd=tmp_path, capture_output=True, text=True,
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
     )
     assert r.returncode != 0
-    assert "--code-only" in r.stdout + r.stderr, (
-        "extract usage must advertise --code-only (#2071)"
-    )
+    assert "--code-only" in r.stdout + r.stderr, "extract usage must advertise --code-only (#2071)"
 
 
 def _run_relative_out(repo: Path, *extra: str):
@@ -76,7 +88,10 @@ def _run_relative_out(repo: Path, *extra: str):
     env["GRAPHIFY_OUT"] = "graphify-out"
     return subprocess.run(
         [PYTHON, "-m", "graphify", "extract", ".", *extra],
-        cwd=repo, capture_output=True, text=True, env=env,
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        env=env,
     )
 
 
@@ -149,7 +164,6 @@ def test_no_gitignore_setting_persists_across_flagless_extract(tmp_path):
     assert r1.returncode == 0, r1.stderr
     assert any(s.endswith("generated/Gen.py") for s in _sources())
 
-    # A plain flag-less re-extract must keep the git-ignored file (setting persisted).
     r2 = _run(repo, "--code-only", "--no-cluster")
     assert r2.returncode == 0, r2.stderr
     assert any(s.endswith("generated/Gen.py") for s in _sources()), (
@@ -166,14 +180,9 @@ def test_exclude_setting_persists_across_flagless_extract(tmp_path):
 
     def _sources():
         graph = json.loads((repo / "graphify-out" / "graph.json").read_text())
-        return {
-            Path(str(node.get("source_file", ""))).as_posix()
-            for node in graph["nodes"]
-        }
+        return {Path(str(node.get("source_file", ""))).as_posix() for node in graph["nodes"]}
 
-    first = _run(
-        repo, "--exclude", "vendor", "--code-only", "--no-cluster"
-    )
+    first = _run(repo, "--exclude", "vendor", "--code-only", "--no-cluster")
     assert first.returncode == 0, first.stderr
     assert any(source.endswith("app.py") for source in _sources())
     assert not any(source.endswith("vendor/lib.py") for source in _sources())
@@ -222,12 +231,10 @@ def test_explicit_exclude_replaces_persisted_setting_with_custom_out(tmp_path):
     assert first.returncode == 0, first.stderr
 
     graph_out = out_root / "graphify-out"
+
     def _sources():
         graph = json.loads((graph_out / "graph.json").read_text())
-        return {
-            Path(str(node.get("source_file", ""))).as_posix()
-            for node in graph["nodes"]
-        }
+        return {Path(str(node.get("source_file", ""))).as_posix() for node in graph["nodes"]}
 
     persisted = _run_extract("--force")
     assert persisted.returncode == 0, persisted.stderr
@@ -252,7 +259,7 @@ def test_extract_names_skipped_sensitive_files(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "app.py").write_text("def hello():\n    return 1\n")
-    (repo / "github_token.txt").write_text("ghp_secretvalue\n")  # real secret -> skipped
+    (repo / "github_token.txt").write_text("ghp_secretvalue\n")
     r = _run(repo, "--code-only", "--no-cluster")
     assert r.returncode == 0, r.stderr
     out = r.stdout + r.stderr

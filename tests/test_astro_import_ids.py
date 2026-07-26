@@ -16,6 +16,7 @@ Fixed by routing all five rescue sites through the shared helper, which mirrors
 when the target is a real file on disk, emit ONLY the ``target_file``-stamped
 edge — no stub node.
 """
+
 from __future__ import annotations
 
 import os
@@ -31,9 +32,6 @@ def _write(path: Path, body: str) -> Path:
 
 
 def _astro_project(tmp_path: Path) -> Path:
-    # realpath: on macOS pytest's tmp dir lives under /private/var but is
-    # handed out as /var — the extractor resolves paths, so anchor the test
-    # on the resolved form to keep id/slug comparisons meaningful.
     root = Path(os.path.realpath(tmp_path))
     _write(
         root / "src/pages/work/index.astro",
@@ -80,37 +78,31 @@ def test_astro_absolute_inputs_no_ghost_import_nodes(tmp_path):
 
     _assert_no_root_slug(result, root)
 
-    # Exactly one node represents src/lib/content.ts, under its canonical id.
     content_file_nodes = [
-        n for n in result["nodes"]
+        n
+        for n in result["nodes"]
         if n.get("source_file") == "src/lib/content.ts"
         and n["id"] == _file_node_id(Path("src/lib/content.ts"))
     ]
     assert len(content_file_nodes) == 1
     assert content_file_nodes[0]["id"] == "src_lib_content"
-    # And no OTHER node claims to BE that file (a ghost stub would carry the
-    # same source_file but an absolute-derived id).
     file_level = [
-        n for n in result["nodes"]
-        if n.get("source_file") == "src/lib/content.ts"
-        and n["id"].endswith("content")
+        n
+        for n in result["nodes"]
+        if n.get("source_file") == "src/lib/content.ts" and n["id"].endswith("content")
     ]
     assert file_level == content_file_nodes
 
-    # The rescued import edge lands on the canonical real node.
     index_id = _file_node_id(Path("src/pages/work/index.astro"))
     import_edges = {
-        (e["source"], e["target"])
-        for e in result["edges"]
-        if e.get("relation") == "imports_from"
+        (e["source"], e["target"]) for e in result["edges"] if e.get("relation") == "imports_from"
     }
     assert (index_id, "src_lib_content") in import_edges
     assert (index_id, "src_config") in import_edges
 
-    # The CSS side-effect import edge must not leak the root either; its
-    # canonical target is derived from the repo-relative path.
     css_targets = [
-        e["target"] for e in result["edges"]
+        e["target"]
+        for e in result["edges"]
         if e.get("relation") == "imports_from" and "global" in str(e.get("target"))
     ]
     assert css_targets, "css import edge missing"
@@ -132,17 +124,13 @@ def test_astro_relative_inputs_keep_canonical_ids(tmp_path, monkeypatch):
 
     _assert_no_root_slug(result, root)
 
-    content_file_nodes = [
-        n for n in result["nodes"] if n["id"] == "src_lib_content"
-    ]
+    content_file_nodes = [n for n in result["nodes"] if n["id"] == "src_lib_content"]
     assert len(content_file_nodes) == 1
     assert content_file_nodes[0]["source_file"] == "src/lib/content.ts"
 
     index_id = _file_node_id(Path("src/pages/work/index.astro"))
     import_edges = {
-        (e["source"], e["target"])
-        for e in result["edges"]
-        if e.get("relation") == "imports_from"
+        (e["source"], e["target"]) for e in result["edges"] if e.get("relation") == "imports_from"
     }
     assert (index_id, "src_lib_content") in import_edges
     assert (index_id, "src_config") in import_edges
@@ -169,16 +157,12 @@ def test_svelte_absolute_inputs_no_ghost_import_nodes(tmp_path):
 
     _assert_no_root_slug(result, root)
 
-    content_file_nodes = [
-        n for n in result["nodes"] if n["id"] == "src_lib_content"
-    ]
+    content_file_nodes = [n for n in result["nodes"] if n["id"] == "src_lib_content"]
     assert len(content_file_nodes) == 1
     assert content_file_nodes[0]["source_file"] == "src/lib/content.ts"
 
     page_id = _file_node_id(Path("src/routes/page.svelte"))
-    edge_pairs = {
-        (e["source"], e["target"], e["relation"]) for e in result["edges"]
-    }
+    edge_pairs = {(e["source"], e["target"], e["relation"]) for e in result["edges"]}
     assert (page_id, "src_lib_content", "imports_from") in edge_pairs
     assert (page_id, "src_lib_content", "dynamic_import") in edge_pairs
 

@@ -1,4 +1,5 @@
 """Json_config extractor. Moved verbatim from graphify/extract.py."""
+
 from __future__ import annotations
 
 
@@ -7,19 +8,48 @@ from graphify.extractors.base import _file_stem, _make_id, _read_text
 from graphify.ids import normalize_id
 
 
-_CONFIG_JSON_NAMES = frozenset({
-    "package.json", "tsconfig.json", "jsconfig.json", "composer.json",
-    "deno.json", "deno.jsonc", "bower.json", "manifest.json",
-    "app.json", "now.json", "vercel.json", "angular.json", "nest-cli.json",
-    "biome.json", "biome.jsonc", "renovate.json", ".babelrc", ".babelrc.json",
-    ".eslintrc.json", ".prettierrc.json", ".prettierrc", "babel.config.json",
-})
+_CONFIG_JSON_NAMES = frozenset(
+    {
+        "package.json",
+        "tsconfig.json",
+        "jsconfig.json",
+        "composer.json",
+        "deno.json",
+        "deno.jsonc",
+        "bower.json",
+        "manifest.json",
+        "app.json",
+        "now.json",
+        "vercel.json",
+        "angular.json",
+        "nest-cli.json",
+        "biome.json",
+        "biome.jsonc",
+        "renovate.json",
+        ".babelrc",
+        ".babelrc.json",
+        ".eslintrc.json",
+        ".prettierrc.json",
+        ".prettierrc",
+        "babel.config.json",
+    }
+)
 
-_CONFIG_JSON_KEYS = frozenset({
-    "dependencies", "devDependencies", "peerDependencies",
-    "optionalDependencies", "bundleDependencies", "bundledDependencies",
-    "extends", "$ref", "$schema", "compilerOptions",
-})
+_CONFIG_JSON_KEYS = frozenset(
+    {
+        "dependencies",
+        "devDependencies",
+        "peerDependencies",
+        "optionalDependencies",
+        "bundleDependencies",
+        "bundledDependencies",
+        "extends",
+        "$ref",
+        "$schema",
+        "compilerOptions",
+    }
+)
+
 
 def _is_config_json(path: Path, obj_node, source: bytes) -> bool:
     """True if a .json file is a recognized config/manifest worth AST-extracting.
@@ -31,11 +61,10 @@ def _is_config_json(path: Path, obj_node, source: bytes) -> bool:
     name = path.name.casefold()
     if name in _CONFIG_JSON_NAMES:
         return True
-    # Common compound config names: *.eslintrc.json, *.prettierrc.json, etc.
-    if name.endswith((".eslintrc.json", ".prettierrc.json", ".babelrc.json",
-                      "tsconfig.json", "jsconfig.json")):
+    if name.endswith(
+        (".eslintrc.json", ".prettierrc.json", ".babelrc.json", "tsconfig.json", "jsconfig.json")
+    ):
         return True
-    # Top-level key probe: scan the root object's immediate keys (no deep walk).
     for top_key in obj_node.children:
         if top_key.type != "pair":
             continue
@@ -43,10 +72,11 @@ def _is_config_json(path: Path, obj_node, source: bytes) -> bool:
         if key_node is None:
             continue
         kc = key_node.child_by_field_name("string_content")
-        text = _read_text(kc, source) if kc else _read_text(key_node, source).strip('"\'')
+        text = _read_text(kc, source) if kc else _read_text(key_node, source).strip("\"'")
         if text in _CONFIG_JSON_KEYS:
             return True
     return False
+
 
 def extract_json(path: Path) -> dict:
     """Extract structure and dependency edges from a *config/manifest* .json file.
@@ -56,7 +86,7 @@ def extract_json(path: Path) -> dict:
     and duplicate communities that swamped real structure (#1224). Recognition
     is by filename (package.json, tsconfig.json, …) or a top-level key probe
     (dependencies / extends / $ref / $schema / compilerOptions)."""
-    _JSON_MAX_BYTES = 1_048_576  # 1 MiB — skip large fixture dumps / GeoJSON blobs
+    _JSON_MAX_BYTES = 1_048_576
 
     try:
         import tree_sitter_json as tsjson
@@ -65,9 +95,6 @@ def extract_json(path: Path) -> dict:
         return {"nodes": [], "edges": [], "error": "tree-sitter-json not installed"}
 
     try:
-        # Bounded read instead of stat()+read() to eliminate TOCTOU (J-1):
-        # read one byte beyond the limit so we can detect oversized files even
-        # if the file grows between stat and read.
         with path.open("rb") as _f:
             source = _f.read(_JSON_MAX_BYTES + 1)
         if len(source) > _JSON_MAX_BYTES:
@@ -85,25 +112,42 @@ def extract_json(path: Path) -> dict:
     edges: list[dict] = []
     seen_ids: set[str] = set()
 
-    # Keys whose string values become imports (package.json dep blocks)
-    _DEP_KEYS = frozenset({
-        "dependencies", "devDependencies", "peerDependencies",
-        "optionalDependencies", "bundleDependencies", "bundledDependencies",
-    })
+    _DEP_KEYS = frozenset(
+        {
+            "dependencies",
+            "devDependencies",
+            "peerDependencies",
+            "optionalDependencies",
+            "bundleDependencies",
+            "bundledDependencies",
+        }
+    )
 
     def add_node(nid: str, label: str, line: int, file_type: str = "code") -> None:
         if nid and nid not in seen_ids:
             seen_ids.add(nid)
-            nodes.append({"id": nid, "label": label, "file_type": file_type,
-                          "source_file": str_path, "source_location": f"L{line}"})
+            nodes.append(
+                {
+                    "id": nid,
+                    "label": label,
+                    "file_type": file_type,
+                    "source_file": str_path,
+                    "source_location": f"L{line}",
+                }
+            )
 
-    def add_edge(src: str, tgt: str, relation: str, line: int,
-                 context: str | None = None) -> None:
+    def add_edge(src: str, tgt: str, relation: str, line: int, context: str | None = None) -> None:
         if not src or not tgt or src == tgt:
             return
-        edge = {"source": src, "target": tgt, "relation": relation,
-                "confidence": "EXTRACTED", "source_file": str_path,
-                "source_location": f"L{line}", "weight": 1.0}
+        edge = {
+            "source": src,
+            "target": tgt,
+            "relation": relation,
+            "confidence": "EXTRACTED",
+            "source_file": str_path,
+            "source_location": f"L{line}",
+            "weight": 1.0,
+        }
         if context:
             edge["context"] = context
         edges.append(edge)
@@ -120,31 +164,27 @@ def extract_json(path: Path) -> dict:
             content = key_node.child_by_field_name("string_content")
             if content:
                 return _read_text(content, source)
-            # fallback: strip surrounding quotes
             raw = _read_text(key_node, source)
-            return raw.strip('"\'')
+            return raw.strip("\"'")
         return _read_text(key_node, source)
 
     def _val_node(pair_node):
         return pair_node.child_by_field_name("value")
 
-    def walk_object(obj_node, parent_nid: str, parent_key: str | None,
-                    depth: int, pair_count: list) -> None:
+    def walk_object(
+        obj_node, parent_nid: str, parent_key: str | None, depth: int, pair_count: list
+    ) -> None:
         if depth > 6:
             return
         for child in obj_node.children:
             if child.type != "pair":
                 continue
-            if pair_count[0] >= 500:  # check per-pair so the cap is honoured exactly (J-3)
+            if pair_count[0] >= 500:
                 return
             pair_count[0] += 1
             key = _key_text(child)
             if not key:
                 continue
-            # A key that normalizes to nothing (a JSONC `"//"` comment key, say)
-            # would collapse `_make_id(stem, key)` down to the bare file-stem id,
-            # which is absolute-path-derived and leaks the scan path (#1899). Such
-            # keys carry no graph signal, so drop them.
             if not normalize_id(key):
                 continue
             key_nid = _make_id(stem, *(([parent_key] if parent_key else []) + [key]))
@@ -162,13 +202,14 @@ def extract_json(path: Path) -> dict:
                 walk_object(val, key_nid, key, depth + 1, pair_count)
 
             elif val.type == "array":
-                # For "extends" arrays (tsconfig, eslint): each string element.
-                # Prefix with "ref_" so external refs don't collide with real
-                # code/file node IDs that share the same collapsed _make_id (J-4).
                 for item in val.children:
                     if item.type == "string":
                         content = item.child_by_field_name("string_content")
-                        ref = _read_text(content, source) if content else _read_text(item, source).strip('"\'')
+                        ref = (
+                            _read_text(content, source)
+                            if content
+                            else _read_text(item, source).strip("\"'")
+                        )
                         if ref:
                             ref_nid = _make_id("ref", ref)
                             if ref_nid:
@@ -177,17 +218,17 @@ def extract_json(path: Path) -> dict:
 
             elif val.type == "string":
                 content = val.child_by_field_name("string_content")
-                val_text = _read_text(content, source) if content else _read_text(val, source).strip('"\'')
+                val_text = (
+                    _read_text(content, source) if content else _read_text(val, source).strip("\"'")
+                )
 
                 if key == "extends" and val_text:
-                    # Namespace external refs to avoid ID collision with file nodes (J-4)
                     ref_nid = _make_id("ref", val_text)
                     if ref_nid:
                         add_node(ref_nid, val_text, line, file_type="concept")
                         add_edge(file_nid, ref_nid, "extends", line, context="import")
 
                 elif key == "$ref" and val_text:
-                    # Namespace $ref values to prevent edge hijacking into code nodes (J-4)
                     ref_nid = _make_id("ref", val_text)
                     if ref_nid:
                         add_edge(parent_nid, ref_nid, "references", line)
@@ -198,19 +239,14 @@ def extract_json(path: Path) -> dict:
                         add_node(dep_nid, key, line, file_type="concept")
                         add_edge(key_nid, dep_nid, "imports", line, context="import")
 
-    # Entry: find root document → object
     doc = root
     if doc.type == "document" and doc.child_count > 0:
         doc = doc.children[0]
     if doc.type == "object":
-        # Only AST-extract recognized config/manifest JSON. Data JSON (fixtures,
-        # datasets, GeoJSON, API dumps) is skipped so it doesn't explode into
-        # orphan key-nodes (#1224); it's left to the LLM semantic pass.
         if not _is_config_json(path, doc, source):
             return {"nodes": [], "edges": [], "skipped": "data json (not a config/manifest)"}
         walk_object(doc, file_nid, None, 0, [0])
     else:
-        # Top-level array or scalar => data JSON, never a config/manifest.
         return {"nodes": [], "edges": [], "skipped": "data json (non-object root)"}
 
     return {"nodes": nodes, "edges": edges}

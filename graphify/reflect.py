@@ -25,6 +25,7 @@ The artifact lands at ``graphify-out/reflections/LESSONS.md`` rather than inside
 because ``graphify export wiki`` deletes every ``wiki/*.md`` on each run — a lessons file
 written there would be clobbered on the next export.
 """
+
 from __future__ import annotations
 
 import json
@@ -39,29 +40,15 @@ from graphify.paths import GRAPHIFY_OUT_NAME
 
 _UNCATEGORIZED = "Uncategorized"
 
-# Derived experiential layer written alongside graph.json (a SIDECAR, kept
-# separate from the durable structural truth in graph.json — no learning_*
-# fields are ever stamped into the graph itself). Read-surface annotations are
-# merged in at display time from this file.
 LEARNING_SIDECAR_NAME = ".graphify_learning.json"
 _LEARNING_SCHEMA_VERSION = 1
-_PROVENANCE_CAP = 5  # most-recent (question, date, outcome) entries per node
+_PROVENANCE_CAP = 5
 
-# Scoring defaults (both exposed as CLI flags).
-_DEFAULT_HALF_LIFE_DAYS = 30.0   # a signal's weight halves every 30 days
-_DEFAULT_MIN_CORROBORATION = 2   # distinct useful results needed to "prefer" a node
+_DEFAULT_HALF_LIFE_DAYS = 30.0
+_DEFAULT_MIN_CORROBORATION = 2
 
-# Rounding for the signed score keeps sort order and the contested verdict stable
-# across platforms (C pow can differ in the last ULP).
 _SCORE_NDIGITS = 9
 
-
-# --- frontmatter parsing -------------------------------------------------------
-#
-# save_query_result writes a tiny, hand-built YAML subset (no PyYAML dependency),
-# so we parse the same subset by hand rather than adding a dependency: scalar
-# `key: "value"` lines and a `source_nodes: ["a", "b"]` flow list. Anything we
-# don't recognise is ignored, so foreign .md files in memory/ are skipped cleanly.
 
 _SCALAR_RE = re.compile(r'^([A-Za-z_][\w-]*):\s*"(.*)"\s*$')
 _LIST_RE = re.compile(r"^([A-Za-z_][\w-]*):\s*\[(.*)\]\s*$")
@@ -72,8 +59,16 @@ def _yaml_unescape(s: str) -> str:
     """Reverse the double-quoted escaping that ingest._yaml_str applies."""
     out: list[str] = []
     i = 0
-    simple = {"n": "\n", "r": "\r", "t": "\t", "0": "\0", '"': '"', "\\": "\\",
-              "L": "\u2028", "P": "\u2029"}  # YAML line/paragraph separators
+    simple = {
+        "n": "\n",
+        "r": "\r",
+        "t": "\t",
+        "0": "\0",
+        '"': '"',
+        "\\": "\\",
+        "L": "\u2028",
+        "P": "\u2029",
+    }
     while i < len(s):
         ch = s[i]
         if ch == "\\" and i + 1 < len(s):
@@ -84,14 +79,14 @@ def _yaml_unescape(s: str) -> str:
                 continue
             if nxt == "x" and i + 3 < len(s):
                 try:
-                    out.append(chr(int(s[i + 2:i + 4], 16)))
+                    out.append(chr(int(s[i + 2 : i + 4], 16)))
                     i += 4
                     continue
                 except ValueError:
                     pass
             if nxt == "u" and i + 5 < len(s):
                 try:
-                    out.append(chr(int(s[i + 2:i + 6], 16)))
+                    out.append(chr(int(s[i + 2 : i + 6], 16)))
                     i += 6
                     continue
                 except ValueError:
@@ -151,16 +146,13 @@ def load_memory_docs(memory_dir: Path) -> list[dict[str, Any]]:
             continue
         parsed["_path"] = path.name
         docs.append(parsed)
-    # Stable order: by (date, filename) so output is deterministic across runs.
     docs.sort(key=lambda d: (d.get("date", ""), d["_path"]))
     return docs
 
 
-# --- graph / community lookup (optional) ---------------------------------------
-
-
-def _load_node_community(graph_path: Path, analysis_path: Path,
-                         labels_path: Path) -> dict[str, str] | None:
+def _load_node_community(
+    graph_path: Path, analysis_path: Path, labels_path: Path
+) -> dict[str, str] | None:
     """Build a lookup from node id AND node label -> community label, or None if the
     graph isn't available.
 
@@ -185,7 +177,6 @@ def _load_node_community(graph_path: Path, analysis_path: Path,
             labels = json.loads(labels_path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             labels = {}
-    # id -> label from the graph, so a label-form citation resolves to a community too.
     id_to_label: dict[str, str] = {}
     try:
         gdata = json.loads(graph_path.read_text(encoding="utf-8"))
@@ -194,8 +185,6 @@ def _load_node_community(graph_path: Path, analysis_path: Path,
                 id_to_label[str(n["id"])] = str(n["label"])
     except (OSError, ValueError):
         id_to_label = {}
-    # Sorted cid iteration + setdefault makes any label collision resolve
-    # deterministically (smallest community id wins).
     node_community: dict[str, str] = {}
     for cid in sorted(communities, key=str):
         label = labels.get(str(cid)) or labels.get(cid) or f"Community {cid}"
@@ -237,8 +226,7 @@ def _load_known_nodes(graph_path: Path) -> set[str] | None:
     return known or None
 
 
-def _doc_community(nodes: list[str],
-                   node_community: dict[str, str] | None) -> str:
+def _doc_community(nodes: list[str], node_community: dict[str, str] | None) -> str:
     """The community a doc belongs to: the plurality community of its source nodes.
 
     Ties break to the lexicographically-smallest label, so the result is
@@ -251,12 +239,7 @@ def _doc_community(nodes: list[str],
     if not labels:
         return _UNCATEGORIZED
     counts = Counter(labels)
-    # Highest count wins; on a tie, the smaller label (most-negative count first,
-    # then ascending label) — a plain min() over (-count, label).
     return min(counts.items(), key=lambda kv: (-kv[1], kv[0]))[0]
-
-
-# --- scoring helpers -----------------------------------------------------------
 
 
 def _parse_dt(date_str: str) -> datetime | None:
@@ -285,31 +268,29 @@ def _decay(date_str: str, now: datetime, half_life_days: float) -> float:
     return 0.5 ** (age_days / half_life_days)
 
 
-# --- aggregation ---------------------------------------------------------------
-
-
 def _empty_bucket() -> dict[str, Any]:
     return {
         "counts": {k: 0 for k in (*OUTCOMES, "unmarked")},
-        # node -> running signed, time-decayed score
         "node_score": {},
-        # node -> distinct positive / negative result counts (for corroboration)
         "node_pos": Counter(),
         "node_neg": Counter(),
-        # node -> most recent event date seen (for the contested verdict line)
         "node_last": {},
-        # node -> list of (date, question, outcome) for useful/corrected citations.
-        # Feeds the sidecar overlay's per-node provenance; never read by LESSONS.md,
-        # so it doesn't touch the aggregate's public shape.
         "node_provenance": {},
         "dead_ends": [],
         "corrections": [],
     }
 
 
-def _record_node(bucket: dict[str, Any], node: str, sign: int,
-                 weight: float, date: str, *, outcome: str | None = None,
-                 question: str = "") -> None:
+def _record_node(
+    bucket: dict[str, Any],
+    node: str,
+    sign: int,
+    weight: float,
+    date: str,
+    *,
+    outcome: str | None = None,
+    question: str = "",
+) -> None:
     bucket["node_score"][node] = bucket["node_score"].get(node, 0.0) + sign * weight
     if sign > 0:
         bucket["node_pos"][node] += 1
@@ -317,15 +298,11 @@ def _record_node(bucket: dict[str, Any], node: str, sign: int,
         bucket["node_neg"][node] += 1
     if date > bucket["node_last"].get(node, ""):
         bucket["node_last"][node] = date
-    # Provenance: only useful/corrected events are recorded (the experiential
-    # trail an agent cares about — what cited this node, and how it turned out).
     if outcome in ("useful", "corrected"):
-        bucket["node_provenance"].setdefault(node, []).append(
-            (date, question, outcome))
+        bucket["node_provenance"].setdefault(node, []).append((date, question, outcome))
 
 
-def _finalize_sources(bucket: dict[str, Any],
-                      min_corroboration: int) -> dict[str, list]:
+def _finalize_sources(bucket: dict[str, Any], min_corroboration: int) -> dict[str, list]:
     """Split a bucket's scored nodes into preferred / tentative / contested lists."""
     preferred, tentative, contested = [], [], []
     for node in bucket["node_score"]:
@@ -334,13 +311,19 @@ def _finalize_sources(bucket: dict[str, Any],
         score = round(bucket["node_score"][node], _SCORE_NDIGITS)
         if pos and neg:
             verdict = "useful" if score > 0 else "dead end" if score < 0 else "even"
-            contested.append({"node": node, "pos": pos, "neg": neg,
-                              "score": score, "verdict": verdict,
-                              "last": bucket["node_last"].get(node, "")})
-        elif pos:  # positive-only
+            contested.append(
+                {
+                    "node": node,
+                    "pos": pos,
+                    "neg": neg,
+                    "score": score,
+                    "verdict": verdict,
+                    "last": bucket["node_last"].get(node, ""),
+                }
+            )
+        elif pos:
             entry = {"node": node, "n": pos, "score": score}
             (preferred if pos >= min_corroboration else tentative).append(entry)
-        # negative-only nodes are surfaced via the dead-ends questions, not here.
     preferred.sort(key=lambda e: (-e["score"], e["node"]))
     tentative.sort(key=lambda e: (-e["score"], e["node"]))
     contested.sort(key=lambda e: (-e["score"], e["node"]))
@@ -357,17 +340,18 @@ def _dedupe_by_question(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     latest: dict[str, dict[str, Any]] = {}
     for it in items:
         latest[it.get("question", "")] = it
-    return sorted(latest.values(),
-                  key=lambda it: (it.get("date", ""), it.get("question", "")))
+    return sorted(latest.values(), key=lambda it: (it.get("date", ""), it.get("question", "")))
 
 
-def aggregate_lessons(docs: list[dict[str, Any]],
-                      node_community: dict[str, str] | None = None,
-                      *,
-                      now: datetime | None = None,
-                      half_life_days: float = _DEFAULT_HALF_LIFE_DAYS,
-                      min_corroboration: int = _DEFAULT_MIN_CORROBORATION,
-                      known_nodes: set[str] | None = None) -> dict[str, Any]:
+def aggregate_lessons(
+    docs: list[dict[str, Any]],
+    node_community: dict[str, str] | None = None,
+    *,
+    now: datetime | None = None,
+    half_life_days: float = _DEFAULT_HALF_LIFE_DAYS,
+    min_corroboration: int = _DEFAULT_MIN_CORROBORATION,
+    known_nodes: set[str] | None = None,
+) -> dict[str, Any]:
     """Aggregate parsed memory docs into a deterministic lessons structure.
 
     ``now`` anchors the time-decay (pass it explicitly for byte-stable output).
@@ -387,10 +371,8 @@ def aggregate_lessons(docs: list[dict[str, Any]],
     for doc in docs:
         outcome = doc.get("outcome")
         date = doc.get("date", "")
-        # One event per node per doc; drop nodes the graph no longer knows about.
         raw = doc.get("source_nodes", [])
-        nodes = list(dict.fromkeys(
-            n for n in raw if known_nodes is None or n in known_nodes))
+        nodes = list(dict.fromkeys(n for n in raw if known_nodes is None or n in known_nodes))
         community = _doc_community(nodes, node_community)
         bucket = by_community.setdefault(community, _empty_bucket())
 
@@ -401,25 +383,37 @@ def aggregate_lessons(docs: list[dict[str, Any]],
             target["counts"][outcome if outcome in OUTCOMES else "unmarked"] += 1
             if sign:
                 for n in nodes:
-                    _record_node(target, n, sign, weight, date,
-                                 outcome=outcome, question=doc.get("question", ""))
+                    _record_node(
+                        target,
+                        n,
+                        sign,
+                        weight,
+                        date,
+                        outcome=outcome,
+                        question=doc.get("question", ""),
+                    )
             if outcome == "dead_end":
                 target["dead_ends"].append(
-                    {"question": doc.get("question", ""), "nodes": nodes, "date": date})
+                    {"question": doc.get("question", ""), "nodes": nodes, "date": date}
+                )
             elif outcome == "corrected":
                 target["corrections"].append(
-                    {"question": doc.get("question", ""),
-                     "correction": doc.get("correction", ""), "date": date})
+                    {
+                        "question": doc.get("question", ""),
+                        "correction": doc.get("correction", ""),
+                        "date": date,
+                    }
+                )
 
-    # Only surface per-community grouping when a graph was actually supplied;
-    # without one every doc falls into Uncategorized and the section would just
-    # duplicate the flat "Lessons" block.
     community_out: dict[str, dict[str, Any]] = {}
     if node_community:
         community_out = {
-            label: {"counts": b["counts"], **_finalize_sources(b, min_corroboration),
-                    "dead_ends": _dedupe_by_question(b["dead_ends"]),
-                    "corrections": _dedupe_by_question(b["corrections"])}
+            label: {
+                "counts": b["counts"],
+                **_finalize_sources(b, min_corroboration),
+                "dead_ends": _dedupe_by_question(b["dead_ends"]),
+                "corrections": _dedupe_by_question(b["corrections"]),
+            }
             for label, b in by_community.items()
         }
 
@@ -431,14 +425,8 @@ def aggregate_lessons(docs: list[dict[str, Any]],
         "dead_ends": _dedupe_by_question(overall["dead_ends"]),
         "corrections": _dedupe_by_question(overall["corrections"]),
         "by_community": community_out,
-        # Private: per-node (date, question, outcome) trail for the sidecar
-        # overlay's provenance. Underscore-prefixed and not rendered by
-        # render_lessons_md, so the public aggregate shape is unchanged.
         "_node_provenance": overall["node_provenance"],
     }
-
-
-# --- rendering -----------------------------------------------------------------
 
 
 def _render_bucket(out: list[str], data: dict[str, Any], k: int) -> None:
@@ -449,14 +437,12 @@ def _render_bucket(out: list[str], data: dict[str, Any], k: int) -> None:
     corrections = data["corrections"]
 
     if preferred:
-        out += [f"**Preferred sources** — corroborated by ≥{k} useful results; "
-                "start here.", ""]
+        out += [f"**Preferred sources** — corroborated by ≥{k} useful results; start here.", ""]
         for e in preferred:
             out.append(f"- `{e['node']}` ({e['n']}× useful)")
         out.append("")
     if tentative:
-        out += [f"**Tentative** — useful in fewer than {k} results; verify before "
-                "relying.", ""]
+        out += [f"**Tentative** — useful in fewer than {k} results; verify before relying.", ""]
         for e in tentative:
             out.append(f"- `{e['node']}` ({e['n']}× useful)")
         out.append("")
@@ -464,23 +450,24 @@ def _render_bucket(out: list[str], data: dict[str, Any], k: int) -> None:
         out += ["**Contested** — mixed signals; recency decides.", ""]
         for e in contested:
             day = e["last"][:10]
-            verdict = ("evenly split" if e["verdict"] == "even"
-                       else f"recency leans **{e['verdict']}**")
+            verdict = (
+                "evenly split" if e["verdict"] == "even" else f"recency leans **{e['verdict']}**"
+            )
             out.append(
                 f"- `{e['node']}` — {e['pos']}× useful, {e['neg']}× "
-                f"dead end/corrected → {verdict}"
-                + (f" (latest {day})" if day else ""))
+                f"dead end/corrected → {verdict}" + (f" (latest {day})" if day else "")
+            )
         out.append("")
     if dead_ends:
         out += ["**Known dead ends** — led nowhere; don't re-derive.", ""]
         for d in dead_ends:
             nodes = ", ".join(f"`{n}`" for n in d["nodes"])
-            out.append(f"- \"{d['question']}\"" + (f" — {nodes}" if nodes else ""))
+            out.append(f'- "{d["question"]}"' + (f" — {nodes}" if nodes else ""))
         out.append("")
     if corrections:
         out += ["**Corrections** — do these differently.", ""]
         for c in corrections:
-            out.append(f"- \"{c['question']}\" → {c['correction']}")
+            out.append(f'- "{c["question"]}" → {c["correction"]}')
         out.append("")
     if not (preferred or tentative or contested or dead_ends or corrections):
         out += ["_No marked outcomes yet._", ""]
@@ -510,24 +497,24 @@ def render_lessons_md(agg: dict[str, Any]) -> str:
 
     if agg["by_community"]:
         out += ["## By topic", ""]
-        # Uncategorized sorts last; everything else alphabetically.
+
         def _topic_key(label: str) -> tuple[int, str]:
             return (1 if label == _UNCATEGORIZED else 0, label)
+
         for label in sorted(agg["by_community"], key=_topic_key):
             out += [f"### {label}", ""]
             _render_bucket(out, agg["by_community"][label], k)
 
-    # Single trailing newline, no trailing whitespace lines.
     return "\n".join(out).rstrip("\n") + "\n"
 
 
-# --- orchestrator --------------------------------------------------------------
-
-
-def lessons_fresh(out_path: Path, memory_dir: Path,
-                  graph_path: Path | None = None,
-                  analysis_path: Path | None = None,
-                  labels_path: Path | None = None) -> bool:
+def lessons_fresh(
+    out_path: Path,
+    memory_dir: Path,
+    graph_path: Path | None = None,
+    analysis_path: Path | None = None,
+    labels_path: Path | None = None,
+) -> bool:
     """True if ``out_path`` exists and is at least as new as every input that
     feeds it (the memory docs, and the graph/sidecars when one is used).
 
@@ -541,7 +528,7 @@ def lessons_fresh(out_path: Path, memory_dir: Path,
     try:
         out_mtime = out_path.stat().st_mtime
     except OSError:
-        return False  # missing/unreadable -> must build
+        return False
     newest = 0.0
     md = Path(memory_dir)
     if md.is_dir():
@@ -561,15 +548,17 @@ def lessons_fresh(out_path: Path, memory_dir: Path,
     return out_mtime >= newest
 
 
-def reflect(memory_dir: Path, out_path: Path,
-            graph_path: Path | None = None,
-            analysis_path: Path | None = None,
-            labels_path: Path | None = None,
-            *,
-            now: datetime | None = None,
-            half_life_days: float = _DEFAULT_HALF_LIFE_DAYS,
-            min_corroboration: int = _DEFAULT_MIN_CORROBORATION,
-            ) -> tuple[Path, dict[str, Any]]:
+def reflect(
+    memory_dir: Path,
+    out_path: Path,
+    graph_path: Path | None = None,
+    analysis_path: Path | None = None,
+    labels_path: Path | None = None,
+    *,
+    now: datetime | None = None,
+    half_life_days: float = _DEFAULT_HALF_LIFE_DAYS,
+    min_corroboration: int = _DEFAULT_MIN_CORROBORATION,
+) -> tuple[Path, dict[str, Any]]:
     """Scan ``memory_dir``, write the lessons doc to ``out_path``, return (path, agg).
 
     If ``graph_path`` is given lessons are grouped by community and source nodes no
@@ -581,26 +570,32 @@ def reflect(memory_dir: Path, out_path: Path,
     known_nodes = None
     if graph_path is not None:
         graph_path = Path(graph_path)
-        analysis_path = Path(analysis_path) if analysis_path else (
-            graph_path.parent / ".graphify_analysis.json")
-        labels_path = Path(labels_path) if labels_path else (
-            graph_path.parent / ".graphify_labels.json")
+        analysis_path = (
+            Path(analysis_path)
+            if analysis_path
+            else (graph_path.parent / ".graphify_analysis.json")
+        )
+        labels_path = (
+            Path(labels_path) if labels_path else (graph_path.parent / ".graphify_labels.json")
+        )
         node_community = _load_node_community(graph_path, analysis_path, labels_path)
         known_nodes = _load_known_nodes(graph_path)
 
     if now is None:
         now = datetime.now(timezone.utc)
 
-    agg = aggregate_lessons(docs, node_community, now=now,
-                            half_life_days=half_life_days,
-                            min_corroboration=min_corroboration,
-                            known_nodes=known_nodes)
+    agg = aggregate_lessons(
+        docs,
+        node_community,
+        now=now,
+        half_life_days=half_life_days,
+        min_corroboration=min_corroboration,
+        known_nodes=known_nodes,
+    )
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(render_lessons_md(agg), encoding="utf-8")
 
-    # Also project a derived experiential sidecar next to graph.json when a graph
-    # is in hand. Best-effort: a sidecar failure must never break LESSONS.md.
     if graph_path is not None:
         try:
             write_learning_sidecar(agg, Path(graph_path), now=now)
@@ -610,17 +605,9 @@ def reflect(memory_dir: Path, out_path: Path,
     return out_path, agg
 
 
-# --- work-memory overlay sidecar ------------------------------------------------
-#
-# A derived, experiential projection of the reflect aggregate, written next to
-# graph.json as ``.graphify_learning.json``. It carries which nodes have proven
-# preferred/tentative/contested, a code fingerprint for staleness detection, and
-# a short provenance trail. graph.json (durable structural truth) is never
-# touched — read surfaces merge this overlay in only at display time.
-
-
-def _build_id_label_maps(graph_path: Path) -> tuple[dict[str, str], dict[str, list[str]],
-                                                    dict[str, dict[str, Any]]]:
+def _build_id_label_maps(
+    graph_path: Path,
+) -> tuple[dict[str, str], dict[str, list[str]], dict[str, dict[str, Any]]]:
     """From graph.json build:
 
     - ``id_set``: id -> id (every node id, so an id-form citation resolves to itself)
@@ -649,8 +636,9 @@ def _build_id_label_maps(graph_path: Path) -> tuple[dict[str, str], dict[str, li
     return id_set, label_to_ids, node_by_id
 
 
-def _resolve_canonical_id(cited: str, id_set: dict[str, str],
-                          label_to_ids: dict[str, list[str]]) -> str | None:
+def _resolve_canonical_id(
+    cited: str, id_set: dict[str, str], label_to_ids: dict[str, list[str]]
+) -> str | None:
     """Resolve a cited node (a label OR an id) to a single canonical node id.
 
     Returns None if the citation is unresolved (stale — gone from the graph) or
@@ -695,8 +683,7 @@ def _resolve_source_path(src: str, graph_path: Path) -> Path | None:
         if recorded:
             candidates.append(Path(recorded))
     except (OSError, ValueError):
-        pass  # unreadable/non-UTF-8 marker -> fall through (best-effort)
-    # Layout-appropriate root first (precision), then the other (robustness).
+        pass
     if out_dir.name == GRAPHIFY_OUT_NAME:
         candidates += [out_dir.parent, out_dir]
     else:
@@ -719,6 +706,7 @@ def _content_hash(path: Path) -> str:
     independent of which root resolved the file — write and read agree, and a
     committed sidecar stays valid across machines/checkouts."""
     import hashlib
+
     try:
         return hashlib.sha256(path.read_bytes()).hexdigest()
     except OSError:
@@ -738,8 +726,9 @@ def _code_fingerprint(node: dict[str, Any] | None, graph_path: Path) -> str:
     return _content_hash(sp) if sp is not None else ""
 
 
-def _provenance_for(node: str, prov_map: dict[str, list],
-                    fallback_outcome: str) -> list[dict[str, str]]:
+def _provenance_for(
+    node: str, prov_map: dict[str, list], fallback_outcome: str
+) -> list[dict[str, str]]:
     """Most-recent-first, capped provenance entries for a node.
 
     ``prov_map`` is the aggregate's private per-node (date, question, outcome)
@@ -747,7 +736,6 @@ def _provenance_for(node: str, prov_map: dict[str, list],
     happen for preferred/tentative/contested, which all have ≥1 positive event).
     """
     events = prov_map.get(node, [])
-    # Sort recent-first; (date desc, then question for a stable tiebreak).
     ordered = sorted(events, key=lambda e: (e[0], e[1]), reverse=True)
     out: list[dict[str, str]] = []
     for date, question, outcome in ordered[:_PROVENANCE_CAP]:
@@ -755,8 +743,9 @@ def _provenance_for(node: str, prov_map: dict[str, list],
     return out
 
 
-def build_learning_overlay(agg: dict[str, Any], graph_path: Path,
-                           *, now: datetime | None = None) -> dict[str, Any]:
+def build_learning_overlay(
+    agg: dict[str, Any], graph_path: Path, *, now: datetime | None = None
+) -> dict[str, Any]:
     """Project the reflect aggregate into the sidecar's ``{version, generated_at,
     nodes}`` structure, keyed by canonical node id.
 
@@ -773,18 +762,15 @@ def build_learning_overlay(agg: dict[str, Any], graph_path: Path,
     id_set, label_to_ids, node_by_id = _build_id_label_maps(graph_path)
     prov_map = agg.get("_node_provenance", {})
 
-    # id -> entry; a canonical id can be cited under both its id and label form,
-    # but the aggregate dedups per node string, so collisions here are benign and
-    # resolved deterministically by iteration order (preferred, tentative, contested).
     nodes_out: dict[str, dict[str, Any]] = {}
 
     def _add(entry_src: dict[str, Any], status: str) -> None:
         cited = entry_src["node"]
         cid = _resolve_canonical_id(cited, id_set, label_to_ids)
         if cid is None:
-            return  # ambiguous or stale — can't display against a single node
+            return
         if cid in nodes_out:
-            return  # first status wins (preferred > tentative > contested order)
+            return
         node = node_by_id.get(cid)
         out: dict[str, Any] = {
             "status": status,
@@ -800,9 +786,6 @@ def build_learning_overlay(agg: dict[str, Any], graph_path: Path,
             out["verdict"] = entry_src.get("verdict", "even")
             out["neg"] = entry_src.get("neg", 0)
         else:
-            # preferred/tentative carry no contested verdict; derive `last` from
-            # provenance if the finalizer didn't (positive-only buckets do track it
-            # via node_last for contested only).
             if not out["last"] and out["provenance"]:
                 out["last"] = out["provenance"][0]["date"]
         nodes_out[cid] = out
@@ -821,8 +804,9 @@ def build_learning_overlay(agg: dict[str, Any], graph_path: Path,
     }
 
 
-def write_learning_sidecar(agg: dict[str, Any], graph_path: Path,
-                           *, now: datetime | None = None) -> Path:
+def write_learning_sidecar(
+    agg: dict[str, Any], graph_path: Path, *, now: datetime | None = None
+) -> Path:
     """Write ``.graphify_learning.json`` next to ``graph_path`` deterministically.
 
     Sorted keys + indent=2 so re-runs on identical input (and a fixed ``now``)
@@ -871,12 +855,11 @@ def _is_stale(entry: dict[str, Any], graph_path: Path) -> bool:
     freshly-written verdict on unchanged code is never spuriously stale."""
     src = entry.get("source_file", "")
     if not src:
-        # No file to track — nothing to re-verify.
         return False
     sp = _resolve_source_path(src, graph_path)
     if sp is None:
-        return True  # file gone / unfindable — re-verify
+        return True
     stored = entry.get("code_fingerprint", "")
     if not stored:
-        return True  # had a file but never fingerprinted it -> can't trust -> stale
+        return True
     return _content_hash(sp) != stored

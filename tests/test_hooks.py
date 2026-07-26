@@ -1,4 +1,5 @@
 """Tests for hooks.py - git hook install/uninstall."""
+
 import os
 import shutil
 import subprocess
@@ -29,7 +30,7 @@ def test_install_is_executable(tmp_path):
     if os.name == "nt":
         assert hook.read_text(encoding="utf-8").startswith("#!/bin/sh\n")
     else:
-        assert hook.stat().st_mode & 0o111  # executable bit set
+        assert hook.stat().st_mode & 0o111
 
 
 def test_install_idempotent(tmp_path):
@@ -37,7 +38,6 @@ def test_install_idempotent(tmp_path):
     install(repo)
     result = install(repo)
     assert "already installed" in result
-    # marker appears only once
     hook = repo / ".git" / "hooks" / "post-commit"
     assert hook.read_text().count(_HOOK_MARKER) == 1
 
@@ -121,7 +121,6 @@ def test_status_shows_both_hooks(tmp_path):
     assert result.count("installed") >= 2
 
 
-
 def test_hooks_dir_resolves_relative_git_hooks_path(tmp_path, monkeypatch):
     repo = _make_git_repo(tmp_path)
 
@@ -156,10 +155,12 @@ def test_hooks_dir_accepts_absolute_git_hooks_path(tmp_path, monkeypatch):
 
     assert _hooks_dir(repo) == hooks.resolve()
 
+
 def test_hook_skips_head_on_exe():
     """Hook script must skip shebang extraction for .exe binaries (Windows)."""
     from graphify.hooks import _PYTHON_DETECT
-    assert "*.exe) _SHEBANG=" in _PYTHON_DETECT or '*.exe)' in _PYTHON_DETECT
+
+    assert "*.exe) _SHEBANG=" in _PYTHON_DETECT or "*.exe)" in _PYTHON_DETECT
 
 
 def test_install_embeds_pinned_interpreter(tmp_path):
@@ -174,16 +175,15 @@ def test_install_embeds_pinned_interpreter(tmp_path):
     Pinning sys.executable at install time makes the hook work regardless of PATH.
     """
     import re, sys
+
     repo = _make_git_repo(tmp_path)
     install(repo)
     commit_hook = (repo / ".git" / "hooks" / "post-commit").read_text()
     checkout_hook = (repo / ".git" / "hooks" / "post-checkout").read_text()
-    # Compute the sanitized value the same way install() does.
     expected = sys.executable if not re.search(r"[^a-zA-Z0-9/_.@:\\-]", sys.executable) else ""
     if expected:
         assert expected in commit_hook, "sanitized sys.executable missing from post-commit"
         assert expected in checkout_hook, "sanitized sys.executable missing from post-checkout"
-    # The placeholder must be fully substituted -- no __PINNED_PYTHON__ left.
     assert "__PINNED_PYTHON__" not in commit_hook, "placeholder not substituted in post-commit"
     assert "__PINNED_PYTHON__" not in checkout_hook, "placeholder not substituted in post-checkout"
 
@@ -195,6 +195,7 @@ def test_install_fallback_is_loud_not_silent(tmp_path):
     that the hook ran but found nothing, making the bug extremely hard to diagnose.
     """
     from graphify.hooks import _PYTHON_DETECT
+
     assert "could not locate" in _PYTHON_DETECT, (
         "fallback branch must print a diagnostic message; bare 'exit 0' is silent and unhelpful"
     )
@@ -203,6 +204,7 @@ def test_install_fallback_is_loud_not_silent(tmp_path):
 def test_hook_check_no_additionalContext(tmp_path):
     """graphify hook-check must not emit additionalContext — Codex Desktop rejects it."""
     import sys
+
     out = tmp_path / "graphify-out"
     out.mkdir()
     (out / "graph.json").write_text("{}", encoding="utf-8")
@@ -218,8 +220,6 @@ def test_hook_check_no_additionalContext(tmp_path):
     assert result.stdout == ""
     assert result.stderr == ""
 
-
-# ── #1161: background rebuild must not rely on nohup (missing on Git for Windows) ──
 
 import ast  # noqa: E402
 import re  # noqa: E402
@@ -290,10 +290,10 @@ def test_launcher_and_rebuild_body_are_valid_python(name, script):
     """Both the launcher and the rebuild body it re-executes must parse, so a
     quoting slip can't ship a hook that crashes the moment git fires it."""
     payload = _launcher_payload(script)
-    ast.parse(payload)  # launcher itself
+    ast.parse(payload)
     inner = re.search(r"_src = '''(.*?)'''", payload, re.DOTALL)
     assert inner, f"{name}: embedded rebuild body not found"
-    ast.parse(inner.group(1))  # the detached child's source
+    ast.parse(inner.group(1))
 
 
 def test_rebuild_bodies_are_shell_quote_safe():
@@ -302,7 +302,7 @@ def test_rebuild_bodies_are_shell_quote_safe():
     for body in (_REBUILD_BODY_COMMIT, _REBUILD_BODY_CHECKOUT):
         for bad in ('"', "$", "`", "\\"):
             assert bad not in body
-        assert "'''" not in body  # would terminate the launcher's _src literal
+        assert "'''" not in body
 
 
 @pytest.mark.parametrize(
@@ -314,12 +314,8 @@ def test_rebuild_bodies_read_graphify_root(name, body):
     repo top (#1173). Both bodies read <output-dir>/.graphify_root and pass the
     recovered root to _rebuild_code instead of the bare Path('.')."""
     assert ".graphify_root" in body, f"{name} ignores .graphify_root (#1173)"
-    # The output dir is resolved from GRAPHIFY_OUT at hook-run time, not hardcoded
-    # to graphify-out/, so a renamed output dir is still found (#1423).
     assert "GRAPHIFY_OUT" in body, f"{name} ignores the GRAPHIFY_OUT override (#1423)"
-    # The recovered root is what gets rebuilt, not a hardcoded cwd.
     assert "_rebuild_code(_root" in body, f"{name} does not pass the recovered root"
-    # Quote-safe inside the shell-double-quoted launcher: single quotes only.
     assert "read_text(encoding='utf-8')" in body, f"{name} root read is not single-quoted"
 
 
@@ -348,9 +344,6 @@ def test_rebuild_bodies_arm_a_timeout_without_sigalrm(name, body):
     dumped = "".join(ast.dump(stmt) for stmt in fallbacks[0])
     assert "attr='Timer'" in dumped, f"{name} fallback does not arm a threading.Timer (#2148)"
     assert "attr='_exit'" in dumped, f"{name} fallback does not kill the stuck rebuild (#2148)"
-    # The fallback logs the timeout itself, because os._exit skips the except
-    # handler that reports it on the SIGALRM path. Its prefix has to match the
-    # rest of the body, or the same event reads differently per platform.
     prefixes = set(re.findall(r"print\(f'\[([a-z ]+)\]", body))
     assert len(prefixes) == 1, f"{name} mixes log prefixes {sorted(prefixes)} (#2148)"
 
@@ -373,19 +366,23 @@ def test_installed_hooks_contain_no_nohup(tmp_path):
         assert "start_new_session=True" in text
 
 
-# ── #1385: reject Windows-style hooks paths instead of creating a junk dir ───
-
 def _set_hookspath(repo: Path, value: str) -> None:
-    subprocess.run(["git", "-C", str(repo), "config", "--local", "core.hooksPath", value],
-                   check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "--local", "core.hooksPath", value],
+        check=True,
+        capture_output=True,
+    )
 
 
-@pytest.mark.parametrize("winpath", [
-    r"C:\Users\u\repo\.git\hooks",
-    r"c:/Users/u/.git/hooks",
-    r"D:\hooks",
-    r"some\back\slashed\path",
-])
+@pytest.mark.parametrize(
+    "winpath",
+    [
+        r"C:\Users\u\repo\.git\hooks",
+        r"c:/Users/u/.git/hooks",
+        r"D:\hooks",
+        r"some\back\slashed\path",
+    ],
+)
 def test_windows_hookspath_rejected_no_junk_dir_on_posix(tmp_path, monkeypatch, winpath):
     """A Windows-style core.hooksPath must raise (loud failure), not silently
     create a backslash-named junk directory and report success on POSIX/WSL (#1385)."""
@@ -394,7 +391,6 @@ def test_windows_hookspath_rejected_no_junk_dir_on_posix(tmp_path, monkeypatch, 
     _set_hookspath(repo, winpath)
     with pytest.raises(RuntimeError, match="Windows path"):
         install(repo)
-    # no junk directory got created anywhere under the repo
     junk = [p for p in repo.rglob("*") if "\\" in p.name or p.name.startswith(("C:", "c:", "D:"))]
     assert junk == [], f"junk dir created: {junk}"
 
@@ -415,8 +411,6 @@ def test_default_hooks_dir_unaffected(tmp_path):
     assert (repo / ".git" / "hooks" / "post-commit").exists()
 
 
-# ── foreground hook cost: probes must be cheap and quiet ─────────────────────
-
 def test_probes_use_find_spec_not_full_import():
     """`python -c "import graphify"` executes the FULL package import — 10s+ on a
     cold cache or AV-scanned site-packages — and could run up to four times
@@ -425,6 +419,7 @@ def test_probes_use_find_spec_not_full_import():
     importlib.util.find_spec (no execution); the detached rebuild still reports
     a broken install loudly in its log."""
     from graphify.hooks import _PYTHON_DETECT
+
     assert '-c "import graphify"' not in _PYTHON_DETECT, (
         "interpreter probe still imports the full package in the hook foreground"
     )
@@ -438,6 +433,7 @@ def test_shebang_read_is_null_byte_safe():
     the extracted garbage always falls through to the slow fallbacks. The read
     must strip NULs before the command substitution sees them."""
     from graphify.hooks import _PYTHON_DETECT
+
     assert "tr -d '\\000'" in _PYTHON_DETECT, "shebang read is not NUL-safe"
 
 
@@ -446,6 +442,7 @@ def test_probe_prefers_sibling_python_exe_on_windows_layouts():
     .\\python.exe in a venv). Resolving that directly beats shebang-parsing a
     binary launcher — and works whether or not command -v kept the suffix."""
     from graphify.hooks import _PYTHON_DETECT
+
     assert "/../python.exe" in _PYTHON_DETECT
     assert "/python.exe" in _PYTHON_DETECT
 
@@ -454,6 +451,7 @@ def _extract_case_pattern(marker: str) -> str:
     """Pull the `*[!...]*` glob portion of a real case arm out of _PYTHON_DETECT
     by a unique anchor, so tests run against the emitted text, not a copy."""
     from graphify.hooks import _PYTHON_DETECT
+
     for line in _PYTHON_DETECT.splitlines():
         if marker in line:
             return line.strip().split(")")[0]
@@ -462,11 +460,16 @@ def _extract_case_pattern(marker: str) -> str:
 
 def _shell_verdict(pattern: str, candidate: str) -> str:
     result = subprocess.run(
-        ["bash", "-c", f'case "$1" in\n{pattern}) echo REJECTED ;;\n*) echo ACCEPTED ;;\nesac', "_", candidate],
-        capture_output=True, text=True,
+        [
+            "bash",
+            "-c",
+            f'case "$1" in\n{pattern}) echo REJECTED ;;\n*) echo ACCEPTED ;;\nesac',
+            "_",
+            candidate,
+        ],
+        capture_output=True,
+        text=True,
     )
-    # Fail loudly on a malformed case snippet instead of returning "" and
-    # producing a confusing ACCEPTED/REJECTED mismatch downstream.
     assert result.returncode == 0, (
         f"bash exited {result.returncode} for pattern {pattern!r}: {result.stderr.strip()}"
     )
@@ -474,10 +477,13 @@ def _shell_verdict(pattern: str, candidate: str) -> str:
 
 
 @pytest.mark.skipif(shutil.which("bash") is None, reason="bash required to exercise emitted glob")
-@pytest.mark.parametrize("winpath", [
-    r"C:\Users\u\.venv\Scripts\python.exe",
-    r"C:\Python311\python.exe",
-])
+@pytest.mark.parametrize(
+    "winpath",
+    [
+        r"C:\Users\u\.venv\Scripts\python.exe",
+        r"C:\Python311\python.exe",
+    ],
+)
 def test_file_path_allowlist_accepts_windows_backslash_path(winpath):
     """#2126: the .graphify_python FILE allowlist must accept real Windows paths
     at actual shell runtime. Old pattern rejected them due to bash bracket-escape."""
@@ -488,9 +494,12 @@ def test_file_path_allowlist_accepts_windows_backslash_path(winpath):
 
 
 @pytest.mark.skipif(shutil.which("bash") is None, reason="bash required to exercise emitted glob")
-@pytest.mark.parametrize("shebang_path", [
-    r"C:\Users\u\.venv\Scripts\python.exe",
-])
+@pytest.mark.parametrize(
+    "shebang_path",
+    [
+        r"C:\Users\u\.venv\Scripts\python.exe",
+    ],
+)
 def test_shebang_allowlist_accepts_windows_backslash_path(shebang_path):
     """#2126: the shebang-parsed launcher allowlist had no `:` or `\\` at all, so
     any Windows-style shebang path was unconditionally emptied. Must ACCEPT now."""
@@ -537,13 +546,13 @@ def test_hooks_skip_linked_worktrees(name, script):
     is the relative ".git") is not false-positived and wrongly skipped (#1809, #1806)."""
     assert script.count("_GFY_GITDIR=") == 1, f"{name} guard not present exactly once"
     assert "git rev-parse --git-common-dir" in script
-    # absolute-normalized compare, not a raw string compare of git output
     assert 'cd "$(git rev-parse --git-dir 2>/dev/null)" 2>/dev/null && pwd' in script
     assert '[ "$_GFY_GITDIR" != "$_GFY_COMMONDIR" ]' in script
 
 
 def _worktree_guard_snippet() -> str:
     from graphify.hooks import _WORKTREE_GUARD
+
     return _WORKTREE_GUARD + "echo RAN\n"
 
 
@@ -556,8 +565,7 @@ def test_worktree_guard_runs_on_primary_skips_linked(tmp_path):
     primary.mkdir()
 
     def _git(*args, cwd):
-        subprocess.run(["git", *args], cwd=cwd, check=True,
-                       capture_output=True, text=True)
+        subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True)
 
     _git("init", "-q", ".", cwd=primary)
     _git("config", "user.email", "t@t.co", cwd=primary)
@@ -569,15 +577,11 @@ def test_worktree_guard_runs_on_primary_skips_linked(tmp_path):
     _git("worktree", "add", "-q", str(linked), "-b", "feature", cwd=primary)
 
     snippet = _worktree_guard_snippet()
-    r_primary = subprocess.run(["sh", "-c", snippet], cwd=primary,
-                               capture_output=True, text=True)
-    r_linked = subprocess.run(["sh", "-c", snippet], cwd=linked,
-                              capture_output=True, text=True)
+    r_primary = subprocess.run(["sh", "-c", snippet], cwd=primary, capture_output=True, text=True)
+    r_linked = subprocess.run(["sh", "-c", snippet], cwd=linked, capture_output=True, text=True)
     assert "RAN" in r_primary.stdout, "guard wrongly skipped the primary checkout"
     assert "RAN" not in r_linked.stdout, "guard failed to skip the linked worktree"
 
-
-# ── #1907: duplicate keys in .git/config must not trigger spurious warnings ──
 
 def _append_duplicate_config_entries(repo: Path) -> None:
     """Append git-legal duplicate keys/sections (as VS Code writes them)."""
@@ -618,8 +622,6 @@ def test_hooks_dir_duplicate_config_keys_honor_custom_hookspath(tmp_path, capsys
     assert d == (repo / ".husky").resolve()
 
 
-# ── #1902: hook install must register the graph.json union merge driver ─────
-
 def test_install_registers_merge_driver(tmp_path):
     """install() must set merge.graphify.* via git config and add the
     .gitattributes line that README/CHANGELOG 0.7.0 document (#1902)."""
@@ -627,17 +629,15 @@ def test_install_registers_merge_driver(tmp_path):
     result = install(repo)
     res = subprocess.run(
         ["git", "-C", str(repo), "config", "--get", "merge.graphify.driver"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     assert res.returncode == 0
     driver = res.stdout.strip()
     assert driver
     assert "merge-driver %O %A %B" in driver
     attrs = (repo / ".gitattributes").read_text(encoding="utf-8")
-    assert any(
-        "graph.json" in line and "merge=graphify" in line
-        for line in attrs.splitlines()
-    )
+    assert any("graph.json" in line and "merge=graphify" in line for line in attrs.splitlines())
     assert "merge driver" in result
 
 
@@ -670,7 +670,8 @@ def test_uninstall_removes_merge_driver_keeps_other_attrs(tmp_path):
     uninstall(repo)
     res = subprocess.run(
         ["git", "-C", str(repo), "config", "--get", "merge.graphify.driver"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     assert res.returncode != 0
     content = (repo / ".gitattributes").read_text(encoding="utf-8")
@@ -678,11 +679,14 @@ def test_uninstall_removes_merge_driver_keeps_other_attrs(tmp_path):
     assert "merge=graphify" not in content
 
 
-@pytest.mark.parametrize("exe", [
-    r"C:\Users\First Last\AppData\Roaming\uv\tools\graphifyy\Scripts\python.exe",
-    r"C:\Program Files\Python312\python.exe",
-    "/home/first last/.local/share/uv/tools/graphifyy/bin/python",
-])
+@pytest.mark.parametrize(
+    "exe",
+    [
+        r"C:\Users\First Last\AppData\Roaming\uv\tools\graphifyy\Scripts\python.exe",
+        r"C:\Program Files\Python312\python.exe",
+        "/home/first last/.local/share/uv/tools/graphifyy/bin/python",
+    ],
+)
 def test_pinned_python_accepts_paths_containing_spaces(exe, monkeypatch):
     """#2166: a space must not empty the pin.
 
@@ -700,14 +704,17 @@ def test_pinned_python_accepts_paths_containing_spaces(exe, monkeypatch):
     assert _pinned_python() == exe, "a path containing a space must still be pinned"
 
 
-@pytest.mark.parametrize("exe", [
-    r"C:\Users\evil\python.exe; rm -rf /",
-    "/tmp/py`id`",
-    "/tmp/py$(id)",
-    "/tmp/py$IFS",
-    r"C:\Users\ev'il\python.exe",
-    '/tmp/py"quote',
-])
+@pytest.mark.parametrize(
+    "exe",
+    [
+        r"C:\Users\evil\python.exe; rm -rf /",
+        "/tmp/py`id`",
+        "/tmp/py$(id)",
+        "/tmp/py$IFS",
+        r"C:\Users\ev'il\python.exe",
+        '/tmp/py"quote',
+    ],
+)
 def test_pinned_python_still_rejects_shell_metacharacters(exe, monkeypatch):
     """Widening the allowlist for spaces (#2166) must not admit anything that can
     start a substitution, end the single-quoted assignment, or chain a command."""
@@ -734,7 +741,9 @@ def test_merge_driver_quotes_interpreter_with_spaces(tmp_path, monkeypatch):
 
     driver = subprocess.run(
         ["git", "-C", str(repo), "config", "--get", "merge.graphify.driver"],
-        capture_output=True, text=True, check=True,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
     assert driver.startswith(f'"{exe}"'), f"interpreter not quoted in merge driver: {driver!r}"
     assert driver.endswith("-m graphify merge-driver %O %A %B")

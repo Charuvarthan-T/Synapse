@@ -7,6 +7,7 @@ that advice silently DOWNGRADES the skill. These tests pin that the warning is
 now direction-aware: skill-older -> recommend install; skill-newer -> recommend
 upgrading the package instead.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -26,11 +27,11 @@ def _make_skill(tmp_path: Path, stamped: str) -> Path:
 
 def test_version_tuple_orders_numerically():
     vt = mainmod._version_tuple
-    assert vt("0.9.2") > vt("0.8.27")     # 9 > 8, not string-compared
-    assert vt("0.10.0") > vt("0.9.0")     # 10 > 9
+    assert vt("0.9.2") > vt("0.8.27")
+    assert vt("0.10.0") > vt("0.9.0")
     assert vt("0.9.3") == vt("0.9.3")
-    assert vt("1.0.0rc1") == vt("1.0.0")  # pre-release suffix compares by core
-    assert vt("") == (0,)                 # malformed stamp degrades, no raise
+    assert vt("1.0.0rc1") == vt("1.0.0")
+    assert vt("") == (0,)
 
 
 def test_skill_older_than_package_recommends_install(tmp_path, monkeypatch, capsys):
@@ -47,7 +48,6 @@ def test_skill_newer_than_package_recommends_upgrade_not_install(tmp_path, monke
     skill_dst = _make_skill(tmp_path, "0.9.2")
     mainmod._check_skill_version(skill_dst)
     err = capsys.readouterr().err
-    # must NOT tell the user to run install (that would downgrade the skill)
     assert "Run 'graphify install' to update" not in err
     assert "downgrade" in err
     assert "upgrade" in err.lower()

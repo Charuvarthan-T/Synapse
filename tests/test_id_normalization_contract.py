@@ -14,6 +14,7 @@ implementation and cannot diverge. These tests lock that contract: if a future
 change re-forks the normalization (a new local helper, an inlined regex, a
 dropped ``casefold``), they fail.
 """
+
 import re
 
 import pytest
@@ -22,23 +23,21 @@ from graphify.build import _normalize_id
 from graphify.extract import _make_id
 from graphify.ids import make_id, normalize_id
 
-# Inputs that previously diverged or are easy to get wrong. The single-part form
-# of `_make_id` must equal `_normalize_id` for every one of these.
 CONTRACT_CASES = [
-    "Session_ValidateToken",      # casing
-    "session.validate-token",     # punctuation -> underscore
-    "foo__bar..baz",              # repeated separators collapse
-    "  Leading_Trailing__  ",     # strip stray underscores/space
-    "A/B\\C",                     # path separators both directions
-    "MixedCASE",                  # #811: casefold
-    "café",                       # composed accented Latin (NFKC)
-    "café",                 # decomposed e + combining acute -> same as 'café'
-    "日本語クラス",                  # #811: CJK letters survive, not collapsed
-    "Кириллица",                  # Cyrillic survives
-    "naïve_Über",                 # mixed accented Latin
-    "x_c1",                       # must NOT be treated as a chunk suffix here
-    "__dunder__",                 # leading/trailing underscores stripped
-    "tab\tnewline\nspace ",       # whitespace runs -> single underscore
+    "Session_ValidateToken",
+    "session.validate-token",
+    "foo__bar..baz",
+    "  Leading_Trailing__  ",
+    "A/B\\C",
+    "MixedCASE",
+    "café",
+    "café",
+    "日本語クラス",
+    "Кириллица",
+    "naïve_Über",
+    "x_c1",
+    "__dunder__",
+    "tab\tnewline\nspace ",
 ]
 
 
@@ -62,9 +61,10 @@ def test_make_id_joins_then_normalizes():
     ever sees the joined string, so these must coincide)."""
     parts = ("auth", "session.py", "ValidateToken")
     assert make_id(*parts) == normalize_id("_".join(parts))
-    # Documented spec example.
-    assert make_id("src/auth/session.py".split("/")[-2], "session", "ValidateToken") == \
-        "auth_session_validatetoken"
+    assert (
+        make_id("src/auth/session.py".split("/")[-2], "session", "ValidateToken")
+        == "auth_session_validatetoken"
+    )
 
 
 def test_unicode_identifiers_do_not_collapse_to_empty():
@@ -87,22 +87,16 @@ def test_normalized_ids_are_safe_node_ids():
 def test_both_callers_share_one_implementation():
     """Guard against re-forking: the two public callers must resolve to the same
     underlying function object as graphify.ids.normalize_id."""
-    # build._normalize_id is imported directly from graphify.ids.
     assert _normalize_id is normalize_id
-    # extract._make_id wraps make_id; prove it round-trips through the shared core.
     assert _make_id("Foo.Bar") == normalize_id("Foo.Bar")
-    # The other two live ID producers — MCP config ingestion and bash symbol
-    # resolution — must also resolve to the shared recipe, or the "single source
-    # of truth" leaks back into copy-pasted forks (#1378).
     from graphify.mcp_ingest import _make_id as _mcp_make_id
     from graphify.symbol_resolution import _bash_make_id
+
     for fn in (_make_id, _mcp_make_id, _bash_make_id):
         assert fn("Foo.Bar", "baz") == make_id("Foo.Bar", "baz")
         assert fn("Ångström", "Ⅳ") == make_id("Ångström", "Ⅳ")
 
 
-# Optional property-based fuzzing — hypothesis is a dev dependency. Skip cleanly
-# if it is unavailable so the deterministic cases above still run everywhere.
 hypothesis = pytest.importorskip("hypothesis")
 from hypothesis import given  # noqa: E402
 from hypothesis import strategies as st  # noqa: E402

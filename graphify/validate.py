@@ -1,4 +1,3 @@
-# validate extraction JSON against the graphify schema before graph assembly
 from __future__ import annotations
 
 VALID_FILE_TYPES = {"code", "document", "paper", "image", "rationale", "concept"}
@@ -17,13 +16,8 @@ def validate_extraction(data: dict) -> list[str]:
 
     errors: list[str] = []
 
-    # Collected during the node pass so the edge pass can reuse it. Only
-    # hashable ids land here; a non-hashable id (e.g. a list emitted by a
-    # malformed LLM extraction) is reported as an error rather than crashing
-    # the validator on set construction.
     node_ids: set = set()
 
-    # Nodes
     if "nodes" not in data:
         errors.append("Missing required key 'nodes'")
     elif not isinstance(data["nodes"], list):
@@ -35,7 +29,9 @@ def validate_extraction(data: dict) -> list[str]:
                 continue
             for field in REQUIRED_NODE_FIELDS:
                 if field not in node:
-                    errors.append(f"Node {i} (id={node.get('id', '?')!r}) missing required field '{field}'")
+                    errors.append(
+                        f"Node {i} (id={node.get('id', '?')!r}) missing required field '{field}'"
+                    )
             if "id" in node:
                 try:
                     hash(node["id"])
@@ -51,7 +47,6 @@ def validate_extraction(data: dict) -> list[str]:
                     f"'{node['file_type']}' - must be one of {sorted(VALID_FILE_TYPES)}"
                 )
 
-    # Edges - accept "links" (NetworkX <= 3.1) as fallback for "edges"
     edge_list = data.get("edges") if "edges" in data else data.get("links")
     if edge_list is None:
         errors.append("Missing required key 'edges'")
@@ -77,9 +72,7 @@ def validate_extraction(data: dict) -> list[str]:
                 try:
                     unmatched = bool(node_ids) and val not in node_ids
                 except TypeError:
-                    errors.append(
-                        f"Edge {i} {endpoint} {val!r} is non-hashable - must be a string"
-                    )
+                    errors.append(f"Edge {i} {endpoint} {val!r} is non-hashable - must be a string")
                     continue
                 if unmatched:
                     errors.append(f"Edge {i} {endpoint} '{val}' does not match any node id")
@@ -91,5 +84,7 @@ def assert_valid(data: dict) -> None:
     """Raise ValueError with all errors if extraction is invalid."""
     errors = validate_extraction(data)
     if errors:
-        msg = f"Extraction JSON has {len(errors)} error(s):\n" + "\n".join(f"  • {e}" for e in errors)
+        msg = f"Extraction JSON has {len(errors)} error(s):\n" + "\n".join(
+            f"  • {e}" for e in errors
+        )
         raise ValueError(msg)

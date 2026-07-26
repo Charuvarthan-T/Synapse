@@ -21,12 +21,11 @@ from graphify.resolver_registry import (
 def _make_resolver(name: str, suffix: str, log: list[str]) -> LanguageResolver:
     def _resolve(per_file, all_nodes, all_edges):
         log.append(name)
+
     return LanguageResolver(name, frozenset({suffix}), _resolve)
 
 
 def test_default_registry_contains_swift_then_python() -> None:
-    # Importing extract registers its resolvers into the shared registry. Order
-    # matters: it preserves the prior inlined wiring (Swift before Python).
     import graphify.extract  # noqa: F401  (registers resolvers on import)
 
     names = [r.name for r in registered_resolvers()]
@@ -39,7 +38,7 @@ def test_resolver_runs_only_when_suffix_present() -> None:
     log: list[str] = []
     resolvers = [_make_resolver("ruby", ".rb", log), _make_resolver("go", ".go", log)]
     run_language_resolvers([Path("a.rb")], [], [], [], resolvers=resolvers)
-    assert log == ["ruby"]  # go skipped: no .go file present
+    assert log == ["ruby"]
 
 
 def test_resolvers_run_in_given_order() -> None:
@@ -59,7 +58,6 @@ def test_failing_resolver_is_isolated() -> None:
         LanguageResolver("boom", frozenset({".rb"}), _boom),
         _make_resolver("after", ".rb", log),
     ]
-    # Must not raise, and the later resolver still runs.
     run_language_resolvers([Path("a.rb")], [], [], [], resolvers=resolvers)
     assert log == ["after"]
 

@@ -20,10 +20,7 @@ def _extract_for(paths: list[Path], root: Path):
 
 def _has_edge(result: dict, source: str, target: str, relation: str = "imports_from") -> bool:
     expected = (_file_node_id(Path(source)), _file_node_id(Path(target)), relation)
-    actual = {
-        (edge["source"], edge["target"], edge["relation"])
-        for edge in result["edges"]
-    }
+    actual = {(edge["source"], edge["target"], edge["relation"]) for edge in result["edges"]}
     return expected in actual
 
 
@@ -34,11 +31,12 @@ def _has_symbol_edge(
     symbol: str,
     relation: str = "imports",
 ) -> bool:
-    expected = (_file_node_id(Path(source)), _make_id(_file_stem(Path(target_file)), symbol), relation)
-    actual = {
-        (edge["source"], edge["target"], edge["relation"])
-        for edge in result["edges"]
-    }
+    expected = (
+        _file_node_id(Path(source)),
+        _make_id(_file_stem(Path(target_file)), symbol),
+        relation,
+    )
+    actual = {(edge["source"], edge["target"], edge["relation"]) for edge in result["edges"]}
     return expected in actual
 
 
@@ -55,10 +53,7 @@ def _has_symbol_to_symbol_edge(
         _make_id(_file_stem(Path(target_file)), target_symbol),
         relation,
     )
-    actual = {
-        (edge["source"], edge["target"], edge["relation"])
-        for edge in result["edges"]
-    }
+    actual = {(edge["source"], edge["target"], edge["relation"]) for edge in result["edges"]}
     return expected in actual
 
 
@@ -175,10 +170,7 @@ def test_js_namespace_reexport_import_targets_real_binding(
         _file_node_id(Path(f"src/lib/index.{suffix}")),
         namespace_id,
         "contains",
-    ) in {
-        (edge["source"], edge["target"], edge["relation"])
-        for edge in result["edges"]
-    }
+    ) in {(edge["source"], edge["target"], edge["relation"]) for edge in result["edges"]}
     assert not [
         edge
         for edge in result["edges"]
@@ -284,7 +276,9 @@ def test_ts_reexported_type_alias_resolves_imported_symbol_to_origin(tmp_path: P
 
 
 def test_ts_reexported_abstract_class_resolves_imported_symbol_to_origin(tmp_path: Path):
-    target = _write(tmp_path / "src/lib/foo.ts", "export abstract class Foo { abstract run(): void }\n")
+    target = _write(
+        tmp_path / "src/lib/foo.ts", "export abstract class Foo { abstract run(): void }\n"
+    )
     barrel = _write(tmp_path / "src/lib/index.ts", "export { Foo } from './foo'\n")
     consumer = _write(
         tmp_path / "src/routes/page.ts",
@@ -314,7 +308,9 @@ def test_ts_const_alias_reexport_resolves_imported_symbol_to_origin(tmp_path: Pa
     assert _has_symbol_edge(result, "src/routes/page.ts", "src/lib/foo.ts", "Foo")
 
 
-def test_ts_local_const_alias_then_named_reexport_resolves_imported_symbol_to_origin(tmp_path: Path):
+def test_ts_local_const_alias_then_named_reexport_resolves_imported_symbol_to_origin(
+    tmp_path: Path,
+):
     target = _write(tmp_path / "src/lib/foo.ts", "export function makeFoo() { return {} }\n")
     barrel = _write(
         tmp_path / "src/lib/index.ts",
@@ -393,7 +389,9 @@ def test_ts_import_alias_call_from_same_named_local_symbol_targets_origin(tmp_pa
 
 
 def test_svelte_rune_import_resolves_svelte_ts_file(tmp_path: Path):
-    target = _write(tmp_path / "src/lib/hooks/is-mobile.svelte.ts", "export const isMobile = true\n")
+    target = _write(
+        tmp_path / "src/lib/hooks/is-mobile.svelte.ts", "export const isMobile = true\n"
+    )
     importer = _write(
         tmp_path / "src/routes/page.ts",
         "import { isMobile } from '../lib/hooks/is-mobile.svelte'\nconsole.log(isMobile)\n",
@@ -405,39 +403,29 @@ def test_svelte_rune_import_resolves_svelte_ts_file(tmp_path: Path):
 
 
 def test_ts_dynamic_import_does_not_create_phantom_cycle(tmp_path: Path):
-    # A deferred `import('./x')` is not a static import: it must be emitted as a
-    # `dynamic_import` edge (like the Svelte/Astro/Vue emitters), not
-    # `imports_from`. Otherwise two files that reference each other via one static
-    # import + one dynamic import are reported as a phantom circular dependency.
-    # Regression test for #1241.
     import networkx as nx
 
     from graphify.analyze import find_import_cycles
 
     actions = _write(
         tmp_path / "actions.ts",
-        'export function doThing() {}\n'
-        'export async function lazy() {\n'
+        "export function doThing() {}\n"
+        "export async function lazy() {\n"
         '  const m = await import("./modal");\n'
-        '  return m.openModal();\n'
-        '}\n',
+        "  return m.openModal();\n"
+        "}\n",
     )
     modal = _write(
         tmp_path / "modal.ts",
-        'import { doThing } from "./actions";\n'
-        'export function openModal() { doThing(); }\n',
+        'import { doThing } from "./actions";\nexport function openModal() { doThing(); }\n',
     )
 
     result = _extract_for([actions, modal], tmp_path)
 
-    # The deferred import() edge stays in the graph as an `imports_from` edge
-    # marked `deferred` (the dependency remains visible); the real static import
-    # (modal.ts -> actions.ts) is unaffected.
     deferred = [edge for edge in result["edges"] if edge.get("deferred")]
     assert deferred and all(edge["relation"] == "imports_from" for edge in deferred)
     assert _has_edge(result, "modal.ts", "actions.ts", "imports_from")
 
-    # End to end: the deferred import must not manufacture a file cycle.
     graph = nx.DiGraph()
     for node in result["nodes"]:
         graph.add_node(node["id"], **{k: v for k, v in node.items() if k != "id"})
@@ -467,14 +455,11 @@ def test_tsconfig_alias_import_resolves_existing_ts_file(tmp_path: Path):
 
 
 def test_tsconfig_alias_with_subdirectory_baseurl_resolves_existing_ts_file(tmp_path: Path):
-    # `paths` are resolved relative to `baseUrl`, which is commonly a
-    # subdirectory in monorepo / NestJS layouts (baseUrl "./src").
-    # Regression: baseUrl was ignored, so "@services/*": ["services/*"] with
-    # baseUrl "./src" resolved to <root>/services instead of <root>/src/services,
-    # and every aliased import edge was silently dropped.
     _write(
         tmp_path / "tsconfig.json",
-        json.dumps({"compilerOptions": {"baseUrl": "./src", "paths": {"@services/*": ["services/*"]}}}),
+        json.dumps(
+            {"compilerOptions": {"baseUrl": "./src", "paths": {"@services/*": ["services/*"]}}}
+        ),
     )
     target = _write(tmp_path / "src/services/foo/index.ts", "export class Foo { id = '' }\n")
     importer = _write(
@@ -488,11 +473,6 @@ def test_tsconfig_alias_with_subdirectory_baseurl_resolves_existing_ts_file(tmp_
 
 
 def test_tsconfig_array_extends_alias_resolves_existing_ts_file(tmp_path: Path):
-    # TypeScript 5.0 allows `extends` as an array; later entries override
-    # earlier ones. The `paths` alias is inherited from the second parent.
-    # Regression: an array `extends` previously raised
-    # `AttributeError: 'list' object has no attribute 'startswith'`, which
-    # _safe_extract turned into a skip of every file using the alias.
     _write(tmp_path / "tsconfig.base.json", json.dumps({"compilerOptions": {"strict": True}}))
     _write(
         tmp_path / "tsconfig.paths.json",
@@ -526,8 +506,6 @@ def test_default_import_resolves_to_default_exported_class(tmp_path: Path):
 
 
 def test_default_import_with_renamed_binding_resolves_to_origin(tmp_path: Path):
-    # The local binding may differ from the exported symbol name; the edge must
-    # still target the origin symbol, not the local binding.
     target = _write(tmp_path / "src/lib/foo.ts", "export default class Foo { id = '' }\n")
     importer = _write(
         tmp_path / "src/routes/page.ts",
@@ -552,9 +530,6 @@ def test_export_default_identifier_resolves_default_import(tmp_path: Path):
 
 
 def test_default_import_call_resolves_to_default_exported_function(tmp_path: Path):
-    # Binding a default import also lets calls through it resolve to the origin.
-    # The local binding (`mk`) deliberately differs from the exported name so the
-    # edge can only come from the default-import alias, not global-label matching.
     target = _write(tmp_path / "src/lib/foo.ts", "export default function makeFoo() { return 1 }\n")
     importer = _write(
         tmp_path / "src/routes/page.ts",
@@ -671,13 +646,15 @@ def test_workspace_subpath_export_string_resolves(tmp_path: Path):
     )
     _write(
         tmp_path / "packages/pkg-a/package.json",
-        json.dumps({
-            "name": "@example/pkg-a",
-            "exports": {
-                ".": "./src/index.ts",
-                "./browser": "./src/browser.ts",
-            },
-        }),
+        json.dumps(
+            {
+                "name": "@example/pkg-a",
+                "exports": {
+                    ".": "./src/index.ts",
+                    "./browser": "./src/browser.ts",
+                },
+            }
+        ),
     )
     target = _write(
         tmp_path / "packages/pkg-a/src/browser.ts",
@@ -700,17 +677,19 @@ def test_workspace_subpath_export_condition_object_resolves(tmp_path: Path):
     )
     _write(
         tmp_path / "packages/pkg-a/package.json",
-        json.dumps({
-            "name": "@example/pkg-a",
-            "exports": {
-                "./browser": {
-                    "source": "./src/browser.ts",
-                    "import": "./dist/esm/browser.js",
-                    "require": "./dist/cjs/browser.js",
-                    "types": "./dist/types/browser.d.ts",
+        json.dumps(
+            {
+                "name": "@example/pkg-a",
+                "exports": {
+                    "./browser": {
+                        "source": "./src/browser.ts",
+                        "import": "./dist/esm/browser.js",
+                        "require": "./dist/cjs/browser.js",
+                        "types": "./dist/types/browser.d.ts",
+                    },
                 },
-            },
-        }),
+            }
+        ),
     )
     target = _write(
         tmp_path / "packages/pkg-a/src/browser.ts",
@@ -733,12 +712,14 @@ def test_workspace_subpath_export_wildcard_resolves(tmp_path: Path):
     )
     _write(
         tmp_path / "packages/pkg-a/package.json",
-        json.dumps({
-            "name": "@example/pkg-a",
-            "exports": {
-                "./*": {"source": "./src/*.ts"},
-            },
-        }),
+        json.dumps(
+            {
+                "name": "@example/pkg-a",
+                "exports": {
+                    "./*": {"source": "./src/*.ts"},
+                },
+            }
+        ),
     )
     target = _write(
         tmp_path / "packages/pkg-a/src/utils.ts",
@@ -778,24 +759,21 @@ def test_workspace_subpath_export_falls_back_to_filesystem(tmp_path: Path):
 
 
 def test_workspace_subpath_export_rejects_path_escape(tmp_path: Path):
-    # An exports target that escapes the package dir must NOT resolve to the
-    # outside path (path-containment security guard). Resolution falls through
-    # to the bare-path fallback, which has no real file here, so no edge lands
-    # on the escaped target.
     _write(
         tmp_path / "pnpm-workspace.yaml",
         "packages:\n  - 'apps/*'\n  - 'packages/*'\n",
     )
     _write(
         tmp_path / "packages/pkg-a/package.json",
-        json.dumps({
-            "name": "@example/pkg-a",
-            "exports": {
-                "./evil": "../../../../secret.ts",
-            },
-        }),
+        json.dumps(
+            {
+                "name": "@example/pkg-a",
+                "exports": {
+                    "./evil": "../../../../secret.ts",
+                },
+            }
+        ),
     )
-    # A real file outside the package that the malicious export points at.
     outside = _write(
         tmp_path / "secret.ts",
         'export const leak = "secret"\n',
@@ -807,28 +785,27 @@ def test_workspace_subpath_export_rejects_path_escape(tmp_path: Path):
 
     result = _extract_for([outside, importer], tmp_path)
 
-    # The import must NOT resolve to the escaped outside file.
     assert not _has_edge(result, "apps/web/src/consumer.ts", "secret.ts")
 
 
 def test_workspace_subpath_export_default_consulted_last(tmp_path: Path):
-    # When both `default` and an earlier condition match, the earlier
-    # condition (import) must win -- `default` is Node's catch-all.
     _write(
         tmp_path / "pnpm-workspace.yaml",
         "packages:\n  - 'apps/*'\n  - 'packages/*'\n",
     )
     _write(
         tmp_path / "packages/pkg-a/package.json",
-        json.dumps({
-            "name": "@example/pkg-a",
-            "exports": {
-                "./browser": {
-                    "default": "./src/default-entry.ts",
-                    "import": "./src/import-entry.ts",
+        json.dumps(
+            {
+                "name": "@example/pkg-a",
+                "exports": {
+                    "./browser": {
+                        "default": "./src/default-entry.ts",
+                        "import": "./src/import-entry.ts",
+                    },
                 },
-            },
-        }),
+            }
+        ),
     )
     import_entry = _write(
         tmp_path / "packages/pkg-a/src/import-entry.ts",
@@ -845,7 +822,6 @@ def test_workspace_subpath_export_default_consulted_last(tmp_path: Path):
 
     result = _extract_for([import_entry, default_entry, importer], tmp_path)
 
-    # `import` wins over `default`.
     assert _has_edge(result, "apps/web/src/consumer.ts", "packages/pkg-a/src/import-entry.ts")
     assert not _has_edge(result, "apps/web/src/consumer.ts", "packages/pkg-a/src/default-entry.ts")
 
@@ -949,23 +925,23 @@ def test_ts_type_relationships_and_contexts(tmp_path: Path):
         if edge.get("relation") == "references"
     }
 
-    assert _has_symbol_to_symbol_edge(result, "src/lib/impl.ts", "DataProcessor", "src/lib/base.ts", "BaseProcessor", "inherits")
-    assert _has_symbol_to_symbol_edge(result, "src/lib/impl.ts", "DataProcessor", "src/lib/base.ts", "IProcessor", "implements")
+    assert _has_symbol_to_symbol_edge(
+        result, "src/lib/impl.ts", "DataProcessor", "src/lib/base.ts", "BaseProcessor", "inherits"
+    )
+    assert _has_symbol_to_symbol_edge(
+        result, "src/lib/impl.ts", "DataProcessor", "src/lib/base.ts", "IProcessor", "implements"
+    )
     assert ("run", "Payload", "parameter_type") in reference_contexts
     assert ("run", "Result", "return_type") in reference_contexts
     assert ("run", "Payload", "generic_arg") in reference_contexts
 
 
-# ── #1531: tsconfig path-alias fallback targets ──────────────────────────────
-
-
 def test_tsconfig_alias_resolves_second_target_when_first_missing(tmp_path: Path):
-    # tsc tries each `paths` target in declared order until one resolves on disk.
-    # The file lives only at the SECOND target, so keeping only the first entry
-    # (#1531) dropped the edge.
     _write(
         tmp_path / "tsconfig.json",
-        json.dumps({"compilerOptions": {"baseUrl": ".", "paths": {"$lib/*": ["generated/*", "src/lib/*"]}}}),
+        json.dumps(
+            {"compilerOptions": {"baseUrl": ".", "paths": {"$lib/*": ["generated/*", "src/lib/*"]}}}
+        ),
     )
     target = _write(tmp_path / "src/lib/utils.ts", "export const helper = 1\n")
     importer = _write(
@@ -979,11 +955,11 @@ def test_tsconfig_alias_resolves_second_target_when_first_missing(tmp_path: Path
 
 
 def test_tsconfig_alias_first_target_wins_when_both_exist(tmp_path: Path):
-    # When the file exists at BOTH targets, tsc resolves to the FIRST. The edge
-    # must target the generated/ copy, not src/lib.
     _write(
         tmp_path / "tsconfig.json",
-        json.dumps({"compilerOptions": {"baseUrl": ".", "paths": {"$lib/*": ["generated/*", "src/lib/*"]}}}),
+        json.dumps(
+            {"compilerOptions": {"baseUrl": ".", "paths": {"$lib/*": ["generated/*", "src/lib/*"]}}}
+        ),
     )
     first = _write(tmp_path / "generated/utils.ts", "export const helper = 1\n")
     second = _write(tmp_path / "src/lib/utils.ts", "export const helper = 2\n")
@@ -999,11 +975,11 @@ def test_tsconfig_alias_first_target_wins_when_both_exist(tmp_path: Path):
 
 
 def test_tsconfig_alias_none_exist_creates_no_false_edge(tmp_path: Path):
-    # The file exists at neither target; no concrete imports_from edge to either
-    # candidate may be fabricated (it stays an external/phantom target).
     _write(
         tmp_path / "tsconfig.json",
-        json.dumps({"compilerOptions": {"baseUrl": ".", "paths": {"$lib/*": ["generated/*", "src/lib/*"]}}}),
+        json.dumps(
+            {"compilerOptions": {"baseUrl": ".", "paths": {"$lib/*": ["generated/*", "src/lib/*"]}}}
+        ),
     )
     other = _write(tmp_path / "src/routes/other.ts", "export const x = 1\n")
     importer = _write(
@@ -1017,18 +993,17 @@ def test_tsconfig_alias_none_exist_creates_no_false_edge(tmp_path: Path):
     assert not _has_edge(result, "src/routes/page.ts", "src/lib/utils.ts")
 
 
-# ── #927: wildcard tsconfig path patterns ────────────────────────────────────
-
-
 def test_tsconfig_wildcard_alias_substitutes_captured_path(tmp_path, monkeypatch):
     _write(
         tmp_path / "tsconfig.json",
-        json.dumps({
-            "compilerOptions": {
-                "baseUrl": ".",
-                "paths": {"@*": ["features/*/src/"]},
+        json.dumps(
+            {
+                "compilerOptions": {
+                    "baseUrl": ".",
+                    "paths": {"@*": ["features/*/src/"]},
+                }
             }
-        }),
+        ),
     )
     _write(
         tmp_path / "features/communicate/documentv2/src/index.ts",
@@ -1058,12 +1033,14 @@ def test_tsconfig_wildcard_alias_substitutes_captured_path(tmp_path, monkeypatch
 def test_tsconfig_wildcard_alias_substitutes_before_suffix(tmp_path: Path):
     _write(
         tmp_path / "tsconfig.json",
-        json.dumps({
-            "compilerOptions": {
-                "baseUrl": ".",
-                "paths": {"@*/interfaces": ["features/*/src/interfaces.ts"]},
+        json.dumps(
+            {
+                "compilerOptions": {
+                    "baseUrl": ".",
+                    "paths": {"@*/interfaces": ["features/*/src/interfaces.ts"]},
+                }
             }
-        }),
+        ),
     )
     target = _write(
         tmp_path / "features/communicate/src/interfaces.ts",
@@ -1086,12 +1063,14 @@ def test_tsconfig_wildcard_alias_substitutes_before_suffix(tmp_path: Path):
 def test_tsconfig_wildcard_alias_substitutes_before_normalizing_target(tmp_path: Path):
     _write(
         tmp_path / "tsconfig.json",
-        json.dumps({
-            "compilerOptions": {
-                "baseUrl": ".",
-                "paths": {"@/*": ["generated/*/../shared"]},
+        json.dumps(
+            {
+                "compilerOptions": {
+                    "baseUrl": ".",
+                    "paths": {"@/*": ["generated/*/../shared"]},
+                }
             }
-        }),
+        ),
     )
     target = _write(
         tmp_path / "generated/feature/shared/index.ts",
@@ -1114,12 +1093,14 @@ def test_tsconfig_wildcard_alias_substitutes_before_normalizing_target(tmp_path:
 def test_tsconfig_wildcard_alias_allows_empty_capture(tmp_path: Path):
     _write(
         tmp_path / "tsconfig.json",
-        json.dumps({
-            "compilerOptions": {
-                "baseUrl": ".",
-                "paths": {"app*": ["src/config/index.ts"]},
+        json.dumps(
+            {
+                "compilerOptions": {
+                    "baseUrl": ".",
+                    "paths": {"app*": ["src/config/index.ts"]},
+                }
             }
-        }),
+        ),
     )
     target = _write(tmp_path / "src/config/index.ts", "export const config = {}\n")
     importer = _write(
@@ -1135,15 +1116,17 @@ def test_tsconfig_wildcard_alias_allows_empty_capture(tmp_path: Path):
 def test_tsconfig_wildcard_alias_prefers_longest_matching_prefix(tmp_path: Path):
     _write(
         tmp_path / "tsconfig.json",
-        json.dumps({
-            "compilerOptions": {
-                "baseUrl": ".",
-                "paths": {
-                    "@/*": ["fallback/*"],
-                    "@/common/integration/*": ["preferred/*"],
-                },
+        json.dumps(
+            {
+                "compilerOptions": {
+                    "baseUrl": ".",
+                    "paths": {
+                        "@/*": ["fallback/*"],
+                        "@/common/integration/*": ["preferred/*"],
+                    },
+                }
             }
-        }),
+        ),
     )
     fallback = _write(
         tmp_path / "fallback/common/integration/foo.ts",
@@ -1164,12 +1147,14 @@ def test_tsconfig_wildcard_alias_prefers_longest_matching_prefix(tmp_path: Path)
 def test_tsconfig_exact_alias_still_resolves(tmp_path: Path):
     _write(
         tmp_path / "tsconfig.json",
-        json.dumps({
-            "compilerOptions": {
-                "baseUrl": ".",
-                "paths": {"app-config": ["src/config/index.ts"]},
+        json.dumps(
+            {
+                "compilerOptions": {
+                    "baseUrl": ".",
+                    "paths": {"app-config": ["src/config/index.ts"]},
+                }
             }
-        }),
+        ),
     )
     target = _write(tmp_path / "src/config/index.ts", "export const config = {}\n")
     importer = _write(
@@ -1182,15 +1167,7 @@ def test_tsconfig_exact_alias_still_resolves(tmp_path: Path):
     assert _has_edge(result, "src/routes/page.ts", "src/config/index.ts")
 
 
-# ── #1529: alias/workspace import targets orphaned by the full-path migration ──
-
-
 def test_alias_import_edge_resolves_with_relative_input_paths(tmp_path, monkeypatch):
-    # CRUCIAL: pass RELATIVE input paths (chdir into the project). Alias imports
-    # resolve specifiers through .resolve(), so the import-target id is keyed off
-    # the ABSOLUTE path; with relative inputs the id_remap (keyed on the input
-    # form) never rewrote it -> orphan -> dropped edge (#1529). Absolute/tmp_path
-    # inputs hide the bug because the two forms coincide.
     _write(
         tmp_path / "tsconfig.json",
         json.dumps({"compilerOptions": {"baseUrl": ".", "paths": {"@/*": ["src/*"]}}}),
@@ -1208,21 +1185,18 @@ def test_alias_import_edge_resolves_with_relative_input_paths(tmp_path, monkeypa
     node_ids = {n["id"] for n in result["nodes"]}
     target_id = _file_node_id(Path("src/lib/utils.ts"))
 
-    # The file-level imports_from edge must target the REAL utils file node (a node
-    # that exists in the graph), not an orphan keyed by an absolute prefix.
     assert _has_edge(result, "src/components/Button.tsx", "src/lib/utils.ts")
     assert target_id in node_ids
     import_targets = [
         e["target"]
         for e in result["edges"]
-        if e["relation"] == "imports_from" and e["source"] == _file_node_id(Path("src/components/Button.tsx"))
+        if e["relation"] == "imports_from"
+        and e["source"] == _file_node_id(Path("src/components/Button.tsx"))
     ]
     assert import_targets == [target_id]
-    # No surviving edge target may carry an absolute-path prefix from tmp_path.
     abs_prefix = _file_node_id(Path("src/lib/utils.ts").resolve())
     assert all(not t.startswith(abs_prefix + "_") and t != abs_prefix for t in import_targets)
 
-    # The named-symbol edge to formatDate must resolve to the real symbol node too.
     assert _has_symbol_edge(result, "src/components/Button.tsx", "src/lib/utils.ts", "formatDate")
     symbol_target = _make_id(_file_stem(Path("src/lib/utils.ts")), "formatDate")
     named_imports = [
@@ -1278,9 +1252,7 @@ def test_alias_import_symbol_resolves_from_parent_working_directory(tmp_path, mo
         "export { formatDate as displayDate } from '@/lib/utils'\n",
     ],
 )
-def test_alias_reexport_symbol_resolves_with_relative_input_paths(
-    tmp_path, monkeypatch, statement
-):
+def test_alias_reexport_symbol_resolves_with_relative_input_paths(tmp_path, monkeypatch, statement):
     _write(
         tmp_path / "tsconfig.json",
         json.dumps({"compilerOptions": {"baseUrl": ".", "paths": {"@/*": ["src/*"]}}}),
@@ -1299,13 +1271,10 @@ def test_alias_reexport_symbol_resolves_with_relative_input_paths(
     reexports = [
         edge
         for edge in result["edges"]
-        if edge["source"] == _file_node_id(barrel)
-        and edge["relation"] == "re_exports"
+        if edge["source"] == _file_node_id(barrel) and edge["relation"] == "re_exports"
     ]
 
-    assert sorted(edge["target"] for edge in reexports) == sorted(
-        [file_target, symbol_target]
-    )
+    assert sorted(edge["target"] for edge in reexports) == sorted([file_target, symbol_target])
     assert all(edge["target"] in node_ids for edge in reexports)
     absolute_prefix = _file_node_id(target.resolve())
     assert all(not edge["target"].startswith(absolute_prefix + "_") for edge in reexports)
@@ -1460,12 +1429,6 @@ def test_alias_import_preserves_owned_same_line_symbol_edge(tmp_path, monkeypatc
     assert all(edge["source"] in node_ids and edge["target"] in node_ids for edge in imports)
 
 
-# --- #1983 (follow-up): alias re-exports THROUGH a barrel ---------------------
-# The candidates rewrite learns old->canonical symbol forms only from symbols a
-# file DEFINES. A barrel defines nothing, so a re-export/import that resolves to
-# the barrel synthesizes an absolute-prefixed target no rewrite ever learns:
-# the checkout path leaks into the id and the edge dangles.
-
 def _barrel_fixture(tmp_path):
     _write(
         tmp_path / "tsconfig.json",
@@ -1558,10 +1521,14 @@ def test_ambiguous_barrel_reexport_chain_does_not_guess(tmp_path, monkeypatch):
     )
     _write(tmp_path / "src/lib/a.ts", "export function dup() { return 'a' }\n")
     _write(tmp_path / "src/lib/b.ts", "export function dup() { return 'b' }\n")
-    _write(tmp_path / "src/lib/index.ts",
-           "export { dup } from '@/lib/a'\nexport { dup } from '@/lib/b'\n")
-    _write(tmp_path / "src/consumer.ts",
-           "import { dup } from '@/lib'\nexport function useIt() { return dup() }\n")
+    _write(
+        tmp_path / "src/lib/index.ts",
+        "export { dup } from '@/lib/a'\nexport { dup } from '@/lib/b'\n",
+    )
+    _write(
+        tmp_path / "src/consumer.ts",
+        "import { dup } from '@/lib'\nexport function useIt() { return dup() }\n",
+    )
 
     monkeypatch.chdir(tmp_path)
     result = extract(sorted(Path("src").rglob("*.ts")), cache_root=Path("."))
@@ -1569,20 +1536,16 @@ def test_ambiguous_barrel_reexport_chain_does_not_guess(tmp_path, monkeypatch):
     barrel_sym = _make_id(_file_stem(Path("src/lib/index.ts")), "dup")
     consumer = _file_node_id(Path("src/consumer.ts"))
     consumer_imports = [
-        e for e in result["edges"]
-        if e.get("source") == consumer and e.get("relation") == "imports"
+        e for e in result["edges"] if e.get("source") == consumer and e.get("relation") == "imports"
     ]
-    # The chain-produced import edge stays at the barrel symbol (unresolved) —
-    # proof the chain refused to guess. Without the fix it would be repointed to
-    # src_lib_a_dup / src_lib_b_dup (last-write-wins), so this edge would vanish.
     assert any(e.get("target") == barrel_sym for e in consumer_imports), (
         f"ambiguous barrel import was chain-resolved instead of left unresolved: "
         f"{[e.get('target') for e in consumer_imports]}"
     )
-    # Both legitimate barrel re-exports still resolve to their own module.
     barrel = _file_node_id(Path("src/lib/index.ts"))
     reexport_targets = {
-        e.get("target") for e in result["edges"]
+        e.get("target")
+        for e in result["edges"]
         if e.get("source") == barrel and e.get("relation") == "re_exports"
     }
     assert _make_id(_file_stem(Path("src/lib/a.ts")), "dup") in reexport_targets

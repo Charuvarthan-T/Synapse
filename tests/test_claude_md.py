@@ -1,12 +1,14 @@
 """Tests for graphify claude install / uninstall commands."""
+
 from pathlib import Path
 import pytest
-from graphify.__main__ import claude_install, claude_uninstall, _CLAUDE_MD_MARKER, _CLAUDE_MD_SECTION
+from graphify.__main__ import (
+    claude_install,
+    claude_uninstall,
+    _CLAUDE_MD_MARKER,
+    _CLAUDE_MD_SECTION,
+)
 
-
-# ---------------------------------------------------------------------------
-# install
-# ---------------------------------------------------------------------------
 
 def test_install_creates_claude_md(tmp_path):
     """Creates CLAUDE.md when none exists."""
@@ -48,22 +50,17 @@ def test_install_is_idempotent(tmp_path, capsys):
 def test_install_idempotent_message(tmp_path, capsys):
     """Second install prints the 'already configured' message."""
     claude_install(tmp_path)
-    capsys.readouterr()  # clear first call output
+    capsys.readouterr()
     claude_install(tmp_path)
     out = capsys.readouterr().out
     assert "already configured" in out
 
-
-# ---------------------------------------------------------------------------
-# uninstall
-# ---------------------------------------------------------------------------
 
 def test_uninstall_removes_section(tmp_path):
     """Removes the graphify section after it was installed."""
     claude_install(tmp_path)
     claude_uninstall(tmp_path)
     target = tmp_path / "CLAUDE.md"
-    # File may or may not exist depending on whether it was empty
     if target.exists():
         assert _CLAUDE_MD_MARKER not in target.read_text()
 
@@ -97,13 +94,10 @@ def test_uninstall_no_op_when_no_file(tmp_path, capsys):
     assert "No CLAUDE.md" in out or "nothing to do" in out
 
 
-# ---------------------------------------------------------------------------
-# settings.json PreToolUse hook
-# ---------------------------------------------------------------------------
-
 def test_install_creates_settings_json(tmp_path):
     """claude_install also writes .claude/settings.json with PreToolUse hook."""
     import json
+
     claude_install(tmp_path)
     settings_path = tmp_path / ".claude" / "settings.json"
     assert settings_path.exists()
@@ -115,6 +109,7 @@ def test_install_creates_settings_json(tmp_path):
 def test_install_settings_json_idempotent(tmp_path):
     """Running claude_install twice does not duplicate the PreToolUse hook."""
     import json
+
     claude_install(tmp_path)
     claude_install(tmp_path)
     settings_path = tmp_path / ".claude" / "settings.json"
@@ -127,6 +122,7 @@ def test_install_settings_json_idempotent(tmp_path):
 def test_uninstall_removes_settings_hook(tmp_path):
     """claude_uninstall removes the PreToolUse hook from settings.json."""
     import json
+
     claude_install(tmp_path)
     claude_uninstall(tmp_path)
     settings_path = tmp_path / ".claude" / "settings.json"
@@ -136,15 +132,11 @@ def test_uninstall_removes_settings_hook(tmp_path):
         assert not any(h.get("matcher") == "Bash|Grep" and "graphify" in str(h) for h in hooks)
 
 
-# ---------------------------------------------------------------------------
-# local-only variants: settings.local.json / CLAUDE.local.md (#1731)
-# ---------------------------------------------------------------------------
-
 def test_uninstall_removes_hook_from_settings_local_json(tmp_path):
     """A hook relocated to .claude/settings.local.json is removed on uninstall."""
     import json
+
     claude_install(tmp_path)
-    # User moved the hook out of the committed settings.json into the local-only file.
     (tmp_path / ".claude" / "settings.json").rename(tmp_path / ".claude" / "settings.local.json")
     claude_uninstall(tmp_path)
     local = tmp_path / ".claude" / "settings.local.json"
@@ -177,7 +169,7 @@ def test_uninstall_cleans_both_standard_and_local(tmp_path):
     claude_install(tmp_path)
     claude_md = tmp_path / "CLAUDE.md"
     local_md = tmp_path / ".claude" / "CLAUDE.local.md"
-    local_md.write_text(claude_md.read_text())  # duplicated into the local file too
+    local_md.write_text(claude_md.read_text())
     claude_uninstall(tmp_path)
     for f in (claude_md, local_md):
         assert not f.exists() or _CLAUDE_MD_MARKER not in f.read_text()
@@ -201,5 +193,5 @@ def test_uninstall_tolerates_unreadable_local_md(tmp_path):
     claude_install(tmp_path)
     local_md = tmp_path / ".claude" / "CLAUDE.local.md"
     local_md.write_bytes(b"\xff\xfe not valid utf-8 \x80\x81")
-    claude_uninstall(tmp_path)  # must not raise
-    assert local_md.read_bytes() == b"\xff\xfe not valid utf-8 \x80\x81"  # left untouched
+    claude_uninstall(tmp_path)
+    assert local_md.read_bytes() == b"\xff\xfe not valid utf-8 \x80\x81"

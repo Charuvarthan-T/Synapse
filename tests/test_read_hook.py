@@ -7,6 +7,7 @@ too. These tests invoke that subcommand with crafted stdin JSON and assert it
 nudges only for a source/doc file outside graphify-out/ when a graph exists, and
 otherwise stays silent and fails open.
 """
+
 import json
 import os
 import subprocess
@@ -21,8 +22,6 @@ def _read_matcher():
 
 
 def _env():
-    # The guard resolves the graph via GRAPHIFY_OUT (default "graphify-out",
-    # relative to cwd). Drop any inherited override so the tmp_path graph is found.
     e = dict(os.environ)
     e.pop("GRAPHIFY_OUT", None)
     return e
@@ -35,7 +34,11 @@ def _run(tool_input, cwd, *, graph: bool):
     stdin = json.dumps({"tool_input": tool_input})
     return subprocess.run(
         [sys.executable, "-m", "graphify", "hook-guard", "read"],
-        input=stdin, capture_output=True, text=True, cwd=cwd, env=_env(),
+        input=stdin,
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+        env=_env(),
     )
 
 
@@ -44,7 +47,6 @@ def test_matcher_targets_read_and_glob():
 
 
 def test_command_has_no_shell_syntax():
-    # #522: the command must be a plain exe invocation, not POSIX bash.
     cmd = _read_matcher()["hooks"][0]["command"]
     for token in ("$(", "case ", "[ -f", "&&", "||", ";;", "echo '"):
         assert token not in cmd, f"shell syntax {token!r} leaked into the hook"
@@ -130,7 +132,11 @@ def test_fails_open_on_malformed_stdin(tmp_path):
     (tmp_path / "graphify-out" / "graph.json").write_text("{}", encoding="utf-8")
     r = subprocess.run(
         [sys.executable, "-m", "graphify", "hook-guard", "read"],
-        input="this is not json", capture_output=True, text=True, cwd=tmp_path, env=_env(),
+        input="this is not json",
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env=_env(),
     )
     assert r.returncode == 0
     assert r.stdout.strip() == ""

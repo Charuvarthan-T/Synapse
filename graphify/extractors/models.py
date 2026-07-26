@@ -1,4 +1,5 @@
 """models — moved verbatim from graphify/extract.py."""
+
 from __future__ import annotations
 
 from typing import Any, Callable
@@ -8,12 +9,24 @@ from dataclasses import dataclass, field
 
 _WORKSPACE_PACKAGE_CACHE: dict[str, dict[str, Path]] = {}
 
-_JS_CACHE_BYPASS_SUFFIXES = {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts", ".vue", ".svelte"}
+_JS_CACHE_BYPASS_SUFFIXES = {
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".ts",
+    ".tsx",
+    ".mts",
+    ".cts",
+    ".vue",
+    ".svelte",
+}
+
 
 @dataclass
 class LanguageConfig:
-    ts_module: str                                   # e.g. "tree_sitter_python"
-    ts_language_fn: str = "language"                 # attr to call: e.g. tslang.language()
+    ts_module: str
+    ts_language_fn: str = "language"
 
     class_types: frozenset = frozenset()
     function_types: frozenset = frozenset()
@@ -24,40 +37,34 @@ class LanguageConfig:
     container_bind_methods: frozenset = frozenset()
     event_listener_properties: frozenset = frozenset()
 
-    # Name extraction
     name_field: str = "name"
     name_fallback_child_types: tuple = ()
 
-    # Body detection
     body_field: str = "body"
-    body_fallback_child_types: tuple = ()   # e.g. ("declaration_list", "compound_statement")
+    body_fallback_child_types: tuple = ()
 
-    # Call name extraction
-    call_function_field: str = "function"           # field on call node for callee
-    call_accessor_node_types: frozenset = frozenset()  # member/attribute nodes
-    call_accessor_field: str = "attribute"          # field on accessor for method name
-    call_accessor_object_field: str = ""            # field on accessor for the receiver/object
+    call_function_field: str = "function"
+    call_accessor_node_types: frozenset = frozenset()
+    call_accessor_field: str = "attribute"
+    call_accessor_object_field: str = ""
 
-    # Stop recursion at these types in walk_calls
     function_boundary_types: frozenset = frozenset()
 
-    # Import handler: called for import nodes instead of generic handling
     import_handler: Callable | None = None
 
-    # Optional custom name resolver for functions (C, C++ declarator unwrapping)
     resolve_function_name_fn: Callable | None = None
 
-    # Extra label formatting for functions: if True, functions get "name()" label
     function_label_parens: bool = True
 
-    # Extra walk hook called after generic dispatch (for JS arrow functions, C# namespaces, etc.)
     extra_walk_fn: Callable | None = None
+
 
 @dataclass(frozen=True)
 class _SymbolDeclarationFact:
     file_path: Path
     name: str
     line: int
+
 
 @dataclass(frozen=True)
 class _SymbolImportFact:
@@ -67,12 +74,14 @@ class _SymbolImportFact:
     imported_name: str
     line: int
 
+
 @dataclass(frozen=True)
 class _SymbolAliasFact:
     file_path: Path
     alias: str
     target_name: str
     line: int
+
 
 @dataclass(frozen=True)
 class _SymbolExportFact:
@@ -83,11 +92,13 @@ class _SymbolExportFact:
     target_path: Path | None = None
     target_name: str | None = None
 
+
 @dataclass(frozen=True)
 class _StarExportFact:
     file_path: Path
     target_path: Path
     line: int
+
 
 @dataclass(frozen=True)
 class _NamespaceExportFact:
@@ -95,6 +106,7 @@ class _NamespaceExportFact:
     exported_name: str
     target_path: Path
     line: int
+
 
 @dataclass(frozen=True)
 class _SymbolUseFact:
@@ -105,6 +117,7 @@ class _SymbolUseFact:
     context: str
     line: int
 
+
 @dataclass
 class _SymbolResolutionFacts:
     declarations: list[_SymbolDeclarationFact] = field(default_factory=list)
@@ -114,8 +127,4 @@ class _SymbolResolutionFacts:
     star_exports: list[_StarExportFact] = field(default_factory=list)
     namespace_exports: list[_NamespaceExportFact] = field(default_factory=list)
     uses: list[_SymbolUseFact] = field(default_factory=list)
-    # File-to-file submodule imports from `from pkg import submod` (#1146).
-    # Each entry is (importing_file, submodule_file, line, local_name) -- local_name
-    # is the binding introduced in the importing file: the alias when `from pkg
-    # import submod as alias` is used, otherwise the submodule's own name (#2082).
     module_imports: list[tuple[Path, Path, int, str]] = field(default_factory=list)

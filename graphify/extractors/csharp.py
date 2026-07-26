@@ -8,6 +8,7 @@ the C# home for the parts that *are* cleanly separable — today, the cross-file
 type-reference resolver below — and is where ``extract_csharp`` will land when
 the core migration happens.
 """
+
 from __future__ import annotations
 
 import html
@@ -144,7 +145,8 @@ def _resolve_cross_file_csharp_imports(
         still_referenced.add(edge.get("source"))
         still_referenced.add(edge.get("target"))
     all_nodes[:] = [
-        node for node in all_nodes
+        node
+        for node in all_nodes
         if node.get("id") not in repointed_from or node.get("id") in still_referenced
     ]
 
@@ -251,7 +253,9 @@ class CsharpNameResolver:
 
     def _resolve_alias(self, label: str, source_node: dict, source_file: str) -> str | None:
         hits = set()
-        for target_fqn, scope_kind, scope_id in self.aliases_by_file.get(source_file, {}).get(label, []):
+        for target_fqn, scope_kind, scope_id in self.aliases_by_file.get(source_file, {}).get(
+            label, []
+        ):
             if not self._using_in_scope(scope_kind, scope_id, source_node):
                 continue
             base_fqn = _strip_trailing_csharp_generic_args(html.unescape(target_fqn))
@@ -297,13 +301,11 @@ class CsharpNameResolver:
     def resolve_qualified(
         self, label: str, qualifier: object, source_node: dict, source_file: str
     ) -> str | None:
-        # Sound qualified resolution: an in-scope alias for Q shadows the namespace Q. For a qualified
-        # ref Q.label, look up (alias_target_namespace, label). If no in-scope alias, fall through to an
-        # exact known namespace. Dangle on ambiguity / no hit / unknown qualifier.
         if not isinstance(qualifier, str) or not qualifier:
             return None
         in_scope = [
-            entry for entry in self.aliases_by_file.get(source_file, {}).get(qualifier, [])
+            entry
+            for entry in self.aliases_by_file.get(source_file, {}).get(qualifier, [])
             if self._using_in_scope(entry[1], entry[2], source_node)
         ]
         if in_scope:
@@ -341,7 +343,9 @@ def _resolve_csharp_type_references(
     def _resolve_label(label: str, source_node: dict, source_file: str) -> str | None:
         return resolver.resolve_label(label, source_node, source_file)
 
-    def _resolve_qualified(label: str, qualifier: object, source_node: dict, source_file: str) -> str | None:
+    def _resolve_qualified(
+        label: str, qualifier: object, source_node: dict, source_file: str
+    ) -> str | None:
         return resolver.resolve_qualified(label, qualifier, source_node, source_file)
 
     def _is_placeholder(node: dict | None) -> bool:
@@ -373,11 +377,7 @@ def _resolve_csharp_type_references(
 
         for node in all_nodes:
             nid = node.get("id")
-            if (
-                isinstance(nid, str)
-                and node.get("label") == label
-                and _is_placeholder(node)
-            ):
+            if isinstance(nid, str) and node.get("label") == label and _is_placeholder(node):
                 return nid
 
         stem = _make_id(label)
@@ -418,7 +418,9 @@ def _resolve_csharp_type_references(
         if not label:
             continue
         if metadata.get("qualified"):
-            resolved = _resolve_qualified(label, metadata.get("ref_qualifier"), source_node, source_file)
+            resolved = _resolve_qualified(
+                label, metadata.get("ref_qualifier"), source_node, source_file
+            )
         else:
             resolved = _resolve_label(label, source_node, source_file)
         target = edge.get("target")
@@ -436,6 +438,7 @@ def _resolve_csharp_type_references(
         still_referenced.add(edge.get("source"))
         still_referenced.add(edge.get("target"))
     all_nodes[:] = [
-        node for node in all_nodes
+        node
+        for node in all_nodes
         if node.get("id") not in repointed_from or node.get("id") in still_referenced
     ]

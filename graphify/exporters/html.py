@@ -1,4 +1,5 @@
 """html — moved verbatim from graphify/export.py."""
+
 from __future__ import annotations
 
 from graphify.exporters.base import COMMUNITY_COLORS  # noqa: E402,F401
@@ -12,6 +13,7 @@ from graphify.security import sanitize_label
 
 MAX_NODES_FOR_VIZ = 5_000
 
+
 def _viz_node_limit() -> int:
     """Return the effective viz node limit, honoring GRAPHIFY_VIZ_NODE_LIMIT env var.
 
@@ -19,6 +21,7 @@ def _viz_node_limit() -> int:
     Set to 0 to disable HTML viz unconditionally (useful for CI runners).
     """
     import os
+
     raw = os.environ.get("GRAPHIFY_VIZ_NODE_LIMIT")
     if raw is None or not raw.strip():
         return MAX_NODES_FOR_VIZ
@@ -26,6 +29,7 @@ def _viz_node_limit() -> int:
         return int(raw)
     except ValueError:
         return MAX_NODES_FOR_VIZ
+
 
 def _html_styles() -> str:
     return """<style>
@@ -66,6 +70,7 @@ def _html_styles() -> str:
   #select-all-cb:indeterminate { background: #4E79A7; border-color: #4E79A7; }
   #select-all-cb:indeterminate::after { content: ''; position: absolute; left: 2px; top: 5px; width: 8px; height: 2px; background: #fff; border: none; transform: none; }
 </style>"""
+
 
 def _hyperedge_script(hyperedges_json: str) -> str:
     return f"""<script>
@@ -108,6 +113,7 @@ network.on('afterDrawing', function(ctx) {{
     }});
 }});
 </script>"""
+
 
 def _html_script(nodes_json: str, edges_json: str, legend_json: str) -> str:
     return f"""<script>
@@ -322,6 +328,7 @@ LEGEND.forEach(c => {{
 }});
 </script>"""
 
+
 def to_html(
     G: nx.Graph,
     communities: dict[int, list[str]],
@@ -346,11 +353,15 @@ def to_html(
     limit = node_limit if node_limit is not None else _viz_node_limit()
     if G.number_of_nodes() > limit:
         if node_limit is not None:
-            # Build aggregated community meta-graph
             from collections import Counter as _Counter
             import networkx as _nx
-            print(f"Graph has {G.number_of_nodes()} nodes (above {limit} limit). Building aggregated community view...")
-            node_to_community = {nid: cid for cid, members in communities.items() for nid in members}
+
+            print(
+                f"Graph has {G.number_of_nodes()} nodes (above {limit} limit). Building aggregated community view..."
+            )
+            node_to_community = {
+                nid: cid for cid, members in communities.items() for nid in members
+            }
             meta = _nx.Graph()
             for cid, members in communities.items():
                 meta.add_node(str(cid), label=(community_labels or {}).get(cid, f"Community {cid}"))
@@ -360,14 +371,18 @@ def to_html(
                 if cu is not None and cv is not None and cu != cv:
                     edge_counts[(min(cu, cv), max(cu, cv))] += 1
             for (cu, cv), w in edge_counts.items():
-                meta.add_edge(str(cu), str(cv), weight=w,
-                              relation=f"{w} cross-community edges", confidence="AGGREGATED")
+                meta.add_edge(
+                    str(cu),
+                    str(cv),
+                    weight=w,
+                    relation=f"{w} cross-community edges",
+                    confidence="AGGREGATED",
+                )
             if meta.number_of_nodes() <= 1:
                 print("Single community - aggregated view not useful. Skipping graph.html.")
                 return
             meta_communities = {cid: [str(cid)] for cid in communities}
             mc = {cid: len(members) for cid, members in communities.items()}
-            # Remap hyperedges from semantic node IDs to community IDs
             raw_hyperedges = G.graph.get("hyperedges", [])
             if raw_hyperedges:
                 remapped = []
@@ -385,15 +400,24 @@ def to_html(
                         comm_ids.append(s)
                     if len(comm_ids) < 2:
                         continue
-                    remapped.append({
-                        "id": he.get("id", ""),
-                        "label": he.get("label") or he.get("relation", "").replace("_", " "),
-                        "nodes": comm_ids,
-                    })
+                    remapped.append(
+                        {
+                            "id": he.get("id", ""),
+                            "label": he.get("label") or he.get("relation", "").replace("_", " "),
+                            "nodes": comm_ids,
+                        }
+                    )
                 meta.graph["hyperedges"] = remapped
-            to_html(meta, meta_communities, output_path,
-                    community_labels=community_labels, member_counts=mc)
-            print(f"graph.html written (aggregated: {meta.number_of_nodes()} community nodes, {meta.number_of_edges()} cross-community edges)")
+            to_html(
+                meta,
+                meta_communities,
+                output_path,
+                community_labels=community_labels,
+                member_counts=mc,
+            )
+            print(
+                f"graph.html written (aggregated: {meta.number_of_nodes()} community nodes, {meta.number_of_edges()} cross-community edges)"
+            )
             print("Tip: run with --obsidian for full node-level detail.")
             return
         raise ValueError(
@@ -407,22 +431,16 @@ def to_html(
     max_deg = max(degree.values(), default=1) or 1
     max_mc = (max(member_counts.values(), default=1) or 1) if member_counts else 1
 
-    # Work-memory overlay (derived sidecar). When not passed explicitly, load it
-    # best-effort from the sibling .graphify_learning.json next to the output
-    # graph.html (which lives beside graph.json). Empty/missing => no learning
-    # fields, so the un-annotated render is byte-identical to pre-feature.
     if learning_overlay is None:
         learning_overlay = {}
         try:
             from graphify.reflect import load_learning_overlay as _llo
+
             learning_overlay = _llo(Path(output_path))
         except Exception:
             learning_overlay = {}
-    # Status -> ring color. preferred=green, contested=amber. Tentative gets no
-    # ring (it's not yet trustworthy enough to highlight in the map).
     _RING = {"preferred": "#22c55e", "contested": "#f59e0b"}
 
-    # Build nodes list for vis.js
     vis_nodes = []
     for node_id, data in G.nodes(data=True):
         cid = node_community.get(node_id, 0)
@@ -435,12 +453,15 @@ def to_html(
             font_size = 12
         else:
             size = 10 + 30 * (deg / max_deg)
-            # Only show label for high-degree nodes by default; others show on hover
             font_size = 12 if deg >= max_deg * 0.15 else 0
         node = {
             "id": node_id,
             "label": label,
-            "color": {"background": color, "border": color, "highlight": {"background": "#ffffff", "border": color}},
+            "color": {
+                "background": color,
+                "border": color,
+                "highlight": {"background": "#ffffff", "border": color},
+            },
             "size": round(size, 1),
             "font": {"size": font_size, "color": "#ffffff"},
             "title": _html.escape(label),
@@ -450,8 +471,6 @@ def to_html(
             "file_type": data.get("file_type", ""),
             "degree": deg,
         }
-        # Conditional learning fields — only present for annotated nodes, so
-        # un-annotated output keeps the exact pre-feature node dict shape.
         entry = learning_overlay.get(str(node_id)) if learning_overlay else None
         if entry:
             status = sanitize_label(str(entry.get("status", "")))
@@ -460,17 +479,15 @@ def to_html(
             node["learning_stale"] = stale
             ring = _RING.get(status)
             if ring:
-                # Status-colored ring via the border; stale => desaturated +
-                # dashed (vis.js supports per-node `shapeProperties.borderDashes`).
                 if stale:
                     ring = "#9ca3af"
                     node["shapeProperties"] = {"borderDashes": [4, 4]}
                 node["borderWidth"] = 3
                 node["color"] = {
-                    "background": color, "border": ring,
+                    "background": color,
+                    "border": ring,
                     "highlight": {"background": "#ffffff", "border": ring},
                 }
-            # Lesson line appended to the hover title.
             if status == "contested":
                 lesson = f"Lesson: contested (useful {entry.get('uses', 0)} / dead-end {entry.get('neg', 0)})"
             elif status == "preferred":
@@ -482,36 +499,36 @@ def to_html(
             node["title"] = _html.escape(label) + "\n" + _html.escape(sanitize_label(lesson))
         vis_nodes.append(node)
 
-    # Build edges list. Restore original edge direction from _src/_tgt
-    # (stashed by build.py for exactly this reason): undirected NetworkX
-    # canonicalizes endpoint order, which would otherwise flip the arrow
-    # for `calls` and `rationale_for` in the rendered graph (#563).
     vis_edges = []
     for u, v, data in G.edges(data=True):
         confidence = data.get("confidence", "EXTRACTED")
         relation = data.get("relation", "")
         true_src = data.get("_src", u)
         true_tgt = data.get("_tgt", v)
-        vis_edges.append({
-            "from": true_src,
-            "to": true_tgt,
-            "label": relation,
-            "title": _html.escape(f"{relation} [{confidence}]"),
-            "dashes": confidence != "EXTRACTED",
-            "width": 2 if confidence == "EXTRACTED" else 1,
-            "color": {"opacity": 0.7 if confidence == "EXTRACTED" else 0.35},
-            "confidence": confidence,
-        })
+        vis_edges.append(
+            {
+                "from": true_src,
+                "to": true_tgt,
+                "label": relation,
+                "title": _html.escape(f"{relation} [{confidence}]"),
+                "dashes": confidence != "EXTRACTED",
+                "width": 2 if confidence == "EXTRACTED" else 1,
+                "color": {"opacity": 0.7 if confidence == "EXTRACTED" else 0.35},
+                "confidence": confidence,
+            }
+        )
 
-    # Build community legend data
     legend_data = []
     for cid in sorted((community_labels or {}).keys()):
         color = COMMUNITY_COLORS[cid % len(COMMUNITY_COLORS)]
         lbl = _html.escape(sanitize_label((community_labels or {}).get(cid, f"Community {cid}")))
-        n = member_counts.get(cid, len(communities.get(cid, []))) if member_counts else len(communities.get(cid, []))
+        n = (
+            member_counts.get(cid, len(communities.get(cid, [])))
+            if member_counts
+            else len(communities.get(cid, []))
+        )
         legend_data.append({"cid": cid, "color": color, "label": lbl, "count": n})
 
-    # Escape </script> sequences so embedded JSON cannot break out of the script tag
     def _js_safe(obj) -> str:
         return json.dumps(obj).replace("</", "<\\/")
 
@@ -557,4 +574,4 @@ def to_html(
 </body>
 </html>"""
 
-    Path(output_path).write_text(html, encoding="utf-8")  # nosec
+    Path(output_path).write_text(html, encoding="utf-8")
