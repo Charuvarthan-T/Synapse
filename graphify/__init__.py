@@ -20,6 +20,10 @@ def __getattr__(name):
         "to_wiki": ("graphify.wiki", "to_wiki"),
         "reflect": ("graphify.reflect", "reflect"),
         "save_query_result": ("graphify.ingest", "save_query_result"),
+        "RelationWeightRegistry": ("graphify.weights", "RelationWeightRegistry"),
+        "get_default_registry": ("graphify.weights", "get_default_registry"),
+        "expand_neighborhood": ("graphify.weighted_retrieval", "expand_neighborhood"),
+        "find_shortest_path": ("graphify.weighted_retrieval", "find_shortest_path"),
     }
     if name in _map:
         import importlib

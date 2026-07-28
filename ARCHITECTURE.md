@@ -29,6 +29,8 @@ Each stage is a single function in its own module. They communicate through plai
 | `serve.py` | `start_server(graph_path)` | graph file path → MCP stdio server |
 | `watch.py` | `watch(root, flag_path)` | directory → writes flag file on change |
 | `benchmark.py` | `run_benchmark(graph_path)` | graph file → corpus vs subgraph token comparison |
+| `weights.py` | `RelationWeightRegistry` | centralized relation importance → traversal cost |
+| `weighted_retrieval.py` | `expand_neighborhood` / `find_shortest_path` | relationship-aware traversal, path, ranking |
 
 ## Extraction output schema
 

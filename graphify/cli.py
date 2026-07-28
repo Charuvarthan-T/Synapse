@@ -841,7 +841,8 @@ def dispatch_command(cmd: str) -> None:
     elif cmd == "query":
         if len(sys.argv) < 3:
             print(
-                'Usage: graphify query "<question>" [--dfs] [--context C] [--budget N] [--graph path]',
+                'Usage: graphify query "<question>" [--dfs] [--context C] [--budget N] '
+                "[--weighted|--unweighted] [--graph path]",
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -852,6 +853,7 @@ def dispatch_command(cmd: str) -> None:
 
         question = sys.argv[2]
         use_dfs = "--dfs" in sys.argv
+        weighted = "--unweighted" not in sys.argv
         budget = 2000
         graph_path = _default_graph_path()
         context_filters: list[str] = []
@@ -881,6 +883,8 @@ def dispatch_command(cmd: str) -> None:
             elif args[i] == "--graph" and i + 1 < len(args):
                 graph_path = args[i + 1]
                 i += 2
+            elif args[i] in ("--weighted", "--unweighted", "--dfs"):
+                i += 1
             else:
                 i += 1
         gp = Path(graph_path).resolve()
@@ -935,6 +939,7 @@ def dispatch_command(cmd: str) -> None:
             depth=2,
             token_budget=budget,
             context_filters=context_filters,
+            weighted=weighted,
         )
         querylog.log_query(
             kind="query",
@@ -1166,17 +1171,19 @@ def dispatch_command(cmd: str) -> None:
     elif cmd == "path":
         if len(sys.argv) < 4:
             print(
-                'Usage: graphify path "<source>" "<target>" [--graph path]',
+                'Usage: graphify path "<source>" "<target>" '
+                "[--weighted|--unweighted] [--graph path]",
                 file=sys.stderr,
             )
             sys.exit(1)
         from graphify.serve import _pick_scored_endpoint, _score_nodes
+        from graphify.weighted_retrieval import find_shortest_path
         from networkx.readwrite import json_graph
-        import networkx as _nx
 
         source_label = sys.argv[2]
         target_label = sys.argv[3]
         graph_path = _default_graph_path()
+        weighted = "--unweighted" not in sys.argv
         args = sys.argv[4:]
         for i, a in enumerate(args):
             if a == "--graph" and i + 1 < len(args):
@@ -1223,12 +1230,8 @@ def dispatch_command(cmd: str) -> None:
                         f"(top score {_top:g}, runner-up {_runner:g})",
                         file=sys.stderr,
                     )
-        _und = _nx.Graph()
-        _und.add_nodes_from(sorted(G.nodes))
-        _und.add_edges_from(sorted((min(u, v), max(u, v)) for u, v in G.edges()))
-        try:
-            path_nodes = _nx.shortest_path(_und, src_nid, tgt_nid)
-        except (_nx.NetworkXNoPath, _nx.NodeNotFound):
+        path_nodes, _path_stats = find_shortest_path(G, src_nid, tgt_nid, weighted=weighted)
+        if path_nodes is None:
             print(f"No path found between '{source_label}' and '{target_label}'.")
             sys.exit(0)
         hops = len(path_nodes) - 1
