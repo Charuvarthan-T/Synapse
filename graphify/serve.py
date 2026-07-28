@@ -12,6 +12,10 @@ from graphify.security import sanitize_label, check_graph_file_size_cap
 from graphify.build import edge_data, edge_datas
 from graphify.paths import default_graph_json as _default_graph_json
 from graphify.weights import RelationWeightRegistry
+from graphify.community_retrieval import (
+    CommunitySelection,
+    community_aware_expand,
+)
 from graphify.weighted_retrieval import (
     expand_neighborhood,
     find_shortest_path,
@@ -969,6 +973,9 @@ def _query_graph_text(
     context_filters: list[str] | None = None,
     weighted: bool = True,
     registry: RelationWeightRegistry | None = None,
+    community_aware: bool = False,
+    max_communities: int = 2,
+    community_min_confidence: float = 0.55,
 ) -> str:
     terms = _query_terms(question)
     qs = _score_query(G, terms, collect_per_term_seeds=True)
@@ -977,14 +984,30 @@ def _query_graph_text(
         return "No matching nodes found."
     resolved_filters, filter_source = _resolve_context_filters(question, context_filters)
     traversal_graph = _filter_graph_by_context(G, resolved_filters)
-    traversal = expand_neighborhood(
-        traversal_graph,
-        start_nodes,
-        depth,
-        mode="dfs" if mode == "dfs" else "bfs",
-        weighted=weighted,
-        registry=registry,
-    )
+    traversal_mode = "dfs" if mode == "dfs" else "bfs"
+    selection: CommunitySelection | None = None
+    if community_aware:
+        traversal, selection, traversal_graph = community_aware_expand(
+            traversal_graph,
+            start_nodes,
+            depth,
+            mode=traversal_mode,
+            weighted=weighted,
+            registry=registry,
+            query_terms=terms,
+            community_aware=True,
+            max_communities=max_communities,
+            min_confidence=community_min_confidence,
+        )
+    else:
+        traversal = expand_neighborhood(
+            traversal_graph,
+            start_nodes,
+            depth,
+            mode=traversal_mode,
+            weighted=weighted,
+            registry=registry,
+        )
     nodes, edges = traversal.nodes, traversal.edges
     header_parts = [
         f"Traversal: {mode.upper()} depth={depth}",
@@ -992,6 +1015,16 @@ def _query_graph_text(
     ]
     if weighted:
         header_parts.insert(1, "Weighted relations")
+    if selection is not None and selection.selected:
+        header_parts.insert(
+            1 if not weighted else 2,
+            f"Communities={list(selection.community_ids)} (confidence={selection.confidence:.2f})",
+        )
+    elif selection is not None and community_aware:
+        header_parts.insert(
+            1 if not weighted else 2,
+            f"Community fallback ({selection.reason})",
+        )
     if resolved_filters:
         header_parts.append(f"Context: {', '.join(resolved_filters)} ({filter_source})")
     header_parts.append(f"{len(nodes)} nodes found")
@@ -1230,6 +1263,15 @@ def _build_server(graph_path: str):
                                 "during traversal and result ranking"
                             ),
                         },
+                        "community_aware": {
+                            "type": "boolean",
+                            "default": False,
+                            "description": (
+                                "Restrict retrieval to the most relevant communities "
+                                "before weighted neighborhood expansion; falls back to "
+                                "full-graph retrieval when community confidence is low"
+                            ),
+                        },
                     },
                     "required": ["question"],
                 },
@@ -1411,6 +1453,7 @@ def _build_server(graph_path: str):
         budget = int(arguments.get("token_budget", 2000))
         context_filter = arguments.get("context_filter")
         weighted = bool(arguments.get("weighted", True))
+        community_aware = bool(arguments.get("community_aware", False))
         _t0 = _time.perf_counter()
         result = _query_graph_text(
             G,
@@ -1420,6 +1463,7 @@ def _build_server(graph_path: str):
             token_budget=budget,
             context_filters=context_filter,
             weighted=weighted,
+            community_aware=community_aware,
         )
         querylog.log_query(
             kind="mcp_query",

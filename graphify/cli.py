@@ -842,7 +842,8 @@ def dispatch_command(cmd: str) -> None:
         if len(sys.argv) < 3:
             print(
                 'Usage: graphify query "<question>" [--dfs] [--context C] [--budget N] '
-                "[--weighted|--unweighted] [--graph path]",
+                "[--weighted|--unweighted] [--community-aware|--no-community-aware] "
+                "[--graph path]",
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -854,6 +855,7 @@ def dispatch_command(cmd: str) -> None:
         question = sys.argv[2]
         use_dfs = "--dfs" in sys.argv
         weighted = "--unweighted" not in sys.argv
+        community_aware = "--community-aware" in sys.argv
         budget = 2000
         graph_path = _default_graph_path()
         context_filters: list[str] = []
@@ -883,7 +885,13 @@ def dispatch_command(cmd: str) -> None:
             elif args[i] == "--graph" and i + 1 < len(args):
                 graph_path = args[i + 1]
                 i += 2
-            elif args[i] in ("--weighted", "--unweighted", "--dfs"):
+            elif args[i] in (
+                "--weighted",
+                "--unweighted",
+                "--dfs",
+                "--community-aware",
+                "--no-community-aware",
+            ):
                 i += 1
             else:
                 i += 1
@@ -940,6 +948,7 @@ def dispatch_command(cmd: str) -> None:
             token_budget=budget,
             context_filters=context_filters,
             weighted=weighted,
+            community_aware=community_aware,
         )
         querylog.log_query(
             kind="query",
