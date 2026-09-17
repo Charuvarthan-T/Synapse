@@ -8,6 +8,15 @@ Memory for Graph-RAG based Agents is a research project that enhances repository
 
 Traditional LLMs struggle to understand large codebases due to limited context windows. Existing Graph-RAG approaches mainly retrieve structural information and lack persistent memory and semantic understanding. This project addresses these limitations by introducing a graph-based memory framework for repository-level reasoning.
 
+## VS Code Extension
+
+A VS Code extension (v1) lives in [`vscode-extension/`](vscode-extension/) —
+it builds the knowledge graph locally (no API key required) and exposes it
+to GitHub Copilot Chat as a Language Model Tool, so Copilot can retrieve
+precise context instead of reading whole files. See
+[`vscode-extension/README.md`](vscode-extension/README.md) for setup,
+features, and current limitations.
+
 ## Getting Started
 
 Follow this guide to clone the repository and get a working local setup.
