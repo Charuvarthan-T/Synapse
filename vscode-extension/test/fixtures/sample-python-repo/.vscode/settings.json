@@ -1,4 +1,4 @@
 {
-  "graphify.autoBuildOnOpen": false,
-  "graphify.autoUpdateOnSave": false
+  "synapse.autoBuildOnOpen": false,
+  "synapse.autoUpdateOnSave": false
 }

@@ -16,9 +16,10 @@ const MIN_PYTHON_MINOR = 10;
 /** Short, fixed cache dir (not VS Code's deeply-nested global storage path) to
  * avoid Windows MAX_PATH (260 char) failures we hit firsthand building this
  * project's own graph-extraction eval harness — long venv/site-packages paths
- * silently fail to write cache files on Windows. */
+ * silently fail to write cache files on Windows. This is Synapse's own venv
+ * for running the graphify engine — unrelated to graphify's own conventions. */
 function cacheRoot(): string {
-  return path.join(os.homedir(), ".graphify", "vscode-venv");
+  return path.join(os.homedir(), ".synapse", "vscode-venv");
 }
 
 function venvPython(): string {
@@ -54,10 +55,10 @@ function parsePythonVersion(versionOutput: string): [number, number] | null {
   return [parseInt(m[1], 10), parseInt(m[2], 10)];
 }
 
-/** Find a system Python 3.10+, respecting the graphify.pythonPath setting. */
+/** Find a system Python 3.10+, respecting the synapse.pythonPath setting. */
 export async function findSystemPython(): Promise<string | null> {
   const configured = vscode.workspace
-    .getConfiguration("graphify")
+    .getConfiguration("synapse")
     .get<string>("pythonPath", "")
     ?.trim();
 
@@ -107,7 +108,7 @@ export async function ensureProvisioned(
       ok: false,
       reason: "no-python",
       detail:
-        "No Python 3.10+ found on PATH. Install Python from python.org, or set graphify.pythonPath.",
+        "No Python 3.10+ found on PATH. Install Python from python.org, or set synapse.pythonPath.",
     };
   }
 
@@ -125,9 +126,9 @@ export async function ensureProvisioned(
     };
   }
 
-  onProgress?.("Installing graphify (one-time, local only)...");
+  onProgress?.("Installing the graphify engine (one-time, local only)...");
   const devPath = vscode.workspace
-    .getConfiguration("graphify")
+    .getConfiguration("synapse")
     .get<string>("devPackagePath", "")
     ?.trim();
   const pipTarget = devPath ? ["-e", devPath] : ["graphifyy"];

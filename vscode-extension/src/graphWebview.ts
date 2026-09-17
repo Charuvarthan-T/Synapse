@@ -5,11 +5,31 @@ import { logError } from "./logger";
 
 let currentPanel: vscode.WebviewPanel | undefined;
 
+const BRAND_STYLE = `
+<style>
+  body { padding-top: 44px !important; }
+  #synapse-band {
+    position: fixed; top: 0; left: 0; right: 0; height: 44px; z-index: 1000;
+    display: flex; align-items: center; gap: 10px; padding: 0 16px;
+    background: linear-gradient(90deg, #2b1055 0%, #7597de 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #ffffff; box-shadow: 0 1px 8px rgba(0,0,0,0.4);
+  }
+  #synapse-band .brand { font-weight: 600; letter-spacing: 0.3px; font-size: 14px; }
+  #synapse-band .tag { opacity: 0.75; font-size: 12px; }
+</style>`;
+
+const BRAND_BAND = `
+<div id="synapse-band">
+  <span class="brand">\u{1F9E0} Synapse</span>
+  <span class="tag">local knowledge graph — no API key, nothing leaves your machine</span>
+</div>`;
+
 export function openGraphView(workspaceRoot: string): void {
   const htmlPath = graphHtmlPath(workspaceRoot);
   if (!fs.existsSync(htmlPath)) {
     vscode.window.showWarningMessage(
-      "No graph visualization found yet. Run 'Graphify: Rebuild Graph' first."
+      "No graph visualization found yet. Run 'Synapse: Rebuild Graph' first."
     );
     return;
   }
@@ -18,8 +38,8 @@ export function openGraphView(workspaceRoot: string): void {
     currentPanel.reveal(vscode.ViewColumn.Beside);
   } else {
     currentPanel = vscode.window.createWebviewPanel(
-      "graphifyGraphView",
-      "Graphify: Knowledge Graph",
+      "synapseGraphView",
+      "Synapse: Knowledge Graph",
       vscode.ViewColumn.Beside,
       {
         enableScripts: true,
@@ -30,7 +50,7 @@ export function openGraphView(workspaceRoot: string): void {
   }
 
   try {
-    const html = fs.readFileSync(htmlPath, { encoding: "utf-8" });
+    let html = fs.readFileSync(htmlPath, { encoding: "utf-8" });
     // graph.html is self-contained (data inlined) and only loads vis-network
     // from unpkg.com — add a CSP that permits exactly that, nothing else.
     const csp = [
@@ -40,15 +60,18 @@ export function openGraphView(workspaceRoot: string): void {
       "img-src data:",
       "connect-src https://unpkg.com",
     ].join("; ");
-    const withCsp = html.includes("<head>")
-      ? html.replace(
-          "<head>",
-          `<head><meta http-equiv="Content-Security-Policy" content="${csp}">`
-        )
-      : html;
-    currentPanel.webview.html = withCsp;
+    if (html.includes("<head>")) {
+      html = html.replace(
+        "<head>",
+        `<head><meta http-equiv="Content-Security-Policy" content="${csp}">${BRAND_STYLE}`
+      );
+    }
+    if (html.includes("<body>")) {
+      html = html.replace("<body>", `<body>${BRAND_BAND}`);
+    }
+    currentPanel.webview.html = html;
   } catch (err) {
     logError("failed to render graph webview", err);
-    vscode.window.showErrorMessage("Graphify: failed to open graph visualization.");
+    vscode.window.showErrorMessage("Synapse: failed to open graph visualization.");
   }
 }

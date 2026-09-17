@@ -1,5 +1,5 @@
 # See the whole graph
 
-Run **Graphify: Open Graph Visualization** to open an interactive node/edge
+Run **Synapse: Open Graph Visualization** to open an interactive node/edge
 diagram of your codebase in a side panel — drag nodes around, zoom, and see
 how everything connects.

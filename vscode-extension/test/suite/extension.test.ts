@@ -1,20 +1,23 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
 
+const EXTENSION_ID = "synapse-labs.synapse";
+
 const EXPECTED_COMMANDS = [
-  "graphify.rebuildGraph",
-  "graphify.updateGraph",
-  "graphify.query",
-  "graphify.explainAtCursor",
-  "graphify.openGraphView",
-  "graphify.showOutput",
-  "graphify.revealNode",
-  "graphify.openGettingStarted",
+  "synapse.openDashboard",
+  "synapse.rebuildGraph",
+  "synapse.updateGraph",
+  "synapse.query",
+  "synapse.explainAtCursor",
+  "synapse.openGraphView",
+  "synapse.showOutput",
+  "synapse.revealNode",
+  "synapse.openGettingStarted",
 ];
 
-describe("Graphify extension", () => {
+describe("Synapse extension", () => {
   it("activates without throwing", async () => {
-    const ext = vscode.extensions.getExtension("graphify-labs.graphify-vscode");
+    const ext = vscode.extensions.getExtension(EXTENSION_ID);
     assert.ok(ext, "extension not found — check the publisher.name in package.json");
     await ext!.activate();
     assert.strictEqual(ext!.isActive, true);
@@ -27,18 +30,18 @@ describe("Graphify extension", () => {
     }
   });
 
-  it("contributes the graphifyExplorer tree view without error", () => {
+  it("contributes the synapseExplorer tree view without error", () => {
     // Registration itself is exercised by activation above; this just
     // guards against the view id being renamed in package.json without
     // updating extension.ts (or vice versa).
-    const pkg = vscode.extensions.getExtension("graphify-labs.graphify-vscode")!.packageJSON;
-    const viewIds = (pkg.contributes.views.graphify as { id: string }[]).map((v) => v.id);
-    assert.deepStrictEqual(viewIds, ["graphifyExplorer"]);
+    const pkg = vscode.extensions.getExtension(EXTENSION_ID)!.packageJSON;
+    const viewIds = (pkg.contributes.views.synapse as { id: string }[]).map((v) => v.id);
+    assert.deepStrictEqual(viewIds, ["synapseExplorer"]);
   });
 
   it("declares languageModelTools matching the tools registered at runtime", () => {
-    const pkg = vscode.extensions.getExtension("graphify-labs.graphify-vscode")!.packageJSON;
+    const pkg = vscode.extensions.getExtension(EXTENSION_ID)!.packageJSON;
     const names = (pkg.contributes.languageModelTools as { name: string }[]).map((t) => t.name);
-    assert.deepStrictEqual(names.sort(), ["graphify_explain", "graphify_query"]);
+    assert.deepStrictEqual(names.sort(), ["synapse_explain", "synapse_query"]);
   });
 });

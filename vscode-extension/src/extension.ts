@@ -4,6 +4,7 @@ import { initLogger, log, logError, showOutput } from "./logger";
 import { initStatusBar, setBusy, setReady, setIdle, setError } from "./statusBar";
 import { GraphTreeProvider } from "./graphTreeProvider";
 import { openGraphView } from "./graphWebview";
+import { openDashboard, refreshDashboardIfOpen } from "./dashboardWebview";
 import { registerLmTools } from "./lmTools";
 import { primaryWorkspaceRoot, isWorkspaceTrusted } from "./workspaceUtils";
 import { loadGraph, setGraphModelLogger } from "./graphModel";
@@ -15,7 +16,7 @@ let operationInFlight = false;
 
 async function withLock(fn: () => Promise<void>): Promise<void> {
   if (operationInFlight) {
-    vscode.window.showInformationMessage("Graphify: a graph operation is already running.");
+    vscode.window.showInformationMessage("Synapse: a graph operation is already running.");
     return;
   }
   operationInFlight = true;
@@ -29,12 +30,12 @@ async function withLock(fn: () => Promise<void>): Promise<void> {
 export function activate(context: vscode.ExtensionContext): void {
   initLogger(context);
   setGraphModelLogger(log);
-  log("Graphify extension activating");
+  log("Synapse extension activating");
 
   const statusBar = initStatusBar(context);
   const root = primaryWorkspaceRoot();
   const treeProvider = new GraphTreeProvider(root);
-  context.subscriptions.push(vscode.window.registerTreeDataProvider("graphifyExplorer", treeProvider));
+  context.subscriptions.push(vscode.window.registerTreeDataProvider("synapseExplorer", treeProvider));
 
   registerLmTools(context);
 
@@ -47,12 +48,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
   async function doRebuild(): Promise<void> {
     if (!root) {
-      vscode.window.showWarningMessage("Graphify: open a folder to build a knowledge graph.");
+      vscode.window.showWarningMessage("Synapse: open a folder to build a knowledge graph.");
       return;
     }
     if (!isWorkspaceTrusted()) {
       vscode.window.showWarningMessage(
-        "Graphify: this workspace is not trusted. Trust it to build a graph."
+        "Synapse: this workspace is not trusted. Trust it to build a graph."
       );
       return;
     }
@@ -63,7 +64,7 @@ export function activate(context: vscode.ExtensionContext): void {
         setError(provision.detail);
         logError("provisioning failed", provision.detail);
         const action = await vscode.window.showErrorMessage(
-          `Graphify could not set up its Python environment: ${provision.detail}`,
+          `Synapse could not set up its Python environment: ${provision.detail}`,
           "Show Log"
         );
         if (action === "Show Log") showOutput();
@@ -75,14 +76,15 @@ export function activate(context: vscode.ExtensionContext): void {
       if (result.code !== 0) {
         setError(result.stderr);
         logError("extract failed", result.stderr);
-        vscode.window.showErrorMessage("Graphify: failed to build graph. See output log for details.");
+        vscode.window.showErrorMessage("Synapse: failed to build graph. See output log for details.");
         return;
       }
       log(result.stdout);
       treeProvider.refresh();
       const graph = loadGraph(cliService.graphJsonPath(root));
       setReady(graph?.nodes.length);
-      vscode.window.showInformationMessage("Graphify: knowledge graph built.");
+      refreshDashboardIfOpen(root);
+      vscode.window.showInformationMessage("Synapse: knowledge graph built.");
     });
   }
 
@@ -102,27 +104,30 @@ export function activate(context: vscode.ExtensionContext): void {
       treeProvider.refresh();
       const graph = loadGraph(cliService.graphJsonPath(root));
       setReady(graph?.nodes.length);
+      refreshDashboardIfOpen(root);
     });
   }
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("graphify.rebuildGraph", doRebuild),
-    vscode.commands.registerCommand("graphify.updateGraph", doUpdate),
-    vscode.commands.registerCommand("graphify.showOutput", showOutput),
+    vscode.commands.registerCommand("synapse.rebuildGraph", doRebuild),
+    vscode.commands.registerCommand("synapse.updateGraph", doUpdate),
+    vscode.commands.registerCommand("synapse.showOutput", showOutput),
 
-    vscode.commands.registerCommand("graphify.openGettingStarted", () => {
+    vscode.commands.registerCommand("synapse.openDashboard", () => openDashboard(root)),
+
+    vscode.commands.registerCommand("synapse.openGettingStarted", () => {
       vscode.commands.executeCommand(
         "workbench.action.openWalkthrough",
-        "graphify-labs.graphify-vscode#gettingStarted"
+        "synapse-labs.synapse#gettingStarted"
       );
     }),
 
-    vscode.commands.registerCommand("graphify.openGraphView", () => {
+    vscode.commands.registerCommand("synapse.openGraphView", () => {
       if (!root) return;
       openGraphView(root);
     }),
 
-    vscode.commands.registerCommand("graphify.revealNode", async (node: GraphNode) => {
+    vscode.commands.registerCommand("synapse.revealNode", async (node: GraphNode) => {
       if (!root || !node?.source_file) return;
       try {
         const uri = vscode.Uri.joinPath(vscode.Uri.file(root), node.source_file);
@@ -135,13 +140,13 @@ export function activate(context: vscode.ExtensionContext): void {
         editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
       } catch (err) {
         logError(`failed to reveal ${node.source_file}`, err);
-        vscode.window.showWarningMessage(`Graphify: could not open ${node.source_file}.`);
+        vscode.window.showWarningMessage(`Synapse: could not open ${node.source_file}.`);
       }
     }),
 
-    vscode.commands.registerCommand("graphify.query", async () => {
+    vscode.commands.registerCommand("synapse.query", async () => {
       if (!root || !cliService.hasGraph(root)) {
-        vscode.window.showWarningMessage("Graphify: build the graph first.");
+        vscode.window.showWarningMessage("Synapse: build the graph first.");
         return;
       }
       const question = await vscode.window.showInputBox({
@@ -149,12 +154,12 @@ export function activate(context: vscode.ExtensionContext): void {
         placeHolder: "e.g. how does authentication work",
       });
       if (!question) return;
-      const budget = vscode.workspace.getConfiguration("graphify").get<number>("queryBudget", 2000);
+      const budget = vscode.workspace.getConfiguration("synapse").get<number>("queryBudget", 2000);
       setBusy("querying...");
       const result = await cliService.query(root, question, budget);
       setReady();
       if (result.code !== 0) {
-        vscode.window.showErrorMessage("Graphify: query failed. See output log.");
+        vscode.window.showErrorMessage("Synapse: query failed. See output log.");
         logError("query command failed", result.stderr);
         return;
       }
@@ -165,16 +170,16 @@ export function activate(context: vscode.ExtensionContext): void {
       await vscode.window.showTextDocument(doc, { preview: true });
     }),
 
-    vscode.commands.registerCommand("graphify.explainAtCursor", async () => {
+    vscode.commands.registerCommand("synapse.explainAtCursor", async () => {
       if (!root || !cliService.hasGraph(root)) {
-        vscode.window.showWarningMessage("Graphify: build the graph first.");
+        vscode.window.showWarningMessage("Synapse: build the graph first.");
         return;
       }
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
       const range = editor.document.getWordRangeAtPosition(editor.selection.active);
       if (!range) {
-        vscode.window.showWarningMessage("Graphify: place the cursor on a symbol first.");
+        vscode.window.showWarningMessage("Synapse: place the cursor on a symbol first.");
         return;
       }
       const symbol = editor.document.getText(range);
@@ -182,7 +187,7 @@ export function activate(context: vscode.ExtensionContext): void {
       const result = await cliService.explain(root, symbol);
       setReady();
       if (result.code !== 0) {
-        vscode.window.showErrorMessage("Graphify: explain failed. See output log.");
+        vscode.window.showErrorMessage("Synapse: explain failed. See output log.");
         logError("explain command failed", result.stderr);
         return;
       }
@@ -195,7 +200,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   // Auto-build on open.
-  const autoBuild = vscode.workspace.getConfiguration("graphify").get<boolean>("autoBuildOnOpen", true);
+  const autoBuild = vscode.workspace.getConfiguration("synapse").get<boolean>("autoBuildOnOpen", true);
   if (autoBuild && root && isWorkspaceTrusted() && !cliService.hasGraph(root)) {
     void doRebuild();
   }
@@ -205,7 +210,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument((doc) => {
       const autoUpdate = vscode.workspace
-        .getConfiguration("graphify")
+        .getConfiguration("synapse")
         .get<boolean>("autoUpdateOnSave", true);
       if (!autoUpdate || doc.languageId !== "python" || !root || !isWorkspaceTrusted()) return;
       if (saveTimer) clearTimeout(saveTimer);
@@ -213,16 +218,13 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
-  const shownWelcome = context.globalState.get<boolean>("graphify.shownWelcome", false);
+  const shownWelcome = context.globalState.get<boolean>("synapse.shownWelcome", false);
   if (!shownWelcome) {
-    void context.globalState.update("graphify.shownWelcome", true);
-    void vscode.commands.executeCommand(
-      "workbench.action.openWalkthrough",
-      "graphify-labs.graphify-vscode#gettingStarted"
-    );
+    void context.globalState.update("synapse.shownWelcome", true);
+    openDashboard(root);
   }
 
-  log("Graphify extension activated");
+  log("Synapse extension activated");
 }
 
 export function deactivate(): void {

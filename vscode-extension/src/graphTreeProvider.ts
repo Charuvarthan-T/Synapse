@@ -24,7 +24,7 @@ export class GraphTreeProvider implements vscode.TreeDataProvider<TreeElement> {
     } else {
       this.graph = null;
     }
-    vscode.commands.executeCommand("setContext", "graphify.hasGraph", !!this.graph);
+    vscode.commands.executeCommand("setContext", "synapse.hasGraph", !!this.graph);
     this._onDidChangeTreeData.fire();
   }
 
@@ -64,7 +64,7 @@ export class GraphTreeProvider implements vscode.TreeDataProvider<TreeElement> {
     item.contextValue = "graphNode";
     if (n.source_file) {
       item.command = {
-        command: "graphify.revealNode",
+        command: "synapse.revealNode",
         title: "Go to Definition",
         arguments: [n],
       };

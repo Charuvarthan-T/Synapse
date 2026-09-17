@@ -1,6 +1,6 @@
 # Explore the graph
 
-Click the **Graphify icon** in the Activity Bar on the left to open the
+Click the **Synapse icon** in the Activity Bar on the left to open the
 sidebar view:
 
 - **God Nodes** — the most-connected functions/classes in your codebase.

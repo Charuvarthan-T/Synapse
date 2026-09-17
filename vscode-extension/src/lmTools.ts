@@ -14,8 +14,8 @@ interface ExplainInput {
 function noGraphResult(): vscode.LanguageModelToolResult {
   return new vscode.LanguageModelToolResult([
     new vscode.LanguageModelTextPart(
-      "No graphify knowledge graph is available for this workspace yet. " +
-        "Ask the user to run the 'Graphify: Rebuild Graph' command, or fall back to reading files directly."
+      "No Synapse knowledge graph is available for this workspace yet. " +
+        "Ask the user to run the 'Synapse: Rebuild Graph' command, or fall back to reading files directly."
     ),
   ]);
 }
@@ -23,7 +23,7 @@ function noGraphResult(): vscode.LanguageModelToolResult {
 function untrustedResult(): vscode.LanguageModelToolResult {
   return new vscode.LanguageModelToolResult([
     new vscode.LanguageModelTextPart(
-      "This workspace is not trusted, so graphify cannot run. Ask the user to trust the workspace."
+      "This workspace is not trusted, so Synapse cannot run. Ask the user to trust the workspace."
     ),
   ]);
 }
@@ -37,15 +37,13 @@ class QueryTool implements vscode.LanguageModelTool<QueryInput> {
     const root = primaryWorkspaceRoot();
     if (!root || !cliService.hasGraph(root)) return noGraphResult();
 
-    const budget = vscode.workspace.getConfiguration("graphify").get<number>("queryBudget", 2000);
+    const budget = vscode.workspace.getConfiguration("synapse").get<number>("queryBudget", 2000);
     try {
       const result = await cliService.query(root, options.input.question, budget);
       if (result.code !== 0) {
-        logError("graphify query failed", result.stderr);
+        logError("synapse query (graphify engine) failed", result.stderr);
         return new vscode.LanguageModelToolResult([
-          new vscode.LanguageModelTextPart(
-            `graphify query failed: ${result.stderr.slice(0, 300)}`
-          ),
+          new vscode.LanguageModelTextPart(`Synapse query failed: ${result.stderr.slice(0, 300)}`),
         ]);
       }
       log(`lm tool query: "${options.input.question}" -> ${result.stdout.length} chars`);
@@ -53,9 +51,9 @@ class QueryTool implements vscode.LanguageModelTool<QueryInput> {
         new vscode.LanguageModelTextPart(result.stdout || "No relevant nodes found."),
       ]);
     } catch (err) {
-      logError("graphify_query tool crashed", err);
+      logError("synapse_query tool crashed", err);
       return new vscode.LanguageModelToolResult([
-        new vscode.LanguageModelTextPart("graphify query encountered an internal error."),
+        new vscode.LanguageModelTextPart("Synapse query encountered an internal error."),
       ]);
     }
   }
@@ -73,11 +71,9 @@ class ExplainTool implements vscode.LanguageModelTool<ExplainInput> {
     try {
       const result = await cliService.explain(root, options.input.symbol);
       if (result.code !== 0) {
-        logError("graphify explain failed", result.stderr);
+        logError("synapse explain (graphify engine) failed", result.stderr);
         return new vscode.LanguageModelToolResult([
-          new vscode.LanguageModelTextPart(
-            `graphify explain failed: ${result.stderr.slice(0, 300)}`
-          ),
+          new vscode.LanguageModelTextPart(`Synapse explain failed: ${result.stderr.slice(0, 300)}`),
         ]);
       }
       log(`lm tool explain: "${options.input.symbol}"`);
@@ -85,9 +81,9 @@ class ExplainTool implements vscode.LanguageModelTool<ExplainInput> {
         new vscode.LanguageModelTextPart(result.stdout || `No node named '${options.input.symbol}' found.`),
       ]);
     } catch (err) {
-      logError("graphify_explain tool crashed", err);
+      logError("synapse_explain tool crashed", err);
       return new vscode.LanguageModelToolResult([
-        new vscode.LanguageModelTextPart("graphify explain encountered an internal error."),
+        new vscode.LanguageModelTextPart("Synapse explain encountered an internal error."),
       ]);
     }
   }
@@ -99,7 +95,7 @@ export function registerLmTools(context: vscode.ExtensionContext): void {
     log("vscode.lm.registerTool not available in this VS Code version; skipping tool registration");
     return;
   }
-  context.subscriptions.push(vscode.lm.registerTool("graphify_query", new QueryTool()));
-  context.subscriptions.push(vscode.lm.registerTool("graphify_explain", new ExplainTool()));
-  log("registered graphify_query and graphify_explain as Language Model Tools");
+  context.subscriptions.push(vscode.lm.registerTool("synapse_query", new QueryTool()));
+  context.subscriptions.push(vscode.lm.registerTool("synapse_explain", new ExplainTool()));
+  log("registered synapse_query and synapse_explain as Language Model Tools");
 }

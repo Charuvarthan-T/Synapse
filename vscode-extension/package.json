@@ -1,9 +1,9 @@
 {
-  "name": "graphify-vscode",
-  "displayName": "Graphify",
-  "description": "Local knowledge-graph context for AI coding assistants — no API key required, no code leaves your machine.",
+  "name": "synapse",
+  "displayName": "Synapse",
+  "description": "A local knowledge graph of your codebase, for AI coding assistants — no API key required, no code leaves your machine.",
   "version": "0.1.0",
-  "publisher": "graphify-labs",
+  "publisher": "synapse-labs",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -19,161 +19,172 @@
   "contributes": {
     "commands": [
       {
-        "command": "graphify.rebuildGraph",
-        "title": "Graphify: Rebuild Graph",
+        "command": "synapse.openDashboard",
+        "title": "Synapse: Open Dashboard",
+        "icon": "$(circuit-board)"
+      },
+      {
+        "command": "synapse.rebuildGraph",
+        "title": "Synapse: Rebuild Graph",
         "icon": "$(refresh)"
       },
       {
-        "command": "graphify.updateGraph",
-        "title": "Graphify: Update Graph (incremental)"
+        "command": "synapse.updateGraph",
+        "title": "Synapse: Update Graph (incremental)"
       },
       {
-        "command": "graphify.query",
-        "title": "Graphify: Query Codebase"
+        "command": "synapse.query",
+        "title": "Synapse: Query Codebase"
       },
       {
-        "command": "graphify.explainAtCursor",
-        "title": "Graphify: Explain Symbol at Cursor"
+        "command": "synapse.explainAtCursor",
+        "title": "Synapse: Explain Symbol at Cursor"
       },
       {
-        "command": "graphify.openGraphView",
-        "title": "Graphify: Open Graph Visualization"
+        "command": "synapse.openGraphView",
+        "title": "Synapse: Open Graph Visualization"
       },
       {
-        "command": "graphify.showOutput",
-        "title": "Graphify: Show Output Log"
+        "command": "synapse.showOutput",
+        "title": "Synapse: Show Output Log"
       },
       {
-        "command": "graphify.revealNode",
-        "title": "Graphify: Go to Definition",
+        "command": "synapse.revealNode",
+        "title": "Synapse: Go to Definition",
         "icon": "$(go-to-file)"
       },
       {
-        "command": "graphify.openGettingStarted",
-        "title": "Graphify: Open Getting Started Guide"
+        "command": "synapse.openGettingStarted",
+        "title": "Synapse: Open Getting Started Guide"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "graphify",
-          "title": "Graphify",
-          "icon": "media/graphify-icon.svg"
+          "id": "synapse",
+          "title": "Synapse",
+          "icon": "media/synapse-icon.svg"
         }
       ]
     },
     "views": {
-      "graphify": [
+      "synapse": [
         {
-          "id": "graphifyExplorer",
+          "id": "synapseExplorer",
           "name": "Knowledge Graph",
-          "icon": "media/graphify-icon.svg",
-          "contextualTitle": "Graphify"
+          "icon": "media/synapse-icon.svg",
+          "contextualTitle": "Synapse"
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "graphifyExplorer",
-        "contents": "No graph built yet for this workspace.\n[Build Graph](command:graphify.rebuildGraph)\nRequires Python 3.10+ on your PATH. No API key needed — graph construction is 100% local.",
-        "when": "graphify.hasGraph == false"
+        "view": "synapseExplorer",
+        "contents": "No graph built yet for this workspace.\n[Open Dashboard](command:synapse.openDashboard)\n[Build Graph](command:synapse.rebuildGraph)\nRequires Python 3.10+ on your PATH. No API key needed — graph construction is 100% local.",
+        "when": "synapse.hasGraph == false"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "graphify.rebuildGraph",
-          "when": "view == graphifyExplorer",
+          "command": "synapse.rebuildGraph",
+          "when": "view == synapseExplorer",
           "group": "navigation"
         },
         {
-          "command": "graphify.openGraphView",
-          "when": "view == graphifyExplorer",
+          "command": "synapse.openGraphView",
+          "when": "view == synapseExplorer",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "graphify.revealNode",
-          "when": "view == graphifyExplorer && viewItem == graphNode",
+          "command": "synapse.revealNode",
+          "when": "view == synapseExplorer && viewItem == graphNode",
           "group": "inline"
         }
       ]
     },
     "configuration": {
-      "title": "Graphify",
+      "title": "Synapse",
       "properties": {
-        "graphify.autoBuildOnOpen": {
+        "synapse.autoBuildOnOpen": {
           "type": "boolean",
           "default": true,
           "description": "Automatically build the knowledge graph when a Python workspace is opened (local AST parsing only, no API key or network calls required)."
         },
-        "graphify.autoUpdateOnSave": {
+        "synapse.autoUpdateOnSave": {
           "type": "boolean",
           "default": true,
           "description": "Automatically refresh the graph (incremental, AST-only) shortly after saving a Python file."
         },
-        "graphify.pythonPath": {
+        "synapse.pythonPath": {
           "type": "string",
           "default": "",
           "description": "Path to a Python 3.10+ interpreter to use. Leave empty to auto-detect (python3 / python / py -3)."
         },
-        "graphify.queryBudget": {
+        "synapse.queryBudget": {
           "type": "number",
           "default": 2000,
-          "description": "Maximum tokens graphify will include when returning context for a query."
+          "description": "Maximum tokens Synapse will include when returning context for a query."
         },
-        "graphify.devPackagePath": {
+        "synapse.devPackagePath": {
           "type": "string",
           "default": "",
-          "description": "Advanced: install graphify from a local path instead of PyPI (for extension development against this repo)."
+          "description": "Advanced: install the graphify engine from a local path instead of PyPI (for developing Synapse against a graphify checkout)."
         }
       }
     },
     "walkthroughs": [
       {
         "id": "gettingStarted",
-        "title": "Get Started with Graphify",
+        "title": "Get Started with Synapse",
         "description": "Build a local knowledge graph of your code and use it with Copilot Chat — no API key required.",
         "steps": [
           {
             "id": "build",
             "title": "Build your first graph",
-            "description": "Build a local knowledge graph of your Python project. No API key, no network calls.\n[Rebuild Graph](command:graphify.rebuildGraph)",
+            "description": "Build a local knowledge graph of your Python project. No API key, no network calls.\n[Rebuild Graph](command:synapse.rebuildGraph)",
             "media": { "markdown": "walkthroughs/01-build.md" }
+          },
+          {
+            "id": "dashboard",
+            "title": "Open the Dashboard",
+            "description": "See your graph's stats and every action in one branded, at-a-glance view.\n[Open Dashboard](command:synapse.openDashboard)",
+            "media": { "markdown": "walkthroughs/02-dashboard.md" }
           },
           {
             "id": "explore",
             "title": "Explore the graph",
-            "description": "Browse God Nodes and Communities in the sidebar, and jump straight to definitions.\n[Open Graphify Sidebar](command:workbench.view.extension.graphify)",
-            "media": { "markdown": "walkthroughs/02-explore.md" }
+            "description": "Browse God Nodes and Communities in the sidebar, and jump straight to definitions.\n[Open Synapse Sidebar](command:workbench.view.extension.synapse)",
+            "media": { "markdown": "walkthroughs/03-explore.md" }
           },
           {
             "id": "visualize",
             "title": "See the whole graph",
-            "description": "Open an interactive visualization of your codebase.\n[Open Graph Visualization](command:graphify.openGraphView)",
-            "media": { "markdown": "walkthroughs/03-visualize.md" }
+            "description": "Open an interactive visualization of your codebase.\n[Open Graph Visualization](command:synapse.openGraphView)",
+            "media": { "markdown": "walkthroughs/04-visualize.md" }
           },
           {
             "id": "ask",
             "title": "Ask questions about your code",
-            "description": "Query the graph in plain language, or explain the symbol under your cursor.\n[Query Codebase](command:graphify.query)",
-            "media": { "markdown": "walkthroughs/04-ask.md" }
+            "description": "Query the graph in plain language, or explain the symbol under your cursor.\n[Query Codebase](command:synapse.query)",
+            "media": { "markdown": "walkthroughs/05-ask.md" }
           },
           {
             "id": "copilot",
             "title": "Use it with GitHub Copilot Chat",
-            "description": "Once built, Copilot Chat's agent mode can call Graphify automatically using your own subscription.",
-            "media": { "markdown": "walkthroughs/05-copilot.md" }
+            "description": "Once built, Copilot Chat's agent mode can call Synapse automatically using your own subscription.",
+            "media": { "markdown": "walkthroughs/06-copilot.md" }
           }
         ]
       }
     ],
     "languageModelTools": [
       {
-        "name": "graphify_query",
-        "toolReferenceName": "graphifyQuery",
-        "displayName": "Graphify: Query Knowledge Graph",
+        "name": "synapse_query",
+        "toolReferenceName": "synapseQuery",
+        "displayName": "Synapse: Query Knowledge Graph",
         "modelDescription": "Search the local repository knowledge graph for code, functions, and classes relevant to a natural-language question. Returns a compact, targeted set of relevant nodes and their relationships (calls, imports, inheritance) instead of full file contents — use this before reading whole files to save tokens.",
         "canBeReferencedInPrompt": true,
         "inputSchema": {
@@ -184,15 +195,13 @@
               "description": "A natural-language question about the codebase, e.g. 'how does authentication work'"
             }
           },
-          "required": [
-            "question"
-          ]
+          "required": ["question"]
         }
       },
       {
-        "name": "graphify_explain",
-        "toolReferenceName": "graphifyExplain",
-        "displayName": "Graphify: Explain Symbol",
+        "name": "synapse_explain",
+        "toolReferenceName": "synapseExplain",
+        "displayName": "Synapse: Explain Symbol",
         "modelDescription": "Get a plain-language explanation of a specific function, class, or file in the repository and its direct neighbors in the knowledge graph (what calls it, what it calls, what it imports).",
         "canBeReferencedInPrompt": true,
         "inputSchema": {
@@ -203,9 +212,7 @@
               "description": "The exact name of a function, class, or file to explain, e.g. 'validate_url' or 'build.py'"
             }
           },
-          "required": [
-            "symbol"
-          ]
+          "required": ["symbol"]
         }
       }
     ]
@@ -217,7 +224,8 @@
     "pretest": "npm run compile",
     "test:unit": "mocha \"out/test/unit/**/*.test.js\"",
     "test:integration": "node ./out/test/runTest.js",
-    "test": "npm run test:unit && npm run test:integration"
+    "test": "npm run test:unit && npm run test:integration",
+    "package": "vsce package --allow-missing-repository"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
@@ -225,6 +233,7 @@
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.95.0",
     "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.0.0",
     "glob": "^13.0.6",
     "mocha": "^12.0.2",
     "typescript": "^5.4.0"

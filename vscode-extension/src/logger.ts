@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 let channel: vscode.OutputChannel | undefined;
 
 export function initLogger(context: vscode.ExtensionContext): void {
-  channel = vscode.window.createOutputChannel("Graphify");
+  channel = vscode.window.createOutputChannel("Synapse");
   context.subscriptions.push(channel);
 }
 
