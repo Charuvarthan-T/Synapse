@@ -15,7 +15,7 @@
     "onLanguage:python",
     "workspaceContains:**/*.py"
   ],
-  "main": "./out/extension.js",
+  "main": "./out/src/extension.js",
   "contributes": {
     "commands": [
       {
@@ -141,7 +141,9 @@
               "description": "A natural-language question about the codebase, e.g. 'how does authentication work'"
             }
           },
-          "required": ["question"]
+          "required": [
+            "question"
+          ]
         }
       },
       {
@@ -158,7 +160,9 @@
               "description": "The exact name of a function, class, or file to explain, e.g. 'validate_url' or 'build.py'"
             }
           },
-          "required": ["symbol"]
+          "required": [
+            "symbol"
+          ]
         }
       }
     ]
@@ -166,11 +170,20 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test:unit": "mocha \"out/test/unit/**/*.test.js\"",
+    "test:integration": "node ./out/test/runTest.js",
+    "test": "npm run test:unit && npm run test:integration"
   },
   "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.95.0",
+    "@vscode/test-electron": "^3.1.0",
+    "glob": "^13.0.6",
+    "mocha": "^12.0.2",
     "typescript": "^5.4.0"
   }
 }

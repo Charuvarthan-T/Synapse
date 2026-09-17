@@ -1,5 +1,13 @@
 import * as fs from "fs";
-import { log, logError } from "./logger";
+
+// Deliberately no dependency on the vscode module here: this file is pure
+// graph data logic and is unit-tested directly under plain Node/Mocha
+// (no Electron test host required). Diagnostics go through this tiny
+// injectable logger instead of importing ../logger.
+let warn: (msg: string) => void = () => {};
+export function setGraphModelLogger(fn: (msg: string) => void): void {
+  warn = fn;
+}
 
 export interface GraphNode {
   id: string;
@@ -28,7 +36,7 @@ export function loadGraph(graphJsonPath: string): GraphData | null {
   try {
     const stat = fs.statSync(graphJsonPath);
     if (stat.size > MAX_GRAPH_BYTES) {
-      log(`graph.json too large to load in-editor (${stat.size} bytes), skipping tree view`);
+      warn(`graph.json too large to load in-editor (${stat.size} bytes), skipping tree view`);
       return null;
     }
     const raw = fs.readFileSync(graphJsonPath, { encoding: "utf-8" });
@@ -44,7 +52,8 @@ export function loadGraph(graphJsonPath: string): GraphData | null {
       : [];
     return { nodes, edges };
   } catch (err) {
-    logError(`failed to load graph at ${graphJsonPath}`, err);
+    const detail = err instanceof Error ? err.message : String(err);
+    warn(`failed to load graph at ${graphJsonPath}: ${detail}`);
     return null;
   }
 }

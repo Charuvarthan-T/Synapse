@@ -6,7 +6,7 @@ import { GraphTreeProvider } from "./graphTreeProvider";
 import { openGraphView } from "./graphWebview";
 import { registerLmTools } from "./lmTools";
 import { primaryWorkspaceRoot, isWorkspaceTrusted } from "./workspaceUtils";
-import { loadGraph } from "./graphModel";
+import { loadGraph, setGraphModelLogger } from "./graphModel";
 import type { GraphNode } from "./graphModel";
 
 // Simple re-entrancy guard: never run two graph-mutating CLI operations
@@ -28,6 +28,7 @@ async function withLock(fn: () => Promise<void>): Promise<void> {
 
 export function activate(context: vscode.ExtensionContext): void {
   initLogger(context);
+  setGraphModelLogger(log);
   log("Graphify extension activating");
 
   const statusBar = initStatusBar(context);

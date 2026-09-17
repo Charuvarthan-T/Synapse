@@ -109,3 +109,30 @@ npm run compile
 To develop against this repo's own `graphify` source instead of a PyPI
 release, set `graphify.devPackagePath` to the path of the repo root
 (one level up) before running `Graphify: Rebuild Graph`.
+
+### Testing
+
+```bash
+npm test              # unit tests, then the Electron integration suite
+npm run test:unit      # pure-logic tests (graphModel.ts), no VS Code needed
+npm run test:integration  # downloads a real VS Code build once, then
+                           # activates the extension in it and checks
+                           # commands/tools are registered correctly
+```
+
+The integration test downloads a real VS Code binary into `.vscode-test/`
+on first run (~1GB, cached afterwards) and runs against the fixture
+workspace in `test/fixtures/sample-python-repo/`, which has
+`graphify.autoBuildOnOpen`/`autoUpdateOnSave` disabled so the test stays
+fast and doesn't depend on Python/pip being set up in CI. It checks
+activation and command/tool registration only — it does not exercise a
+real graph build (that path depends on the user's local Python
+environment and is verified manually).
+
+If you run this from inside an Electron-based terminal/tool (e.g. VS
+Code's own integrated terminal, or Claude Code), note that
+`ELECTRON_RUN_AS_NODE` is often already set in the environment and gets
+inherited by the spawned test instance, breaking it in a confusing way
+(it tries to `require()` the workspace path as a script). `test/runTest.ts`
+already unsets it for the child process, but it's worth knowing about if
+you see `Cannot find module <path>` errors from an Electron process here.
