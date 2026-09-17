@@ -70,6 +70,13 @@
     "views": {
       "synapse": [
         {
+          "id": "synapseDashboardView",
+          "name": "Dashboard",
+          "type": "webview",
+          "icon": "media/synapse-icon.svg",
+          "contextualTitle": "Synapse"
+        },
+        {
           "id": "synapseExplorer",
           "name": "Knowledge Graph",
           "icon": "media/synapse-icon.svg",
@@ -80,7 +87,7 @@
     "viewsWelcome": [
       {
         "view": "synapseExplorer",
-        "contents": "No graph built yet for this workspace.\n[Open Dashboard](command:synapse.openDashboard)\n[Build Graph](command:synapse.rebuildGraph)\nRequires Python 3.10+ on your PATH. No API key needed — graph construction is 100% local.",
+        "contents": "No graph built yet for this workspace.\n[Build Graph](command:synapse.rebuildGraph)\nRequires Python 3.10+ on your PATH. No API key needed — graph construction is 100% local.",
         "when": "synapse.hasGraph == false"
       }
     ],
@@ -150,7 +157,7 @@
           {
             "id": "dashboard",
             "title": "Open the Dashboard",
-            "description": "See your graph's stats and every action in one branded, at-a-glance view.\n[Open Dashboard](command:synapse.openDashboard)",
+            "description": "See your graph's stats and every action right in the sidebar.\n[Open Dashboard](command:synapse.openDashboard)",
             "media": { "markdown": "walkthroughs/02-dashboard.md" }
           },
           {

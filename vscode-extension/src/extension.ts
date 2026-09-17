@@ -4,7 +4,7 @@ import { initLogger, log, logError, showOutput } from "./logger";
 import { initStatusBar, setBusy, setReady, setIdle, setError } from "./statusBar";
 import { GraphTreeProvider } from "./graphTreeProvider";
 import { openGraphView } from "./graphWebview";
-import { openDashboard, refreshDashboardIfOpen } from "./dashboardWebview";
+import { DashboardViewProvider } from "./dashboardViewProvider";
 import { registerLmTools } from "./lmTools";
 import { primaryWorkspaceRoot, isWorkspaceTrusted } from "./workspaceUtils";
 import { loadGraph, setGraphModelLogger } from "./graphModel";
@@ -36,6 +36,11 @@ export function activate(context: vscode.ExtensionContext): void {
   const root = primaryWorkspaceRoot();
   const treeProvider = new GraphTreeProvider(root);
   context.subscriptions.push(vscode.window.registerTreeDataProvider("synapseExplorer", treeProvider));
+
+  const dashboardProvider = new DashboardViewProvider(root);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(DashboardViewProvider.viewId, dashboardProvider)
+  );
 
   registerLmTools(context);
 
@@ -83,7 +88,7 @@ export function activate(context: vscode.ExtensionContext): void {
       treeProvider.refresh();
       const graph = loadGraph(cliService.graphJsonPath(root));
       setReady(graph?.nodes.length);
-      refreshDashboardIfOpen(root);
+      dashboardProvider.refresh();
       vscode.window.showInformationMessage("Synapse: knowledge graph built.");
     });
   }
@@ -104,7 +109,7 @@ export function activate(context: vscode.ExtensionContext): void {
       treeProvider.refresh();
       const graph = loadGraph(cliService.graphJsonPath(root));
       setReady(graph?.nodes.length);
-      refreshDashboardIfOpen(root);
+      dashboardProvider.refresh();
     });
   }
 
@@ -113,7 +118,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("synapse.updateGraph", doUpdate),
     vscode.commands.registerCommand("synapse.showOutput", showOutput),
 
-    vscode.commands.registerCommand("synapse.openDashboard", () => openDashboard(root)),
+    vscode.commands.registerCommand("synapse.openDashboard", () => {
+      vscode.commands.executeCommand("workbench.view.extension.synapse");
+    }),
 
     vscode.commands.registerCommand("synapse.openGettingStarted", () => {
       vscode.commands.executeCommand(
@@ -221,7 +228,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const shownWelcome = context.globalState.get<boolean>("synapse.shownWelcome", false);
   if (!shownWelcome) {
     void context.globalState.update("synapse.shownWelcome", true);
-    openDashboard(root);
+    void vscode.commands.executeCommand("workbench.view.extension.synapse");
   }
 
   log("Synapse extension activated");

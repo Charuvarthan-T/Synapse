@@ -58,13 +58,13 @@ own testing.)
    This happens once automatically (toggle it off via
    `synapse.autoBuildOnOpen` if you'd rather trigger it manually).
    First-time setup needs Python 3.10+ on your PATH.
-3. **The Dashboard opens automatically** the first time you install the
-   extension — your graph's stats, every action, and a short "how it works"
-   all in one branded screen. Reopen it anytime with **Synapse: Open
-   Dashboard**, or click the status bar item.
-4. **Browse the graph** via the Synapse icon (🧠) in the Activity Bar (God
-   Nodes + Communities), or **Synapse: Open Graph Visualization** for the
-   full interactive diagram.
+3. **Click the Synapse icon (🧠) in the Activity Bar** — the Dashboard is
+   the first thing you see: your graph's stats, every action, and a short
+   "how it works", right in the sidebar. It opens automatically there the
+   first time you install the extension too.
+4. **Browse the graph** below the Dashboard in the same sidebar (God Nodes +
+   Communities), or **Synapse: Open Graph Visualization** for the full
+   interactive diagram.
 5. **Ask it things** with **Synapse: Query Codebase**, or put your cursor
    on a symbol and run **Synapse: Explain Symbol at Cursor**.
 6. **Let Copilot use it automatically** — once the graph exists, GitHub
@@ -73,7 +73,7 @@ own testing.)
 
 | Command | What it does |
 |---|---|
-| Synapse: Open Dashboard | Your graph's stats + every action in one screen |
+| Synapse: Open Dashboard | Reveal the Dashboard in the sidebar (stats + every action) |
 | Synapse: Rebuild Graph | Full rebuild (also click the status bar item) |
 | Synapse: Update Graph (incremental) | Fast refresh after edits (runs automatically on save too) |
 | Synapse: Query Codebase | Ask a question in plain language |
@@ -88,9 +88,10 @@ engine, and its full output, is logged there.
 
 ## Features
 
-- **A branded Dashboard**, not just a settings page — your graph's stats,
-  every action, and a compact usage guide in one elegant screen. Open it
-  with **Synapse: Open Dashboard**.
+- **A branded Dashboard right in the sidebar** — not a separate settings
+  page or a hidden panel. Click the Synapse icon in the Activity Bar and
+  you immediately see your graph's stats, every action, and a compact
+  usage guide, in a green/dark theme built for this extension specifically.
 - **Auto-build on open**: builds the graph automatically when you open a
   Python workspace (toggle via `synapse.autoBuildOnOpen`).
 - **Auto-update on save**: incrementally refreshes the graph a couple

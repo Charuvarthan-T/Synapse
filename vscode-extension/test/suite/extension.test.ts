@@ -30,13 +30,13 @@ describe("Synapse extension", () => {
     }
   });
 
-  it("contributes the synapseExplorer tree view without error", () => {
+  it("contributes the Dashboard webview view and the Knowledge Graph tree view", () => {
     // Registration itself is exercised by activation above; this just
-    // guards against the view id being renamed in package.json without
+    // guards against a view id being renamed in package.json without
     // updating extension.ts (or vice versa).
     const pkg = vscode.extensions.getExtension(EXTENSION_ID)!.packageJSON;
     const viewIds = (pkg.contributes.views.synapse as { id: string }[]).map((v) => v.id);
-    assert.deepStrictEqual(viewIds, ["synapseExplorer"]);
+    assert.deepStrictEqual(viewIds, ["synapseDashboardView", "synapseExplorer"]);
   });
 
   it("declares languageModelTools matching the tools registered at runtime", () => {

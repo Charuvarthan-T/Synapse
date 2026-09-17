@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import { graphHtmlPath } from "./cliService";
 import { logError } from "./logger";
+import { brainSvg } from "./brandAssets";
 
 let currentPanel: vscode.WebviewPanel | undefined;
 
@@ -11,17 +12,18 @@ const BRAND_STYLE = `
   #synapse-band {
     position: fixed; top: 0; left: 0; right: 0; height: 44px; z-index: 1000;
     display: flex; align-items: center; gap: 10px; padding: 0 16px;
-    background: linear-gradient(90deg, #2b1055 0%, #7597de 100%);
+    background: #141619; border-bottom: 1px solid #23262b;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    color: #ffffff; box-shadow: 0 1px 8px rgba(0,0,0,0.4);
+    color: #e6e8ea; box-shadow: 0 1px 8px rgba(0,0,0,0.4);
   }
-  #synapse-band .brand { font-weight: 600; letter-spacing: 0.3px; font-size: 14px; }
-  #synapse-band .tag { opacity: 0.75; font-size: 12px; }
+  #synapse-band .brand { font-weight: 700; letter-spacing: 0.3px; font-size: 14px; color: #22c55e; }
+  #synapse-band .tag { opacity: 0.7; font-size: 12px; }
 </style>`;
 
 const BRAND_BAND = `
 <div id="synapse-band">
-  <span class="brand">\u{1F9E0} Synapse</span>
+  ${brainSvg(18, "#22c55e")}
+  <span class="brand">Synapse</span>
   <span class="tag">local knowledge graph — no API key, nothing leaves your machine</span>
 </div>`;
 
