@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import { graphHtmlPath } from "./cliService";
 import { logError } from "./logger";
-import { brainSvg } from "./brandAssets";
+import { neuronSvg } from "./brandAssets";
 
 let currentPanel: vscode.WebviewPanel | undefined;
 
@@ -22,7 +22,7 @@ const BRAND_STYLE = `
 
 const BRAND_BAND = `
 <div id="synapse-band">
-  ${brainSvg(18, "#22c55e")}
+  ${neuronSvg(18, "#22c55e")}
   <span class="brand">Synapse</span>
   <span class="tag">local knowledge graph — no API key, nothing leaves your machine</span>
 </div>`;

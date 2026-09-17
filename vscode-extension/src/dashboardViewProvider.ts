@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as cliService from "./cliService";
 import { loadGraph, degreeByNode, groupByCommunity } from "./graphModel";
-import { brainSvg } from "./brandAssets";
+import { neuronSvg, kebabSvg } from "./brandAssets";
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -57,7 +57,12 @@ function buildHtml(workspaceRoot: string | undefined): string {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px;
   }
   .hero { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-  .hero h1 { margin: 0; font-size: 16px; font-weight: 700; color: var(--accent); letter-spacing: 0.02em; }
+  .hero h1 { margin: 0; font-size: 16px; font-weight: 700; color: var(--accent); letter-spacing: 0.02em; flex: 1; }
+  .menu-btn {
+    display: flex; align-items: center; justify-content: center; width: 24px; height: 24px;
+    border-radius: 6px; text-decoration: none; flex-shrink: 0;
+  }
+  .menu-btn:hover { background: rgba(255,255,255,0.08); }
   .tagline { color: var(--muted); margin: 0 0 16px 0; font-size: 11px; line-height: 1.5; }
   .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
   .card h2 { margin: 0 0 10px 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
@@ -81,7 +86,10 @@ function buildHtml(workspaceRoot: string | undefined): string {
 </style>
 </head>
 <body>
-  <div class="hero">${brainSvg(20, "#22c55e")}<h1>Synapse</h1></div>
+  <div class="hero">
+    ${neuronSvg(20, "#22c55e")}<h1>Synapse</h1>
+    <a class="menu-btn" href="command:synapse.openDocs" title="Documentation">${kebabSvg(14, "#8a9099")}</a>
+  </div>
   <p class="tagline">Local knowledge graph for your AI assistant. No API key. Nothing leaves your machine.</p>
 
   <div class="card">

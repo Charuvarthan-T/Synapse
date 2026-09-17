@@ -13,6 +13,7 @@ const EXPECTED_COMMANDS = [
   "synapse.showOutput",
   "synapse.revealNode",
   "synapse.openGettingStarted",
+  "synapse.openDocs",
 ];
 
 describe("Synapse extension", () => {

@@ -4,6 +4,7 @@ import { initLogger, log, logError, showOutput } from "./logger";
 import { initStatusBar, setBusy, setReady, setIdle, setError } from "./statusBar";
 import { GraphTreeProvider } from "./graphTreeProvider";
 import { openGraphView } from "./graphWebview";
+import { openDocs } from "./docsWebview";
 import { DashboardViewProvider } from "./dashboardViewProvider";
 import { registerLmTools } from "./lmTools";
 import { primaryWorkspaceRoot, isWorkspaceTrusted } from "./workspaceUtils";
@@ -121,6 +122,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("synapse.openDashboard", () => {
       vscode.commands.executeCommand("workbench.view.extension.synapse");
     }),
+
+    vscode.commands.registerCommand("synapse.openDocs", () => openDocs()),
 
     vscode.commands.registerCommand("synapse.openGettingStarted", () => {
       vscode.commands.executeCommand(
