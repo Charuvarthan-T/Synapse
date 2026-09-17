@@ -9,6 +9,7 @@ const EXPECTED_COMMANDS = [
   "graphify.openGraphView",
   "graphify.showOutput",
   "graphify.revealNode",
+  "graphify.openGettingStarted",
 ];
 
 describe("Graphify extension", () => {

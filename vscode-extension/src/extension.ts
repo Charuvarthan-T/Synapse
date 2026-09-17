@@ -110,6 +110,13 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("graphify.updateGraph", doUpdate),
     vscode.commands.registerCommand("graphify.showOutput", showOutput),
 
+    vscode.commands.registerCommand("graphify.openGettingStarted", () => {
+      vscode.commands.executeCommand(
+        "workbench.action.openWalkthrough",
+        "graphify-labs.graphify-vscode#gettingStarted"
+      );
+    }),
+
     vscode.commands.registerCommand("graphify.openGraphView", () => {
       if (!root) return;
       openGraphView(root);
@@ -205,6 +212,15 @@ export function activate(context: vscode.ExtensionContext): void {
       saveTimer = setTimeout(() => void doUpdate(), 2000);
     })
   );
+
+  const shownWelcome = context.globalState.get<boolean>("graphify.shownWelcome", false);
+  if (!shownWelcome) {
+    void context.globalState.update("graphify.shownWelcome", true);
+    void vscode.commands.executeCommand(
+      "workbench.action.openWalkthrough",
+      "graphify-labs.graphify-vscode#gettingStarted"
+    );
+  }
 
   log("Graphify extension activated");
 }

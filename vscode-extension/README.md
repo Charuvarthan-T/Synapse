@@ -44,6 +44,42 @@ default extension storage location specifically to avoid Windows' 260-
 character path-length limit, which broke real extraction runs during this
 project's own testing.)
 
+## How to Use
+
+1. **Open a Python project.** Graphify activates automatically when it sees
+   `.py` files.
+2. **Wait for the first build.** Watch the status bar in the bottom-right —
+   it goes `provisioning...` → `building graph...` → `Graphify: N nodes`.
+   This happens once automatically (toggle it off via
+   `graphify.autoBuildOnOpen` if you'd rather trigger it manually).
+   First-time setup needs Python 3.10+ on your PATH.
+3. **A "Get Started" guide opens automatically** the first time you install
+   the extension, walking through the rest of these steps interactively.
+   Reopen it anytime with **Graphify: Open Getting Started Guide** from the
+   Command Palette.
+4. **Browse the graph** via the Graphify icon in the Activity Bar (God Nodes
+   + Communities), or **Graphify: Open Graph Visualization** for the full
+   interactive diagram.
+5. **Ask it things** with **Graphify: Query Codebase**, or put your cursor
+   on a symbol and run **Graphify: Explain Symbol at Cursor**.
+6. **Let Copilot use it automatically** — once the graph exists, GitHub
+   Copilot Chat's agent mode can call Graphify on its own when it needs
+   codebase context. Nothing to configure.
+
+| Command | What it does |
+|---|---|
+| Graphify: Rebuild Graph | Full rebuild (also click the status bar item) |
+| Graphify: Update Graph (incremental) | Fast refresh after edits (runs automatically on save too) |
+| Graphify: Query Codebase | Ask a question in plain language |
+| Graphify: Explain Symbol at Cursor | Explain just the symbol under your cursor |
+| Graphify: Open Graph Visualization | Interactive node/edge diagram |
+| Graphify: Open Getting Started Guide | Reopen the walkthrough |
+| Graphify: Show Output Log | See what the underlying CLI is doing (first stop if something looks wrong) |
+
+If anything seems stuck or wrong, **Graphify: Show Output Log** is always
+the right first step — every command graphify runs, and its full
+output, is logged there.
+
 ## Features
 
 - **Auto-build on open**: builds the graph automatically when you open a

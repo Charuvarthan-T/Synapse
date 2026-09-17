@@ -47,6 +47,10 @@
         "command": "graphify.revealNode",
         "title": "Graphify: Go to Definition",
         "icon": "$(go-to-file)"
+      },
+      {
+        "command": "graphify.openGettingStarted",
+        "title": "Graphify: Open Getting Started Guide"
       }
     ],
     "viewsContainers": {
@@ -126,6 +130,45 @@
         }
       }
     },
+    "walkthroughs": [
+      {
+        "id": "gettingStarted",
+        "title": "Get Started with Graphify",
+        "description": "Build a local knowledge graph of your code and use it with Copilot Chat — no API key required.",
+        "steps": [
+          {
+            "id": "build",
+            "title": "Build your first graph",
+            "description": "Build a local knowledge graph of your Python project. No API key, no network calls.\n[Rebuild Graph](command:graphify.rebuildGraph)",
+            "media": { "markdown": "walkthroughs/01-build.md" }
+          },
+          {
+            "id": "explore",
+            "title": "Explore the graph",
+            "description": "Browse God Nodes and Communities in the sidebar, and jump straight to definitions.\n[Open Graphify Sidebar](command:workbench.view.extension.graphify)",
+            "media": { "markdown": "walkthroughs/02-explore.md" }
+          },
+          {
+            "id": "visualize",
+            "title": "See the whole graph",
+            "description": "Open an interactive visualization of your codebase.\n[Open Graph Visualization](command:graphify.openGraphView)",
+            "media": { "markdown": "walkthroughs/03-visualize.md" }
+          },
+          {
+            "id": "ask",
+            "title": "Ask questions about your code",
+            "description": "Query the graph in plain language, or explain the symbol under your cursor.\n[Query Codebase](command:graphify.query)",
+            "media": { "markdown": "walkthroughs/04-ask.md" }
+          },
+          {
+            "id": "copilot",
+            "title": "Use it with GitHub Copilot Chat",
+            "description": "Once built, Copilot Chat's agent mode can call Graphify automatically using your own subscription.",
+            "media": { "markdown": "walkthroughs/05-copilot.md" }
+          }
+        ]
+      }
+    ],
     "languageModelTools": [
       {
         "name": "graphify_query",

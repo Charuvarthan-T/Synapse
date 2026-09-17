@@ -172,15 +172,28 @@ async function runGraphify(args: string[], cwd: string): Promise<CliResult> {
   return run(venvPython(), ["-m", "graphify", ...args], cwd);
 }
 
+/** `extract`/`update` alone only (re)write graph.json — they do NOT generate
+ * graph.html or GRAPH_REPORT.md. Only `cluster-only` does. --no-label keeps
+ * this LLM-free (community names fall back to their hub node's name instead
+ * of an LLM-generated description) so the "no API key required" guarantee
+ * holds for the visualization too. */
+async function refreshVisualization(workspaceRoot: string): Promise<CliResult> {
+  return runGraphify(["cluster-only", workspaceRoot, "--no-label"], workspaceRoot);
+}
+
 /** Full extraction. Always --code-only: zero LLM calls, zero API key needed —
  * this is the core "no key required" guarantee of the extension. */
 export async function extract(workspaceRoot: string): Promise<CliResult> {
-  return runGraphify(["extract", workspaceRoot, "--code-only"], workspaceRoot);
+  const result = await runGraphify(["extract", workspaceRoot, "--code-only"], workspaceRoot);
+  if (result.code !== 0) return result;
+  return refreshVisualization(workspaceRoot);
 }
 
 /** Incremental, AST-only re-extraction after file edits. No LLM cost. */
 export async function update(workspaceRoot: string): Promise<CliResult> {
-  return runGraphify(["update", workspaceRoot], workspaceRoot);
+  const result = await runGraphify(["update", workspaceRoot], workspaceRoot);
+  if (result.code !== 0) return result;
+  return refreshVisualization(workspaceRoot);
 }
 
 export async function query(
