@@ -24,6 +24,10 @@ def __getattr__(name):
         "get_default_registry": ("graphify.weights", "get_default_registry"),
         "expand_neighborhood": ("graphify.weighted_retrieval", "expand_neighborhood"),
         "find_shortest_path": ("graphify.weighted_retrieval", "find_shortest_path"),
+        "CommunityDetector": ("graphify.community_detection", "CommunityDetector"),
+        "get_community_detector": ("graphify.community_detection", "get_community_detector"),
+        "CommunityIndex": ("graphify.community_index", "CommunityIndex"),
+        "community_aware_expand": ("graphify.community_retrieval", "community_aware_expand"),
     }
     if name in _map:
         import importlib
