@@ -31,6 +31,11 @@ Each stage is a single function in its own module. They communicate through plai
 | `benchmark.py` | `run_benchmark(graph_path)` | graph file → corpus vs subgraph token comparison |
 | `weights.py` | `RelationWeightRegistry` | centralized relation importance → traversal cost |
 | `weighted_retrieval.py` | `expand_neighborhood` / `find_shortest_path` | relationship-aware traversal, path, ranking |
+| `community_retrieval.py` | `community_aware_expand` | community-scoped retrieval over weighted expand |
+| `semantic_graph.py` | `apply_semantic_relations` | LLM intent edges layered onto the AST graph |
+| `graph_checks.py` | `check_exists` / `check_calls` / … | shared graph fact checks (C2 + C3) |
+| `bidirectional_reasoner.py` | `reason` | LLM claims validated against the graph (C2) |
+| `preexec_validate.py` | `validate_proposal` | pre-execution symbol/import/API checks (C3) |
 
 ## Extraction output schema
 
