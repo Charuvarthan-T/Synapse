@@ -1,0 +1,253 @@
+{
+  "summary": {
+    "n_questions": 20,
+    "synapse": {
+      "mean_precision_at_k": 0.075,
+      "mean_recall_at_k": 0.7,
+      "mrr": 0.2707926065162907
+    }
+  },
+  "rows": [
+    {
+      "question": "how does the security module validate URLs to prevent SSRF",
+      "relevant": [
+        "graphify_security_validate_url",
+        "graphify_security_ssrfguardedhttphandler"
+      ],
+      "synapse": {
+        "precision_at_k": 0.2,
+        "recall_at_k": 1.0,
+        "rr": 0.5,
+        "hits": 2
+      }
+    },
+    {
+      "question": "how is the graph file size capped to avoid loading huge files",
+      "relevant": [
+        "graphify_security_check_graph_file_size_cap"
+      ],
+      "synapse": {
+        "precision_at_k": 0.1,
+        "recall_at_k": 1.0,
+        "rr": 0.5,
+        "hits": 1
+      }
+    },
+    {
+      "question": "how does graphify build a graph object from a JSON file",
+      "relevant": [
+        "graphify_build_build_from_json"
+      ],
+      "synapse": {
+        "precision_at_k": 0.1,
+        "recall_at_k": 1.0,
+        "rr": 0.2,
+        "hits": 1
+      }
+    },
+    {
+      "question": "how are duplicate edges removed from the graph",
+      "relevant": [
+        "graphify_build_dedupe_edges"
+      ],
+      "synapse": {
+        "precision_at_k": 0.0,
+        "recall_at_k": 0.0,
+        "rr": 0.02631578947368421,
+        "hits": 0
+      }
+    },
+    {
+      "question": "how are multiple graph files merged into one",
+      "relevant": [
+        "graphify_build_build_merge"
+      ],
+      "synapse": {
+        "precision_at_k": 0.1,
+        "recall_at_k": 1.0,
+        "rr": 0.125,
+        "hits": 1
+      }
+    },
+    {
+      "question": "how do you get edge data between two nodes in the graph",
+      "relevant": [
+        "graphify_build_edge_data"
+      ],
+      "synapse": {
+        "precision_at_k": 0.1,
+        "recall_at_k": 1.0,
+        "rr": 0.5,
+        "hits": 1
+      }
+    },
+    {
+      "question": "how does graphify export a graph to Obsidian markdown notes",
+      "relevant": [
+        "graphify_export_to_obsidian"
+      ],
+      "synapse": {
+        "precision_at_k": 0.1,
+        "recall_at_k": 1.0,
+        "rr": 0.14285714285714285,
+        "hits": 1
+      }
+    },
+    {
+      "question": "how is a JSON file written to disk atomically",
+      "relevant": [
+        "graphify_paths_write_json_atomic"
+      ],
+      "synapse": {
+        "precision_at_k": 0.0,
+        "recall_at_k": 0.0,
+        "rr": 0.05,
+        "hits": 0
+      }
+    },
+    {
+      "question": "where is the default path to graph.json computed",
+      "relevant": [
+        "graphify_paths_default_graph_json"
+      ],
+      "synapse": {
+        "precision_at_k": 0.1,
+        "recall_at_k": 1.0,
+        "rr": 0.5,
+        "hits": 1
+      }
+    },
+    {
+      "question": "how does the CLI compute an output path for the graph",
+      "relevant": [
+        "graphify_paths_out_path"
+      ],
+      "synapse": {
+        "precision_at_k": 0.0,
+        "recall_at_k": 0.0,
+        "rr": 0.05263157894736842,
+        "hits": 0
+      }
+    },
+    {
+      "question": "how does query scoring rank candidate nodes for a question",
+      "relevant": [
+        "graphify_serve_score_query"
+      ],
+      "synapse": {
+        "precision_at_k": 0.1,
+        "recall_at_k": 1.0,
+        "rr": 0.16666666666666666,
+        "hits": 1
+      }
+    },
+    {
+      "question": "how does breadth first search traversal work over the graph",
+      "relevant": [
+        "graphify_serve_bfs"
+      ],
+      "synapse": {
+        "precision_at_k": 0.0,
+        "recall_at_k": 0.0,
+        "rr": 0.0,
+        "hits": 0
+      }
+    },
+    {
+      "question": "how does depth first search traversal work over the graph",
+      "relevant": [
+        "graphify_serve_dfs"
+      ],
+      "synapse": {
+        "precision_at_k": 0.0,
+        "recall_at_k": 0.0,
+        "rr": 0.0,
+        "hits": 0
+      }
+    },
+    {
+      "question": "how is a text context blob built from a graph query",
+      "relevant": [
+        "graphify_serve_query_graph_text"
+      ],
+      "synapse": {
+        "precision_at_k": 0.1,
+        "recall_at_k": 1.0,
+        "rr": 0.2,
+        "hits": 1
+      }
+    },
+    {
+      "question": "how does the MCP server authenticate requests with an API key",
+      "relevant": [
+        "graphify_serve_apikeymiddleware"
+      ],
+      "synapse": {
+        "precision_at_k": 0.1,
+        "recall_at_k": 1.0,
+        "rr": 1.0,
+        "hits": 1
+      }
+    },
+    {
+      "question": "how are node labels sanitized before being displayed",
+      "relevant": [
+        "graphify_security_sanitize_label"
+      ],
+      "synapse": {
+        "precision_at_k": 0.0,
+        "recall_at_k": 0.0,
+        "rr": 0.0,
+        "hits": 0
+      }
+    },
+    {
+      "question": "what is the main entry point of the graphify CLI",
+      "relevant": [
+        "graphify_main_main"
+      ],
+      "synapse": {
+        "precision_at_k": 0.1,
+        "recall_at_k": 1.0,
+        "rr": 1.0,
+        "hits": 1
+      }
+    },
+    {
+      "question": "how does the token reduction benchmark work",
+      "relevant": [
+        "graphify_benchmark_run_benchmark"
+      ],
+      "synapse": {
+        "precision_at_k": 0.1,
+        "recall_at_k": 1.0,
+        "rr": 0.14285714285714285,
+        "hits": 1
+      }
+    },
+    {
+      "question": "how is the benchmark report printed to the console",
+      "relevant": [
+        "graphify_benchmark_print_benchmark"
+      ],
+      "synapse": {
+        "precision_at_k": 0.1,
+        "recall_at_k": 1.0,
+        "rr": 0.16666666666666666,
+        "hits": 1
+      }
+    },
+    {
+      "question": "which function estimates how many tokens a naive full corpus dump would cost",
+      "relevant": [
+        "graphify_benchmark_run_benchmark"
+      ],
+      "synapse": {
+        "precision_at_k": 0.1,
+        "recall_at_k": 1.0,
+        "rr": 0.14285714285714285,
+        "hits": 1
+      }
+    }
+  ]
+}

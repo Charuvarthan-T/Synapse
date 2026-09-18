@@ -1,0 +1,1006 @@
+{
+  "summary": {
+    "n_tasks": 47,
+    "no_context": {
+      "exact_match": 0.06382978723404255,
+      "edit_sim": 0.5325725066260576
+    },
+    "bm25_context": {
+      "exact_match": 0.1276595744680851,
+      "edit_sim": 0.5952665622997995
+    },
+    "graphify_context": {
+      "exact_match": 0.2978723404255319,
+      "edit_sim": 0.6892019358048722
+    }
+  },
+  "rows": [
+    {
+      "task_id": "project_cc_python/5981",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "pydbg(debugger)",
+      "no_context": {
+        "pred": "Debugger(debugger)",
+        "exact_match": 0,
+        "edit_sim": 0.7272727272727273
+      },
+      "bm25_context": {
+        "pred": "debugger(debugger)",
+        "exact_match": 0,
+        "edit_sim": 0.7878787878787878
+      },
+      "graphify_context": {
+        "pred": "pydbg(debugger)",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/5984",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "sbcache(sb))",
+      "no_context": {
+        "pred": "sbcommand)",
+        "exact_match": 0,
+        "edit_sim": 0.45454545454545453
+      },
+      "bm25_context": {
+        "pred": "sbcache(sb))",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_context": {
+        "pred": "sbcache(self.sb))",
+        "exact_match": 0,
+        "edit_sim": 0.8275862068965517
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/5983",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "frontend_gdb(self.sb)",
+      "no_context": {
+        "pred": "pyslab()",
+        "exact_match": 0,
+        "edit_sim": 0.20689655172413793
+      },
+      "bm25_context": {
+        "pred": "fg.gdb_command_run(self.sb)",
+        "exact_match": 0,
+        "edit_sim": 0.5416666666666666
+      },
+      "graphify_context": {
+        "pred": "frontend()</",
+        "exact_match": 0,
+        "edit_sim": 0.6060606060606061
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/5997",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "clear_existing_breakpoints(\"kmem_cache_alloc\")",
+      "no_context": {
+        "pred": "h2.log_info(f\"KmemCacheAlloc init: {command}\")",
+        "exact_match": 0,
+        "edit_sim": 0.43478260869565216
+      },
+      "bm25_context": {
+        "pred": "clear_existing_breakpoints(\"kmem_cache_alloc\")",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_context": {
+        "pred": "log.debug(f\"KmemCacheAlloc.__init__()\")",
+        "exact_match": 0,
+        "edit_sim": 0.4
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/5980",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "pygdbpython()",
+      "no_context": {
+        "pred": "GDBCommand()",
+        "exact_match": 0,
+        "edit_sim": 0.32
+      },
+      "bm25_context": {
+        "pred": "PyGdbPython(self)",
+        "exact_match": 0,
+        "edit_sim": 0.6666666666666666
+      },
+      "graphify_context": {
+        "pred": "pygdbpython()",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/5982",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "sb(debugger=self.dbg, breakpoints_enabled=breakpoints_enabled)",
+      "no_context": {
+        "pred": "pygdbpython(self.dbg)",
+        "exact_match": 0,
+        "edit_sim": 0.24096385542168675
+      },
+      "bm25_context": {
+        "pred": "slab_tracker(self.dbg, breakpoints_enabled=breakpoints_enabled)",
+        "exact_match": 0,
+        "edit_sim": 0.864
+      },
+      "graphify_context": {
+        "pred": "sb()",
+        "exact_match": 0,
+        "edit_sim": 0.12121212121212122
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6003",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "KmemCacheAllocReturned(self.sb)",
+      "no_context": {
+        "pred": "KmemCacheAlloc(self.sb)",
+        "exact_match": 0,
+        "edit_sim": 0.8518518518518519
+      },
+      "bm25_context": {
+        "pred": "KmemCacheAllocFinish(self.sb, name)",
+        "exact_match": 0,
+        "edit_sim": 0.7272727272727273
+      },
+      "graphify_context": {
+        "pred": "KmemCacheAllocReturned(self.sb)",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6016",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "clear_existing_breakpoints(\"kmem_cache_free\")",
+      "no_context": {
+        "pred": "def __init__(self, sb):",
+        "exact_match": 0,
+        "edit_sim": 0.29411764705882354
+      },
+      "bm25_context": {
+        "pred": "init(f\"obj_free.py\")",
+        "exact_match": 0,
+        "edit_sim": 0.4
+      },
+      "graphify_context": {
+        "pred": "clear_existing_breakpoints(\"kmem_cache_free\")",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6020",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "print_error(\"Please specify a debugger\")",
+      "no_context": {
+        "pred": "err(f\"sb.dbg is None in {name} command\")",
+        "exact_match": 0,
+        "edit_sim": 0.35
+      },
+      "bm25_context": {
+        "pred": "print_info(\"libslub is not loaded, please call 'sb' first\")",
+        "exact_match": 0,
+        "edit_sim": 0.4444444444444444
+      },
+      "graphify_context": {
+        "pred": "print_error(\"sb.dbg is None\")",
+        "exact_match": 0,
+        "edit_sim": 0.5507246376811594
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6011",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "clear_existing_breakpoints(\"new_slab\")",
+      "no_context": {
+        "pred": "super(NewSlab, self).__init__(\"new_slab\", internal=sb.bps_hidden)",
+        "exact_match": 0,
+        "edit_sim": 0.3300970873786408
+      },
+      "bm25_context": {
+        "pred": "clear_existing_breakpoints(\"new_slab\")",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_context": {
+        "pred": "clear_existing_breakpoints(\"new_slab\")",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6006",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "DiscardSlab(self.sb)",
+      "no_context": {
+        "pred": "FreeSlabReturned(self.sb)",
+        "exact_match": 0,
+        "edit_sim": 0.6222222222222222
+      },
+      "bm25_context": {
+        "pred": "NewSlabFree(self.sb)",
+        "exact_match": 0,
+        "edit_sim": 0.65
+      },
+      "graphify_context": {
+        "pred": "FindSlab(self.sb)",
+        "exact_match": 0,
+        "edit_sim": 0.8108108108108109
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6021",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "COMMAND_DATA, gdb.COMPLETE_NONE)",
+      "no_context": {
+        "pred": "no_gdb_exits)",
+        "exact_match": 0,
+        "edit_sim": 0.26666666666666666
+      },
+      "bm25_context": {
+        "pred": "COMMAND_USER)",
+        "exact_match": 0,
+        "edit_sim": 0.4444444444444444
+      },
+      "graphify_context": {
+        "pred": "COMPLETION",
+        "exact_match": 0,
+        "edit_sim": 0.42857142857142855
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6030",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "kmem_cache_node(self.sb, node_id, kmem_cache=self, value=node_value)",
+      "no_context": {
+        "pred": "kmem_cache_node(self.sb, node_id, self, node_value)",
+        "exact_match": 0,
+        "edit_sim": 0.8571428571428571
+      },
+      "bm25_context": {
+        "pred": "kmem_cache_node(self.sb, node_id, self, node_value)",
+        "exact_match": 0,
+        "edit_sim": 0.8571428571428571
+      },
+      "graphify_context": {
+        "pred": "kmem_cache_node(self.sb, node_id, self, node_value)",
+        "exact_match": 0,
+        "edit_sim": 0.8571428571428571
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6032",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "SlabType.FULL_SLAB, index=slab_index+1, count=slab_count, value=full_slab_value)",
+      "no_context": {
+        "pred": "slab_type.full, value=full_slab_value)",
+        "exact_match": 0,
+        "edit_sim": 0.5254237288135594
+      },
+      "bm25_context": {
+        "pred": "UNSIGNED_LONG, full_slab_value, full_slab_index=slab_index)",
+        "exact_match": 0,
+        "edit_sim": 0.34532374100719426
+      },
+      "graphify_context": {
+        "pred": "sb.FULL, index=slab_index, count=slab_count, value=full_slab_value)",
+        "exact_match": 0,
+        "edit_sim": 0.8979591836734694
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6024",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "print_error(\"GDB is not running.\")",
+      "no_context": {
+        "pred": "info(f\"Expected gdb to be running\")",
+        "exact_match": 0,
+        "edit_sim": 0.463768115942029
+      },
+      "bm25_context": {
+        "pred": "print_error(\"No thread selected\")",
+        "exact_match": 0,
+        "edit_sim": 0.5373134328358209
+      },
+      "graphify_context": {
+        "pred": "print_error(\"GDB is not running in core file mode\")",
+        "exact_match": 0,
+        "edit_sim": 0.7764705882352941
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6023",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "selected_thread() is not None:",
+      "no_context": {
+        "pred": "is_running():",
+        "exact_match": 0,
+        "edit_sim": 0.23255813953488372
+      },
+      "bm25_context": {
+        "pred": "is_active():",
+        "exact_match": 0,
+        "edit_sim": 0.23809523809523808
+      },
+      "graphify_context": {
+        "pred": "selected_thread() is not None:",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6038",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "print_error(\"Invalid kmem_caches type passed to is_object_address_in_slab_cache(), should not happen\")",
+      "no_context": {
+        "pred": "pu.panic(\"Error: kmem_caches must be a kc.kmem_cache or a list of kc.kmem_cache objects.\")",
+        "exact_match": 0,
+        "edit_sim": 0.4166666666666667
+      },
+      "bm25_context": {
+        "pred": "pu.warning(\"The provided kmem_cache could not be found\")",
+        "exact_match": 0,
+        "edit_sim": 0.4430379746835443
+      },
+      "graphify_context": {
+        "pred": "pu.error(\"kmem_caches must be a kmem_cache object or a list of kmem_cache objects\")",
+        "exact_match": 0,
+        "edit_sim": 0.43243243243243246
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6034",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "color_value(\"{:s}\".format(self.name))",
+      "no_context": {
+        "pred": "print_f(self.name)",
+        "exact_match": 0,
+        "edit_sim": 0.4727272727272727
+      },
+      "bm25_context": {
+        "pred": "color_value(pu.tstring(self.name))",
+        "exact_match": 0,
+        "edit_sim": 0.7323943661971831
+      },
+      "graphify_context": {
+        "pred": "color_value(self.name)",
+        "exact_match": 0,
+        "edit_sim": 0.7457627118644068
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6029",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "kmem_cache_cpu(self.sb, cpu_id, self, cache_cpu_value)",
+      "no_context": {
+        "pred": "kmem_cache_cpu(sb, value=cache_cpu_value, address=None)",
+        "exact_match": 0,
+        "edit_sim": 0.6605504587155964
+      },
+      "bm25_context": {
+        "pred": "kmem_cache_cpu(self.sb, self, value=cache_cpu_value, cpu_id=cpu_id)",
+        "exact_match": 0,
+        "edit_sim": 0.7603305785123967
+      },
+      "graphify_context": {
+        "pred": "kmem_cache_cpu(self.sb, cpu_id, kmem_cache=self, value=cache_cpu_value)",
+        "exact_match": 0,
+        "edit_sim": 0.864
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6036",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "SlabType.MAIN_SLAB:",
+      "no_context": {
+        "pred": "VIRT:",
+        "exact_match": 0,
+        "edit_sim": 0.16666666666666666
+      },
+      "bm25_context": {
+        "pred": "MAIN:",
+        "exact_match": 0,
+        "edit_sim": 0.4166666666666667
+      },
+      "graphify_context": {
+        "pred": "TYPE_SLAB:",
+        "exact_match": 0,
+        "edit_sim": 0.4827586206896552
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6046",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "kmem_cache(self.sb, value=slab_cache)",
+      "no_context": {
+        "pred": "kmem_cache(slab_cache, self.sb)",
+        "exact_match": 0,
+        "edit_sim": 0.6470588235294118
+      },
+      "bm25_context": {
+        "pred": "kmem_cache(self.sb, slab_cache)",
+        "exact_match": 0,
+        "edit_sim": 0.9117647058823529
+      },
+      "graphify_context": {
+        "pred": "kmem_cache(self.sb, value=slab_cache)",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6047",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "hms_string(end_time-start_time))",
+      "no_context": {
+        "pred": "human_format_duration(end_time - start_time))",
+        "exact_match": 0,
+        "edit_sim": 0.6493506493506493
+      },
+      "bm25_context": {
+        "pred": "",
+        "exact_match": 0,
+        "edit_sim": 0.0
+      },
+      "graphify_context": {
+        "pred": "human_readable_duration(end_time - start_time))",
+        "exact_match": 0,
+        "edit_sim": 0.6329113924050633
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/6043",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "SlabType.NODE_SLAB, index=slab_index+1, count=slab_count, value=slab_value)",
+      "no_context": {
+        "pred": "ktype=slab_type)",
+        "exact_match": 0,
+        "edit_sim": 0.24175824175824176
+      },
+      "bm25_context": {
+        "pred": "SlabType.PARTIAL_SLAB, value=slab_value)",
+        "exact_match": 0,
+        "edit_sim": 0.5739130434782609
+      },
+      "graphify_context": {
+        "pred": "page.p_type.SLAB_P, index=slab_index)",
+        "exact_match": 0,
+        "edit_sim": 0.5
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4399",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "debug if rep.status_code == 200 else logger.warning",
+      "no_context": {
+        "pred": "error = \"ERROR\"",
+        "exact_match": 0,
+        "edit_sim": 0.09090909090909091
+      },
+      "bm25_context": {
+        "pred": "",
+        "exact_match": 0,
+        "edit_sim": 0.0
+      },
+      "graphify_context": {
+        "pred": "fn = f\"{random.randint(0, 10**6)}.log\"",
+        "exact_match": 0,
+        "edit_sim": 0.20224719101123595
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4394",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "info(f\"Account {username} added successfully (active={account.active})\")",
+      "no_context": {
+        "pred": "info(f\"Account {username} added\")",
+        "exact_match": 0,
+        "edit_sim": 0.6285714285714286
+      },
+      "bm25_context": {
+        "pred": "info(f\"Account {username} added successfully.\")",
+        "exact_match": 0,
+        "edit_sim": 0.7899159663865546
+      },
+      "graphify_context": {
+        "pred": "info(f\"Account added: {username}\")",
+        "exact_match": 0,
+        "edit_sim": 0.5094339622641509
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4397",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "error(f\"Error in {task_id}: {e}\")",
+      "no_context": {
+        "pred": "logger.warning(f\"Exception in {task_id}: {e}\")",
+        "exact_match": 0,
+        "edit_sim": 0.7088607594936709
+      },
+      "bm25_context": {
+        "pred": "warning(async f\"Client error with task: {task_id} | Got: {acc.error_msg}\")",
+        "exact_match": 0,
+        "edit_sim": 0.4485981308411215
+      },
+      "graphify_context": {
+        "pred": "The `logger` object, which is likely an instance of Python's `logging.Logger` class, should follow the standard syntax of passing a string message as the first argument and any context variables as keyword arguments. Given that `e` is the exception variable being handled and `task_id` provides context into which step failed, it makes sense to log the error details at the \"error\" level.",
+        "exact_match": 0,
+        "edit_sim": 0.08076009501187649
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4398",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "info(f\"account already active {log_id}\")",
+      "no_context": {
+        "pred": "info(f\"[{log_id}] User is already active, returning account.\")",
+        "exact_match": 0,
+        "edit_sim": 0.5294117647058824
+      },
+      "bm25_context": {
+        "pred": "info(f\"Account {log_id} already logged in, skipping\")",
+        "exact_match": 0,
+        "edit_sim": 0.5161290322580645
+      },
+      "graphify_context": {
+        "pred": "warning(f\"Skipping username={acc.username} as it is still blocked\")",
+        "exact_match": 0,
+        "edit_sim": 0.3925233644859813
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4401",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "error(f\"Invalid request: {msg}\")",
+      "no_context": {
+        "pred": "warning(f\"Features cannot be null: {msg}\")",
+        "exact_match": 0,
+        "edit_sim": 0.4864864864864865
+      },
+      "bm25_context": {
+        "pred": "error(msg)",
+        "exact_match": 0,
+        "edit_sim": 0.47619047619047616
+      },
+      "graphify_context": {
+        "pred": "error(f\"Feature error with code(s) for account {self.ctx.acc.username}: {msg}\")",
+        "exact_match": 0,
+        "edit_sim": 0.3963963963963964
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4396",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "error(f\"Error logging in to {account.username}: {e}\")",
+      "no_context": {
+        "pred": "error(f\"Failed to login to {account.username}: {e}\")",
+        "exact_match": 0,
+        "edit_sim": 0.8380952380952381
+      },
+      "bm25_context": {
+        "pred": "error(f\"Login failed for {account.username}: {str(e)}\")",
+        "exact_match": 0,
+        "edit_sim": 0.7777777777777778
+      },
+      "graphify_context": {
+        "pred": "error(f\"Failed to login to {account.username}: {e}\")",
+        "exact_match": 0,
+        "edit_sim": 0.8380952380952381
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4395",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "from_rs(rs)",
+      "no_context": {
+        "pred": "from_row(rs)",
+        "exact_match": 0,
+        "edit_sim": 0.8695652173913043
+      },
+      "bm25_context": {
+        "pred": "from_row(rs)",
+        "exact_match": 0,
+        "edit_sim": 0.8695652173913043
+      },
+      "graphify_context": {
+        "pred": "from_json(rs)",
+        "exact_match": 0,
+        "edit_sim": 0.8333333333333334
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4402",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "info(f\"({i} of {count}) {msg_from} - {msg_time} - {msg_subj}\")",
+      "no_context": {
+        "pred": "debug(f\"Checking email {i}: from={msg_from}, subject={msg_subj}\")",
+        "exact_match": 0,
+        "edit_sim": 0.5354330708661418
+      },
+      "bm25_context": {
+        "pred": "logger.info(f\"Email from: {msg_from}, subject: {msg_subj}, time: {msg_time}\")",
+        "exact_match": 0,
+        "edit_sim": 0.5467625899280576
+      },
+      "graphify_context": {
+        "pred": "info(f\"Email {msg_time} from '{msg_from}' subject '{msg_subj}'\")",
+        "exact_match": 0,
+        "edit_sim": 0.5238095238095238
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4404",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "info(f\"Running migration to v{i}\")",
+      "no_context": {
+        "pred": "debug(f\"Running migration v{i}\")",
+        "exact_match": 0,
+        "edit_sim": 0.8181818181818182
+      },
+      "bm25_context": {
+        "pred": "debug(f\"Migrating to v{i}\")",
+        "exact_match": 0,
+        "edit_sim": 0.6557377049180327
+      },
+      "graphify_context": {
+        "pred": "debug(f\"Migrating to v{i}\")",
+        "exact_match": 0,
+        "edit_sim": 0.6557377049180327
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4413",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "reset_locks()",
+      "no_context": {
+        "pred": "await pool.reset_locks()",
+        "exact_match": 0,
+        "edit_sim": 0.7027027027027027
+      },
+      "bm25_context": {
+        "pred": "reset_locks()",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_context": {
+        "pred": "reset_locks()",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4415",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "search(\"elon musk lang:en\", limit=20))",
+      "no_context": {
+        "pred": "search(\"query\"), timeout=5)",
+        "exact_match": 0,
+        "edit_sim": 0.5538461538461539
+      },
+      "bm25_context": {
+        "pred": "search(\"hi\"))",
+        "exact_match": 0,
+        "edit_sim": 0.43137254901960786
+      },
+      "graphify_context": {
+        "pred": "search(\"elon musk lang:en\", limit=20))",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4410",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "login_all(email_first=args.email_first)",
+      "no_context": {
+        "pred": "login_accounts(args.usernames)",
+        "exact_match": 0,
+        "edit_sim": 0.43478260869565216
+      },
+      "bm25_context": {
+        "pred": "accounts_info()",
+        "exact_match": 0,
+        "edit_sim": 0.18518518518518517
+      },
+      "graphify_context": {
+        "pred": "stats()",
+        "exact_match": 0,
+        "edit_sim": 0.21739130434782608
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4421",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "retweeters(1649191520250245121))",
+      "no_context": {
+        "pred": "retweeters(1649191520250245121))",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "retweeters(1649191520250245121))",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_context": {
+        "pred": "retweeters(1649191520250245121))",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4408",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "load_from_file(args.file_path, args.line_format)",
+      "no_context": {
+        "pred": "add_accounts(accounts_data)",
+        "exact_match": 0,
+        "edit_sim": 0.32
+      },
+      "bm25_context": {
+        "pred": "add_accounts(load_data(args.accounts))",
+        "exact_match": 0,
+        "edit_sim": 0.3488372093023256
+      },
+      "graphify_context": {
+        "pred": "add_accounts([parsed_account_from_dict(acct) for acct in args.accounts])",
+        "exact_match": 0,
+        "edit_sim": 0.35
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4412",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "relogin(args.usernames, email_first=args.email_first)",
+      "no_context": {
+        "pred": "relogin(args.usernames, email_first=args.email_first)",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "relogin([*args.usernames], email_first=args.email_first)",
+        "exact_match": 0,
+        "edit_sim": 0.9724770642201835
+      },
+      "graphify_context": {
+        "pred": "relogin(args.usernames, email_first=args.email_first)",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4411",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "relogin_failed(email_first=args.email_first)",
+      "no_context": {
+        "pred": "relogin_failed()",
+        "exact_match": 0,
+        "edit_sim": 0.5333333333333333
+      },
+      "bm25_context": {
+        "pred": "relogin_failed()",
+        "exact_match": 0,
+        "edit_sim": 0.5333333333333333
+      },
+      "graphify_context": {
+        "pred": "login_failed()",
+        "exact_match": 0,
+        "edit_sim": 0.4827586206896552
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4416",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "user_by_id(2244994945)",
+      "no_context": {
+        "pred": "user_by_id(\"2244994945\")",
+        "exact_match": 0,
+        "edit_sim": 0.9565217391304348
+      },
+      "bm25_context": {
+        "pred": "user_by_id(12345)",
+        "exact_match": 0,
+        "edit_sim": 0.7692307692307693
+      },
+      "graphify_context": {
+        "pred": "user_by_id(2244994945)",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4418",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "tweet_details(1649191520250245121)",
+      "no_context": {
+        "pred": "tweet_details(1444999999)",
+        "exact_match": 0,
+        "edit_sim": 0.6440677966101694
+      },
+      "bm25_context": {
+        "pred": "tweet_details(1588492277889354254)",
+        "exact_match": 0,
+        "edit_sim": 0.6470588235294118
+      },
+      "graphify_context": {
+        "pred": "tweet_details(1649191520250245121)",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4405",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "error(f\"Missing argument: {names}\")",
+      "no_context": {
+        "pred": "error(f\"Usage error! No args provided\\n\")",
+        "exact_match": 0,
+        "edit_sim": 0.4473684210526316
+      },
+      "bm25_context": {
+        "pred": "print(f\"{query_arg} not specified\")",
+        "exact_match": 0,
+        "edit_sim": 0.2857142857142857
+      },
+      "graphify_context": {
+        "pred": "error(\"No arguments provided\")",
+        "exact_match": 0,
+        "edit_sim": 0.5846153846153846
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4409",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "delete_accounts(args.usernames)",
+      "no_context": {
+        "pred": "unload_accounts(args.accounts, args.logout, args.not_exists)",
+        "exact_match": 0,
+        "edit_sim": 0.43956043956043955
+      },
+      "bm25_context": {
+        "pred": "del_by_file(args.file_path, args.line_format)",
+        "exact_match": 0,
+        "edit_sim": 0.3684210526315789
+      },
+      "graphify_context": {
+        "pred": "del_accounts(args.accounts)",
+        "exact_match": 0,
+        "edit_sim": 0.7241379310344828
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4406",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "accounts_info())",
+      "no_context": {
+        "pred": "accounts())",
+        "exact_match": 0,
+        "edit_sim": 0.8148148148148148
+      },
+      "bm25_context": {
+        "pred": "accounts()), \"{'username': 'Username', 'email': 'Email', 'status': 'Status'}\")",
+        "exact_match": 0,
+        "edit_sim": 0.23404255319148937
+      },
+      "graphify_context": {
+        "pred": "accounts())",
+        "exact_match": 0,
+        "edit_sim": 0.8148148148148148
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4425",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "retweetedTweet is not None",
+      "no_context": {
+        "pred": "id == 1665951747842641921",
+        "exact_match": 0,
+        "edit_sim": 0.11764705882352941
+      },
+      "bm25_context": {
+        "pred": "video is not None",
+        "exact_match": 0,
+        "edit_sim": 0.6511627906976745
+      },
+      "graphify_context": {
+        "pred": "has_hashtag is True",
+        "exact_match": 0,
+        "edit_sim": 0.26666666666666666
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4426",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "rawContent is not None",
+      "no_context": {
+        "pred": "id == 1665951747842641921",
+        "exact_match": 0,
+        "edit_sim": 0.1276595744680851
+      },
+      "bm25_context": {
+        "pred": "id == 1665951747842641921",
+        "exact_match": 0,
+        "edit_sim": 0.1276595744680851
+      },
+      "graphify_context": {
+        "pred": "quotedTweet is None",
+        "exact_match": 0,
+        "edit_sim": 0.5853658536585366
+      },
+      "graphify_ctx_found": true
+    },
+    {
+      "task_id": "project_cc_python/4414",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "delete_inactive()",
+      "no_context": {
+        "pred": "delete_inactive()",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "delete_inactive()",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_context": {
+        "pred": "delete_inactive()",
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "graphify_ctx_found": true
+    }
+  ]
+}
