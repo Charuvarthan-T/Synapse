@@ -11,6 +11,17 @@ from networkx.readwrite import json_graph
 from graphify.security import sanitize_label, check_graph_file_size_cap
 from graphify.build import edge_data, edge_datas
 from graphify.paths import default_graph_json as _default_graph_json
+from graphify.weights import RelationWeightRegistry
+from graphify.community_retrieval import (
+    CommunitySelection,
+    community_aware_expand,
+)
+from graphify.weighted_retrieval import (
+    expand_neighborhood,
+    find_shortest_path,
+    rank_edges_for_retrieval,
+    rank_nodes_for_retrieval,
+)
 
 try:
     import jieba as _jieba  # type: ignore[import-untyped]
@@ -762,56 +773,42 @@ def _filter_graph_by_context(G: nx.Graph, context_filters: list[str] | None) -> 
     return H
 
 
-def _bfs(G: nx.Graph, start_nodes: list[str], depth: int) -> tuple[set[str], list[tuple]]:
-    degrees = [G.degree(n) for n in G.nodes()]
-    if degrees:
-        degrees_sorted = sorted(degrees)
-        p99_idx = int(len(degrees_sorted) * 0.99)
-        hub_threshold = max(50, degrees_sorted[p99_idx])
-    else:
-        hub_threshold = 50
-    seed_set = set(start_nodes)
-    visited: set[str] = set(start_nodes)
-    frontier = set(start_nodes)
-    edges_seen: list[tuple] = []
-    for _ in range(depth):
-        next_frontier: set[str] = set()
-        for n in frontier:
-            if n not in seed_set and G.degree(n) >= hub_threshold:
-                continue
-            for neighbor in G.neighbors(n):
-                if neighbor not in visited:
-                    next_frontier.add(neighbor)
-                    edges_seen.append((n, neighbor))
-        visited.update(next_frontier)
-        frontier = next_frontier
-    return visited, edges_seen
+def _bfs(
+    G: nx.Graph,
+    start_nodes: list[str],
+    depth: int,
+    *,
+    weighted: bool = True,
+    registry: RelationWeightRegistry | None = None,
+) -> tuple[set[str], list[tuple]]:
+    result = expand_neighborhood(
+        G,
+        start_nodes,
+        depth,
+        mode="bfs",
+        weighted=weighted,
+        registry=registry,
+    )
+    return result.nodes, result.edges
 
 
-def _dfs(G: nx.Graph, start_nodes: list[str], depth: int) -> tuple[set[str], list[tuple]]:
-    degrees = [G.degree(n) for n in G.nodes()]
-    if degrees:
-        degrees_sorted = sorted(degrees)
-        p99_idx = int(len(degrees_sorted) * 0.99)
-        hub_threshold = max(50, degrees_sorted[p99_idx])
-    else:
-        hub_threshold = 50
-    seed_set = set(start_nodes)
-    visited: set[str] = set()
-    edges_seen: list[tuple] = []
-    stack = [(n, 0) for n in reversed(start_nodes)]
-    while stack:
-        node, d = stack.pop()
-        if node in visited or d > depth:
-            continue
-        visited.add(node)
-        if node not in seed_set and G.degree(node) >= hub_threshold:
-            continue
-        for neighbor in G.neighbors(node):
-            if neighbor not in visited:
-                stack.append((neighbor, d + 1))
-                edges_seen.append((node, neighbor))
-    return visited, edges_seen
+def _dfs(
+    G: nx.Graph,
+    start_nodes: list[str],
+    depth: int,
+    *,
+    weighted: bool = True,
+    registry: RelationWeightRegistry | None = None,
+) -> tuple[set[str], list[tuple]]:
+    result = expand_neighborhood(
+        G,
+        start_nodes,
+        depth,
+        mode="dfs",
+        weighted=weighted,
+        registry=registry,
+    )
+    return result.nodes, result.edges
 
 
 def _subgraph_to_text(
@@ -821,6 +818,10 @@ def _subgraph_to_text(
     token_budget: int = 2000,
     *,
     seeds: list[str] | None = None,
+    weighted: bool = True,
+    reach_importance: dict[str, float] | None = None,
+    distance: dict[str, int] | None = None,
+    registry: RelationWeightRegistry | None = None,
 ) -> str:
     """Render subgraph as text, cutting at token_budget (approx 3 chars/token).
 
@@ -830,7 +831,6 @@ def _subgraph_to_text(
     char_budget = token_budget * 3
     lines = []
     overlay = getattr(G, "graph", {}).get("_learning_overlay", {}) or {}
-    seed_set = set(seeds or [])
     seed_hits = [n for n in (seeds or []) if n in nodes]
 
     def _adj(n):
@@ -840,21 +840,30 @@ def _subgraph_to_text(
         else:
             yield from G.neighbors(n)
 
-    dist: dict[str, int] = {n: 0 for n in seed_hits}
-    frontier, hop = seed_hits, 0
-    while frontier:
-        hop += 1
-        nxt = []
-        for n in frontier:
-            for nb in _adj(n):
-                if nb in nodes and nb not in dist:
-                    dist[nb] = hop
-                    nxt.append(nb)
-        frontier = nxt
-    ordered = seed_hits + sorted(
-        nodes - seed_set,
-        key=lambda n: (dist.get(n, 1 << 30), -G.degree(n), str(n)),
+    if distance is None:
+        dist: dict[str, int] = {n: 0 for n in seed_hits}
+        frontier, hop = seed_hits, 0
+        while frontier:
+            hop += 1
+            nxt = []
+            for n in frontier:
+                for nb in _adj(n):
+                    if nb in nodes and nb not in dist:
+                        dist[nb] = hop
+                        nxt.append(nb)
+            frontier = nxt
+    else:
+        dist = distance
+
+    ordered = rank_nodes_for_retrieval(
+        nodes,
+        seeds=seeds,
+        distance=dist,
+        reach_importance=reach_importance or {},
+        degree_of=G.degree,
+        weighted=weighted,
     )
+    render_edges = rank_edges_for_retrieval(list(edges), G, weighted=weighted, registry=registry)
     for nid in ordered:
         d = G.nodes[nid]
         entry = overlay.get(str(nid))
@@ -871,33 +880,43 @@ def _subgraph_to_text(
             f"{learning_suffix}]"
         )
         lines.append(line)
-    for u, v in edges:
-        if u in nodes and v in nodes:
+    for u, v in render_edges:
+        if u not in nodes or v not in nodes:
+            continue
+        if G.has_edge(u, v):
             raw = G[u][v]
-            d = (
-                next(iter(raw.values()), {})
-                if isinstance(G, (nx.MultiGraph, nx.MultiDiGraph))
-                else raw
-            )
+            forward = True
+        elif G.has_edge(v, u):
+            raw = G[v][u]
+            forward = False
+        else:
+            continue
+        d = next(iter(raw.values()), {}) if isinstance(G, (nx.MultiGraph, nx.MultiDiGraph)) else raw
+        if forward:
             src = d.get("_src", u)
             tgt = d.get("_tgt", v)
             if {src, tgt} != {u, v}:
                 src, tgt = u, v
-            context = d.get("context")
-            context_suffix = f" context={sanitize_label(str(context))}" if context else ""
-            _loc = str(d.get("source_location") or "")
-            at_suffix = (
-                f" at={sanitize_label(str(d.get('source_file') or ''))}:{sanitize_label(_loc)}"
-                if _loc
-                else ""
-            )
-            line = (
-                f"EDGE {sanitize_label(G.nodes[src].get('label', src))} "
-                f"--{sanitize_label(str(d.get('relation', '')))} "
-                f"[{sanitize_label(str(d.get('confidence', '')))}{context_suffix}]--> "
-                f"{sanitize_label(G.nodes[tgt].get('label', tgt))}{at_suffix}"
-            )
-            lines.append(line)
+        else:
+            src = d.get("_src", v)
+            tgt = d.get("_tgt", u)
+            if {src, tgt} != {u, v}:
+                src, tgt = v, u
+        context = d.get("context")
+        context_suffix = f" context={sanitize_label(str(context))}" if context else ""
+        _loc = str(d.get("source_location") or "")
+        at_suffix = (
+            f" at={sanitize_label(str(d.get('source_file') or ''))}:{sanitize_label(_loc)}"
+            if _loc
+            else ""
+        )
+        line = (
+            f"EDGE {sanitize_label(G.nodes[src].get('label', src))} "
+            f"--{sanitize_label(str(d.get('relation', '')))} "
+            f"[{sanitize_label(str(d.get('confidence', '')))}{context_suffix}]--> "
+            f"{sanitize_label(G.nodes[tgt].get('label', tgt))}{at_suffix}"
+        )
+        lines.append(line)
     output = "\n".join(lines)
     if len(output) > char_budget:
         cut_at = output[:char_budget].rfind("\n")
@@ -952,6 +971,11 @@ def _query_graph_text(
     depth: int = 3,
     token_budget: int = 2000,
     context_filters: list[str] | None = None,
+    weighted: bool = True,
+    registry: RelationWeightRegistry | None = None,
+    community_aware: bool = False,
+    max_communities: int = 2,
+    community_min_confidence: float = 0.55,
 ) -> str:
     terms = _query_terms(question)
     qs = _score_query(G, terms, collect_per_term_seeds=True)
@@ -960,21 +984,61 @@ def _query_graph_text(
         return "No matching nodes found."
     resolved_filters, filter_source = _resolve_context_filters(question, context_filters)
     traversal_graph = _filter_graph_by_context(G, resolved_filters)
-    nodes, edges = (
-        _dfs(traversal_graph, start_nodes, depth)
-        if mode == "dfs"
-        else _bfs(traversal_graph, start_nodes, depth)
-    )
+    traversal_mode = "dfs" if mode == "dfs" else "bfs"
+    selection: CommunitySelection | None = None
+    if community_aware:
+        traversal, selection, traversal_graph = community_aware_expand(
+            traversal_graph,
+            start_nodes,
+            depth,
+            mode=traversal_mode,
+            weighted=weighted,
+            registry=registry,
+            query_terms=terms,
+            community_aware=True,
+            max_communities=max_communities,
+            min_confidence=community_min_confidence,
+        )
+    else:
+        traversal = expand_neighborhood(
+            traversal_graph,
+            start_nodes,
+            depth,
+            mode=traversal_mode,
+            weighted=weighted,
+            registry=registry,
+        )
+    nodes, edges = traversal.nodes, traversal.edges
     header_parts = [
         f"Traversal: {mode.upper()} depth={depth}",
         f"Start: {[G.nodes[n].get('label', n) for n in start_nodes]}",
     ]
+    if weighted:
+        header_parts.insert(1, "Weighted relations")
+    if selection is not None and selection.selected:
+        header_parts.insert(
+            1 if not weighted else 2,
+            f"Communities={list(selection.community_ids)} (confidence={selection.confidence:.2f})",
+        )
+    elif selection is not None and community_aware:
+        header_parts.insert(
+            1 if not weighted else 2,
+            f"Community fallback ({selection.reason})",
+        )
     if resolved_filters:
         header_parts.append(f"Context: {', '.join(resolved_filters)} ({filter_source})")
     header_parts.append(f"{len(nodes)} nodes found")
     header = " | ".join(header_parts) + "\n\n"
     return header + _subgraph_to_text(
-        traversal_graph, nodes, edges, token_budget, seeds=start_nodes
+        traversal_graph,
+        nodes,
+        edges,
+        token_budget,
+        seeds=start_nodes,
+        weighted=weighted,
+        reach_importance=traversal.reach_importance,
+        distance=traversal.distance,
+        registry=registry,
     )
 
 
@@ -1190,6 +1254,24 @@ def _build_server(graph_path: str):
                             "items": {"type": "string"},
                             "description": "Optional explicit edge-context filter, e.g. ['call', 'field']",
                         },
+                        "weighted": {
+                            "type": "boolean",
+                            "default": True,
+                            "description": (
+                                "Prefer semantically stronger relations "
+                                "(calls > inherits > implements > references > imports) "
+                                "during traversal and result ranking"
+                            ),
+                        },
+                        "community_aware": {
+                            "type": "boolean",
+                            "default": False,
+                            "description": (
+                                "Restrict retrieval to the most relevant communities "
+                                "before weighted neighborhood expansion; falls back to "
+                                "full-graph retrieval when community confidence is low"
+                            ),
+                        },
                     },
                     "required": ["question"],
                 },
@@ -1275,6 +1357,14 @@ def _build_server(graph_path: str):
                             "type": "integer",
                             "default": 8,
                             "description": "Maximum hops to consider",
+                        },
+                        "weighted": {
+                            "type": "boolean",
+                            "default": True,
+                            "description": (
+                                "Use relationship-aware edge costs "
+                                "(prefer calls/inherits over imports)"
+                            ),
                         },
                     },
                     "required": ["source", "target"],
@@ -1362,6 +1452,8 @@ def _build_server(graph_path: str):
         depth = min(int(arguments.get("depth", 3)), 6)
         budget = int(arguments.get("token_budget", 2000))
         context_filter = arguments.get("context_filter")
+        weighted = bool(arguments.get("weighted", True))
+        community_aware = bool(arguments.get("community_aware", False))
         _t0 = _time.perf_counter()
         result = _query_graph_text(
             G,
@@ -1370,6 +1462,8 @@ def _build_server(graph_path: str):
             depth=depth,
             token_budget=budget,
             context_filters=context_filter,
+            weighted=weighted,
+            community_aware=community_aware,
         )
         querylog.log_query(
             kind="mcp_query",
@@ -1509,13 +1603,14 @@ def _build_server(graph_path: str):
                         f"(top score {top:g}, runner-up {runner:g})"
                     )
         max_hops = int(arguments.get("max_hops", 8))
-        try:
-            _und = nx.Graph()
-            _und.add_nodes_from(sorted(G.nodes))
-            _und.add_edges_from(sorted((min(u, v), max(u, v)) for u, v in G.edges()))
-            path_nodes = nx.shortest_path(_und, src_nid, tgt_nid)
-        except (nx.NetworkXNoPath, nx.NodeNotFound):
-            return f"No path found between '{G.nodes[src_nid].get('label', src_nid)}' and '{G.nodes[tgt_nid].get('label', tgt_nid)}'."
+        weighted = bool(arguments.get("weighted", True))
+        path_nodes, _stats = find_shortest_path(G, src_nid, tgt_nid, weighted=weighted)
+        if path_nodes is None:
+            return (
+                f"No path found between "
+                f"'{G.nodes[src_nid].get('label', src_nid)}' and "
+                f"'{G.nodes[tgt_nid].get('label', tgt_nid)}'."
+            )
         hops = len(path_nodes) - 1
         if hops > max_hops:
             return f"Path exceeds max_hops={max_hops} ({hops} hops found)."

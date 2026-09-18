@@ -841,7 +841,9 @@ def dispatch_command(cmd: str) -> None:
     elif cmd == "query":
         if len(sys.argv) < 3:
             print(
-                'Usage: graphify query "<question>" [--dfs] [--context C] [--budget N] [--graph path]',
+                'Usage: graphify query "<question>" [--dfs] [--context C] [--budget N] '
+                "[--weighted|--unweighted] [--community-aware|--no-community-aware] "
+                "[--graph path]",
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -852,6 +854,8 @@ def dispatch_command(cmd: str) -> None:
 
         question = sys.argv[2]
         use_dfs = "--dfs" in sys.argv
+        weighted = "--unweighted" not in sys.argv
+        community_aware = "--community-aware" in sys.argv
         budget = 2000
         graph_path = _default_graph_path()
         context_filters: list[str] = []
@@ -881,6 +885,14 @@ def dispatch_command(cmd: str) -> None:
             elif args[i] == "--graph" and i + 1 < len(args):
                 graph_path = args[i + 1]
                 i += 2
+            elif args[i] in (
+                "--weighted",
+                "--unweighted",
+                "--dfs",
+                "--community-aware",
+                "--no-community-aware",
+            ):
+                i += 1
             else:
                 i += 1
         gp = Path(graph_path).resolve()
@@ -935,6 +947,8 @@ def dispatch_command(cmd: str) -> None:
             depth=2,
             token_budget=budget,
             context_filters=context_filters,
+            weighted=weighted,
+            community_aware=community_aware,
         )
         querylog.log_query(
             kind="query",
@@ -1166,17 +1180,19 @@ def dispatch_command(cmd: str) -> None:
     elif cmd == "path":
         if len(sys.argv) < 4:
             print(
-                'Usage: graphify path "<source>" "<target>" [--graph path]',
+                'Usage: graphify path "<source>" "<target>" '
+                "[--weighted|--unweighted] [--graph path]",
                 file=sys.stderr,
             )
             sys.exit(1)
         from graphify.serve import _pick_scored_endpoint, _score_nodes
+        from graphify.weighted_retrieval import find_shortest_path
         from networkx.readwrite import json_graph
-        import networkx as _nx
 
         source_label = sys.argv[2]
         target_label = sys.argv[3]
         graph_path = _default_graph_path()
+        weighted = "--unweighted" not in sys.argv
         args = sys.argv[4:]
         for i, a in enumerate(args):
             if a == "--graph" and i + 1 < len(args):
@@ -1223,12 +1239,8 @@ def dispatch_command(cmd: str) -> None:
                         f"(top score {_top:g}, runner-up {_runner:g})",
                         file=sys.stderr,
                     )
-        _und = _nx.Graph()
-        _und.add_nodes_from(sorted(G.nodes))
-        _und.add_edges_from(sorted((min(u, v), max(u, v)) for u, v in G.edges()))
-        try:
-            path_nodes = _nx.shortest_path(_und, src_nid, tgt_nid)
-        except (_nx.NetworkXNoPath, _nx.NodeNotFound):
+        path_nodes, _path_stats = find_shortest_path(G, src_nid, tgt_nid, weighted=weighted)
+        if path_nodes is None:
             print(f"No path found between '{source_label}' and '{target_label}'.")
             sys.exit(0)
         hops = len(path_nodes) - 1
@@ -3723,6 +3735,81 @@ def dispatch_command(cmd: str) -> None:
 
         _wja(out_path2, merged2, ensure_ascii=False)
         print(f"Merged: {len(merged2['nodes'])} nodes, {len(merged2['edges'])} edges")
+
+    elif cmd == "semantic-graph":
+        from networkx.readwrite import json_graph
+
+        from graphify.paths import write_json_atomic as _wja
+        from graphify.semantic_extraction import (
+            BackendLLMProvider,
+            RetryingProvider,
+            default_provider,
+            extract_semantic_relations,
+        )
+        from graphify.semantic_graph import apply_semantic_relations
+
+        graph_path = _default_graph_path()
+        backend_name: str | None = None
+        model_name: str | None = None
+        batch_size = 20
+        limit: int | None = None
+        dry_run = False
+        args = sys.argv[2:]
+        i = 0
+        while i < len(args):
+            if args[i] == "--graph" and i + 1 < len(args):
+                graph_path = args[i + 1]
+                i += 2
+            elif args[i] == "--backend" and i + 1 < len(args):
+                backend_name = args[i + 1]
+                i += 2
+            elif args[i] == "--model" and i + 1 < len(args):
+                model_name = args[i + 1]
+                i += 2
+            elif args[i] == "--batch-size" and i + 1 < len(args):
+                batch_size = int(args[i + 1])
+                i += 2
+            elif args[i] == "--limit" and i + 1 < len(args):
+                limit = int(args[i + 1])
+                i += 2
+            elif args[i] == "--dry-run":
+                dry_run = True
+                i += 1
+            else:
+                i += 1
+        gp = Path(graph_path).resolve()
+        if not gp.exists():
+            print(f"error: graph file not found: {gp}", file=sys.stderr)
+            sys.exit(1)
+        _enforce_graph_size_cap_or_exit(gp)
+        raw = json.loads(gp.read_text(encoding="utf-8"))
+        if "links" not in raw and "edges" in raw:
+            raw = dict(raw, links=raw["edges"])
+        G = json_graph.node_link_graph(raw, edges="links")
+
+        provider = (
+            RetryingProvider(BackendLLMProvider(backend=backend_name, model=model_name))
+            if backend_name
+            else default_provider(model=model_name)
+        )
+        result = extract_semantic_relations(
+            G, provider=provider, batch_size=batch_size, limit=limit
+        )
+        for err in result.errors[:5]:
+            print(f"[graphify semantic-graph] {err}", file=sys.stderr)
+        if result.is_empty:
+            print("No semantic relations extracted; graph left unchanged.")
+        else:
+            report = apply_semantic_relations(G, result)
+            print(
+                f"Semantic graph: +{report.edges_added} edges, "
+                f"{report.edges_augmented} edges augmented, "
+                f"+{report.concept_nodes_added} concept nodes, "
+                f"{report.relations_skipped} relations skipped"
+            )
+            if not dry_run:
+                data = json_graph.node_link_data(G, edges="links")
+                _wja(gp, data, ensure_ascii=False)
 
     elif Path(cmd).exists() or cmd in (".", "..") or cmd.startswith(("./", "../", "/", "~")):
         sys.argv.insert(2, sys.argv[1])
