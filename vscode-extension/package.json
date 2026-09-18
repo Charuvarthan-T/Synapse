@@ -1,65 +1,107 @@
 {
   "name": "synapse",
   "displayName": "Synapse",
-  "description": "A local knowledge graph of your codebase, for AI coding assistants — no API key required, no code leaves your machine.",
-  "version": "0.1.0",
+  "description": "Graph-grounded answers about your codebase. A local knowledge graph with graph-validated reasoning and hallucination checks, using the AI you already have (GitHub Copilot, Claude Code or Codex).",
+  "version": "0.2.0",
   "publisher": "synapse-labs",
+  "license": "Apache-2.0",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Charuvarthan-T/Synapse.git",
+    "directory": "vscode-extension"
+  },
+  "bugs": {
+    "url": "https://github.com/Charuvarthan-T/Synapse/issues"
+  },
+  "homepage": "https://github.com/Charuvarthan-T/Synapse/tree/main/vscode-extension#readme",
   "engines": {
     "vscode": "^1.95.0"
   },
   "categories": [
-    "Other",
-    "Machine Learning"
+    "AI",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "knowledge graph",
+    "code search",
+    "copilot",
+    "claude",
+    "codex",
+    "rag",
+    "hallucination"
   ],
   "activationEvents": [
-    "onLanguage:python",
-    "workspaceContains:**/*.py"
+    "onStartupFinished"
   ],
   "main": "./out/src/extension.js",
+  "capabilities": {
+    "virtualWorkspaces": false,
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Synapse runs its engine only in trusted workspaces.",
+      "restrictedConfigurations": [
+        "synapse.pythonPath",
+        "synapse.devPackagePath"
+      ]
+    }
+  },
   "contributes": {
     "commands": [
       {
-        "command": "synapse.openDashboard",
-        "title": "Synapse: Open Dashboard",
-        "icon": "$(circuit-board)"
-      },
-      {
-        "command": "synapse.rebuildGraph",
-        "title": "Synapse: Rebuild Graph",
+        "command": "synapse.buildGraph",
+        "title": "Build Graph",
+        "category": "Synapse",
         "icon": "$(refresh)"
       },
       {
-        "command": "synapse.updateGraph",
-        "title": "Synapse: Update Graph (incremental)"
+        "command": "synapse.ask",
+        "title": "Ask About This Codebase",
+        "category": "Synapse",
+        "icon": "$(sparkle)"
       },
       {
-        "command": "synapse.query",
-        "title": "Synapse: Query Codebase"
+        "command": "synapse.search",
+        "title": "Search Graph",
+        "category": "Synapse",
+        "icon": "$(search)"
       },
       {
-        "command": "synapse.explainAtCursor",
-        "title": "Synapse: Explain Symbol at Cursor"
+        "command": "synapse.explainSymbol",
+        "title": "Explain Symbol",
+        "category": "Synapse"
       },
       {
-        "command": "synapse.openGraphView",
-        "title": "Synapse: Open Graph Visualization"
+        "command": "synapse.verifyCode",
+        "title": "Verify Code Against Graph",
+        "category": "Synapse"
       },
       {
-        "command": "synapse.showOutput",
-        "title": "Synapse: Show Output Log"
+        "command": "synapse.enrichGraph",
+        "title": "Enrich Graph with AI Relations",
+        "category": "Synapse"
       },
       {
-        "command": "synapse.revealNode",
-        "title": "Synapse: Go to Definition",
-        "icon": "$(go-to-file)"
+        "command": "synapse.openGraphMap",
+        "title": "Open Graph Map",
+        "category": "Synapse",
+        "icon": "$(type-hierarchy)"
       },
       {
-        "command": "synapse.openGettingStarted",
-        "title": "Synapse: Open Getting Started Guide"
+        "command": "synapse.chooseModel",
+        "title": "Choose AI Model",
+        "category": "Synapse"
       },
       {
-        "command": "synapse.openDocs",
-        "title": "Synapse: Open Documentation"
+        "command": "synapse.showLog",
+        "title": "Show Log",
+        "category": "Synapse"
+      },
+      {
+        "command": "synapse.openNode",
+        "title": "Go to Symbol",
+        "category": "Synapse"
       }
     ],
     "viewsContainers": {
@@ -74,179 +116,250 @@
     "views": {
       "synapse": [
         {
-          "id": "synapseDashboardView",
-          "name": "Dashboard",
+          "id": "synapse.dashboard",
+          "name": "Synapse",
           "type": "webview",
-          "icon": "media/synapse-icon.svg",
-          "contextualTitle": "Synapse"
-        },
-        {
-          "id": "synapseExplorer",
-          "name": "Knowledge Graph",
-          "icon": "media/synapse-icon.svg",
-          "contextualTitle": "Synapse"
+          "icon": "media/synapse-icon.svg"
         }
       ]
     },
-    "viewsWelcome": [
-      {
-        "view": "synapseExplorer",
-        "contents": "No graph built yet for this workspace.\n[Build Graph](command:synapse.rebuildGraph)\nRequires Python 3.10+ on your PATH. No API key needed — graph construction is 100% local.",
-        "when": "synapse.hasGraph == false"
-      }
-    ],
     "menus": {
       "view/title": [
         {
-          "command": "synapse.rebuildGraph",
-          "when": "view == synapseExplorer",
-          "group": "navigation"
+          "command": "synapse.openGraphMap",
+          "when": "view == synapse.dashboard && synapse.hasGraph",
+          "group": "navigation@1"
         },
         {
-          "command": "synapse.openGraphView",
-          "when": "view == synapseExplorer",
-          "group": "navigation"
+          "command": "synapse.buildGraph",
+          "when": "view == synapse.dashboard",
+          "group": "navigation@2"
+        },
+        {
+          "command": "synapse.chooseModel",
+          "when": "view == synapse.dashboard",
+          "group": "1_ai@1"
+        },
+        {
+          "command": "synapse.enrichGraph",
+          "when": "view == synapse.dashboard && synapse.hasGraph",
+          "group": "1_ai@2"
+        },
+        {
+          "command": "synapse.showLog",
+          "when": "view == synapse.dashboard",
+          "group": "2_log@1"
         }
       ],
-      "view/item/context": [
+      "editor/context": [
         {
-          "command": "synapse.revealNode",
-          "when": "view == synapseExplorer && viewItem == graphNode",
-          "group": "inline"
+          "command": "synapse.explainSymbol",
+          "when": "synapse.hasGraph && editorTextFocus",
+          "group": "synapse@1"
+        },
+        {
+          "command": "synapse.verifyCode",
+          "when": "synapse.hasGraph && editorTextFocus",
+          "group": "synapse@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "synapse.openNode",
+          "when": "false"
+        },
+        {
+          "command": "synapse.explainSymbol",
+          "when": "synapse.hasGraph && editorIsOpen"
+        },
+        {
+          "command": "synapse.verifyCode",
+          "when": "synapse.hasGraph && editorIsOpen"
+        },
+        {
+          "command": "synapse.enrichGraph",
+          "when": "synapse.hasGraph"
+        },
+        {
+          "command": "synapse.openGraphMap",
+          "when": "synapse.hasGraph"
         }
       ]
     },
     "configuration": {
       "title": "Synapse",
       "properties": {
+        "synapse.ai.provider": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "copilot",
+            "claude-code",
+            "codex"
+          ],
+          "enumItemLabels": [
+            "Auto",
+            "GitHub Copilot",
+            "Claude Code",
+            "Codex"
+          ],
+          "enumDescriptions": [
+            "Use the first assistant you're signed in to: GitHub Copilot, then Claude Code, then Codex.",
+            "Language models provided to VS Code (GitHub Copilot and any other installed model providers).",
+            "The Claude Code CLI, using your Claude subscription (bundled with the Claude Code extension or on PATH).",
+            "The Codex CLI, using your ChatGPT sign-in (bundled with the Codex extension or on PATH)."
+          ],
+          "default": "auto",
+          "order": 0,
+          "markdownDescription": "Which AI assistant Synapse uses for **Ask** and **Enrich Graph**. Synapse never needs an API key: it uses your existing sign-in. Building, searching and verifying are fully local and use no AI."
+        },
+        "synapse.ai.model": {
+          "type": "string",
+          "default": "",
+          "order": 1,
+          "markdownDescription": "Model to use with the selected provider. Leave empty for the provider's default. Easiest to set with **Synapse: Choose AI Model**."
+        },
         "synapse.autoBuildOnOpen": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically build the knowledge graph when a Python workspace is opened (local AST parsing only, no API key or network calls required)."
+          "order": 2,
+          "description": "Build the knowledge graph automatically when a workspace with source code is opened. Local only; no AI is used."
         },
         "synapse.autoUpdateOnSave": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically refresh the graph (incremental, AST-only) shortly after saving a Python file."
-        },
-        "synapse.pythonPath": {
-          "type": "string",
-          "default": "",
-          "description": "Path to a Python 3.10+ interpreter to use. Leave empty to auto-detect (python3 / python / py -3)."
+          "order": 3,
+          "description": "Refresh the graph incrementally a moment after you save a source file. Local only; no AI is used."
         },
         "synapse.queryBudget": {
           "type": "number",
           "default": 2000,
-          "description": "Maximum tokens Synapse will include when returning context for a query."
+          "minimum": 200,
+          "maximum": 20000,
+          "order": 4,
+          "description": "Maximum tokens of graph context returned per search (also used for context given to Copilot agent mode)."
+        },
+        "synapse.pythonPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "order": 5,
+          "description": "Python 3.10+ interpreter used to set up Synapse's private engine environment. Leave empty to detect automatically."
         },
         "synapse.devPackagePath": {
           "type": "string",
           "default": "",
-          "description": "Advanced: install the graphify engine from a local path instead of PyPI (for developing Synapse against a graphify checkout)."
+          "scope": "machine-overridable",
+          "order": 6,
+          "markdownDescription": "Development only: install the engine from a local checkout of the Synapse repository (editable install) instead of the engine bundled with the extension."
         }
       }
     },
-    "walkthroughs": [
-      {
-        "id": "gettingStarted",
-        "title": "Get Started with Synapse",
-        "description": "Build a local knowledge graph of your code and use it with Copilot Chat — no API key required.",
-        "steps": [
-          {
-            "id": "build",
-            "title": "Build your first graph",
-            "description": "Build a local knowledge graph of your Python project. No API key, no network calls.\n[Rebuild Graph](command:synapse.rebuildGraph)",
-            "media": { "markdown": "walkthroughs/01-build.md" }
-          },
-          {
-            "id": "dashboard",
-            "title": "Open the Dashboard",
-            "description": "See your graph's stats and every action right in the sidebar.\n[Open Dashboard](command:synapse.openDashboard)",
-            "media": { "markdown": "walkthroughs/02-dashboard.md" }
-          },
-          {
-            "id": "explore",
-            "title": "Explore the graph",
-            "description": "Browse God Nodes and Communities in the sidebar, and jump straight to definitions.\n[Open Synapse Sidebar](command:workbench.view.extension.synapse)",
-            "media": { "markdown": "walkthroughs/03-explore.md" }
-          },
-          {
-            "id": "visualize",
-            "title": "See the whole graph",
-            "description": "Open an interactive visualization of your codebase.\n[Open Graph Visualization](command:synapse.openGraphView)",
-            "media": { "markdown": "walkthroughs/04-visualize.md" }
-          },
-          {
-            "id": "ask",
-            "title": "Ask questions about your code",
-            "description": "Query the graph in plain language, or explain the symbol under your cursor.\n[Query Codebase](command:synapse.query)",
-            "media": { "markdown": "walkthroughs/05-ask.md" }
-          },
-          {
-            "id": "copilot",
-            "title": "Use it with GitHub Copilot Chat",
-            "description": "Once built, Copilot Chat's agent mode can call Synapse automatically using your own subscription.",
-            "media": { "markdown": "walkthroughs/06-copilot.md" }
-          }
-        ]
-      }
-    ],
     "languageModelTools": [
       {
         "name": "synapse_query",
-        "toolReferenceName": "synapseQuery",
-        "displayName": "Synapse: Query Knowledge Graph",
-        "modelDescription": "Search the local repository knowledge graph for code, functions, and classes relevant to a natural-language question. Returns a compact, targeted set of relevant nodes and their relationships (calls, imports, inheritance) instead of full file contents — use this before reading whole files to save tokens.",
+        "toolReferenceName": "synapseSearch",
+        "displayName": "Synapse: Search Knowledge Graph",
+        "userDescription": "Find the functions, classes and relationships relevant to a question.",
+        "modelDescription": "Search the repository knowledge graph for code relevant to a natural-language question. Uses relationship-weighted, community-aware graph retrieval and returns a compact set of relevant symbols (with file and line) and their relationships (calls, imports, inheritance, methods). Use this before reading whole files to find where things are and how they connect.",
         "canBeReferencedInPrompt": true,
+        "icon": "$(search)",
+        "tags": [
+          "synapse",
+          "codebase",
+          "knowledge-graph"
+        ],
         "inputSchema": {
           "type": "object",
           "properties": {
             "question": {
               "type": "string",
-              "description": "A natural-language question about the codebase, e.g. 'how does authentication work'"
+              "description": "A natural-language question about the codebase, e.g. 'how does authentication work'."
             }
           },
-          "required": ["question"]
+          "required": [
+            "question"
+          ]
         }
       },
       {
         "name": "synapse_explain",
         "toolReferenceName": "synapseExplain",
         "displayName": "Synapse: Explain Symbol",
-        "modelDescription": "Get a plain-language explanation of a specific function, class, or file in the repository and its direct neighbors in the knowledge graph (what calls it, what it calls, what it imports).",
+        "userDescription": "Show a symbol's location and its direct relationships.",
+        "modelDescription": "Look up one function, class or file in the repository knowledge graph and return its location plus its direct neighbours: what calls it, what it calls, what it imports, and what contains it.",
         "canBeReferencedInPrompt": true,
+        "icon": "$(symbol-method)",
+        "tags": [
+          "synapse",
+          "codebase",
+          "knowledge-graph"
+        ],
         "inputSchema": {
           "type": "object",
           "properties": {
             "symbol": {
               "type": "string",
-              "description": "The exact name of a function, class, or file to explain, e.g. 'validate_url' or 'build.py'"
+              "description": "Exact name of a function, class or file, e.g. 'validate_url' or 'build.py'."
             }
           },
-          "required": ["symbol"]
+          "required": [
+            "symbol"
+          ]
+        }
+      },
+      {
+        "name": "synapse_verify_code",
+        "toolReferenceName": "synapseVerify",
+        "displayName": "Synapse: Verify Code Against Graph",
+        "userDescription": "Check proposed code for symbols, imports and methods that don't exist in this repository.",
+        "modelDescription": "Before writing or suggesting code, check it against the repository knowledge graph. Reports imports, functions and methods the code references that the graph CONTRADICTS (e.g. a method that does not exist on a class that does), plus which references are SUPPORTED or UNKNOWN. Use it to catch hallucinated APIs. Python is checked most precisely.",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(shield)",
+        "tags": [
+          "synapse",
+          "codebase",
+          "validation"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "The source code to verify."
+            }
+          },
+          "required": [
+            "code"
+          ]
         }
       }
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run build:engine && npm run build:assets && npm run compile",
+    "build:engine": "node scripts/build-engine.js",
+    "build:assets": "node scripts/vendor-assets.js",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile",
+    "pretest": "npm run build:assets && npm run compile",
     "test:unit": "mocha \"out/test/unit/**/*.test.js\"",
     "test:integration": "node ./out/test/runTest.js",
-    "test": "npm run test:unit && npm run test:integration",
-    "package": "vsce package --allow-missing-repository"
+    "test": "npm run test:unit && npm run test:engine && npm run test:integration",
+    "package": "vsce package",
+    "test:engine": "mocha --timeout 900000 \"out/test/engine/**/*.test.js\"",
+    "test:vsix": "node ./out/test/runVsixTest.js"
   },
   "devDependencies": {
-    "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.95.0",
+    "@vscode/codicons": "^0.0.46-24",
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^3.0.0",
     "glob": "^13.0.6",
     "mocha": "^12.0.2",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "vis-network": "9.1.6"
   }
 }

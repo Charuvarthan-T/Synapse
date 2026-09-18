@@ -1,9 +1,10 @@
-.vscode/**
-src/**
-test/**
-out/test/**
-tsconfig.json
-**/*.map
-node_modules/**
-.gitignore
-.vscode-test/**
+# Allowlist: ship only what runs. Everything else (sources, tests, scripts,
+# node_modules, the downloaded VS Code test build) stays out of the .vsix.
+**
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE
+!out/src/**/*.js
+!media/**
+!engine/**

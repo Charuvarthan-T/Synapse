@@ -1,0 +1,413 @@
+body {
+  padding: 12px 14px 20px;
+}
+
+section + section {
+  margin-top: 20px;
+}
+
+/* Brand mark, tinted with the accent via a mask so it matches any theme. */
+.logo {
+  display: inline-block;
+  width: 22px;
+  height: 20px;
+  background: var(--syn-accent);
+  -webkit-mask: url("synapse-icon.svg") center / contain no-repeat;
+  mask: url("synapse-icon.svg") center / contain no-repeat;
+  flex-shrink: 0;
+}
+
+/* Status line ------------------------------------------------------------- */
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+  font-size: 12px;
+  color: var(--syn-muted);
+}
+
+.status .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--syn-muted);
+  flex-shrink: 0;
+}
+
+.status .dot.ready {
+  background: var(--syn-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--syn-accent) 22%, transparent);
+}
+
+.status .dot.busy {
+  background: var(--vscode-progressBar-background, var(--syn-accent));
+  animation: syn-pulse 1.2s ease-in-out infinite;
+}
+
+.status .dot.error {
+  background: var(--syn-bad);
+}
+
+.status .text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status .text b {
+  color: var(--syn-fg);
+  font-weight: 600;
+}
+
+@keyframes syn-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.task-bar {
+  margin-top: 8px;
+}
+
+.task-detail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--syn-muted);
+}
+
+/* Composer ---------------------------------------------------------------- */
+
+.composer {
+  margin-top: 12px;
+  border: 1px solid var(--vscode-input-border, var(--syn-border));
+  border-radius: var(--syn-radius-lg);
+  background: var(--vscode-input-background);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.composer:focus-within {
+  border-color: var(--syn-focus);
+  box-shadow: 0 0 0 1px var(--syn-focus);
+}
+
+.composer textarea {
+  display: block;
+  width: 100%;
+  min-height: 58px;
+  max-height: 180px;
+  padding: 10px 12px 4px;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--vscode-input-foreground);
+  font: inherit;
+  line-height: 1.45;
+}
+
+.composer textarea::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+}
+
+.composer-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px 6px 8px;
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 7px;
+  background: var(--syn-subtle-strong);
+}
+
+.segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--syn-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.segmented button .codicon {
+  font-size: 13px;
+}
+
+.segmented button[aria-pressed="true"] {
+  background: var(--vscode-input-background);
+  color: var(--syn-fg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+.composer-bar .spacer {
+  flex: 1;
+}
+
+.send {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.send:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.send:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.composer-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--syn-muted);
+}
+
+.ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--syn-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ai-chip:hover {
+  color: var(--syn-fg);
+}
+
+.ai-chip .label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-chip.missing {
+  color: var(--syn-warn);
+}
+
+/* Stats ------------------------------------------------------------------- */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--syn-border);
+  border-radius: var(--syn-radius-lg);
+  overflow: hidden;
+}
+
+.stat {
+  padding: 10px 10px 9px;
+  min-width: 0;
+}
+
+.stat + .stat {
+  border-left: 1px solid var(--syn-border);
+}
+
+.stat .value {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.stat .label {
+  margin-top: 1px;
+  font-size: 11px;
+  color: var(--syn-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.enrich-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--syn-muted);
+}
+
+.enrich-row .codicon {
+  color: var(--syn-accent);
+}
+
+/* Lists (key symbols, tools) ---------------------------------------------- */
+
+.list {
+  margin: 0 -8px;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--syn-hover);
+}
+
+.row .codicon {
+  color: var(--syn-muted);
+  flex-shrink: 0;
+}
+
+.row .name {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row .where {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  font-size: 12px;
+  color: var(--syn-muted);
+}
+
+.row .count {
+  min-width: 22px;
+  font-size: 11px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--syn-muted);
+}
+
+.tool .text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tool {
+  align-items: flex-start;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.tool .codicon {
+  margin-top: 2px;
+}
+
+.tool .sub {
+  font-size: 12px;
+  color: var(--syn-muted);
+}
+
+/* Empty / error states ------------------------------------------------------ */
+
+.hero {
+  padding: 18px 4px 8px;
+  text-align: center;
+}
+
+.hero .logo {
+  width: 40px;
+  height: 36px;
+}
+
+.hero h2 {
+  margin: 12px 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.hero p {
+  margin: 0 auto 16px;
+  max-width: 280px;
+  color: var(--syn-muted);
+}
+
+.fineprint {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--syn-muted);
+}
+
+.fineprint span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.notice {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--syn-bad) 40%, var(--syn-border));
+  border-radius: var(--syn-radius-lg);
+  background: color-mix(in srgb, var(--syn-bad) 7%, transparent);
+}
+
+.notice .codicon {
+  color: var(--syn-bad);
+  margin-top: 2px;
+}
+
+.notice .body {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.notice .actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}

@@ -1,0 +1,4 @@
+*.cmd text eol=crlf
+claude text eol=lf
+codex text eol=lf
+*.js text eol=lf

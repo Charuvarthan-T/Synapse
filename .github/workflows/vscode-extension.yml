@@ -1,0 +1,107 @@
+name: VS Code extension
+
+# Builds the Synapse VS Code extension from this repository (the extension
+# bundles this repo's engine, never the upstream PyPI package), runs its test
+# suites, and on a `vscode-v*` tag attaches the .vsix to a GitHub Release.
+#
+#   git tag vscode-v0.2.0 && git push origin vscode-v0.2.0
+
+on:
+  push:
+    branches: ["main"]
+    tags: ["vscode-v*"]
+    paths: ["vscode-extension/**", "graphify/**", "pyproject.toml", ".github/workflows/vscode-extension.yml"]
+  pull_request:
+    paths: ["vscode-extension/**", "graphify/**", "pyproject.toml", ".github/workflows/vscode-extension.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vscode-extension
+    env:
+      SYNAPSE_TEST_HOME: ${{ github.workspace }}/.synapse-test-home
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: vscode-extension/package-lock.json
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check the tag matches package.json
+        if: startsWith(github.ref, 'refs/tags/vscode-v')
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "vscode-v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version"
+            exit 1
+          fi
+
+      - name: Build the engine wheel and web assets
+        run: npm run build:engine && npm run build:assets && npm run compile
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Engine end-to-end tests (real engine, fake AI)
+        run: npm run test:engine
+
+      - name: VS Code integration tests
+        run: xvfb-run -a npm run test:integration
+
+      - name: Package
+        run: npx vsce package --out "synapse-$(node -p "require('./package.json').version").vsix"
+
+      - name: Test the packaged .vsix as installed by users
+        run: xvfb-run -a npm run test:vsix
+        env:
+          SYNAPSE_VSIX_TEST_HOME: ${{ github.workspace }}/.synapse-vsix-home
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synapse-vsix
+          path: vscode-extension/*.vsix
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/vscode-v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: synapse-vsix
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Synapse for VS Code ${{ github.ref_name }}
+          files: "*.vsix"
+          body: |
+            **Synapse for VS Code**: graph-grounded answers about your codebase, built on this repository's Synapse engine.
+
+            ### Install
+            1. Download the `.vsix` below.
+            2. In VS Code, open the Command Palette and run **Extensions: Install from VSIX...**, then pick the file.
+               Or run `code --install-extension synapse-<version>.vsix` in a terminal.
+            3. Make sure Python 3.10+ is installed. Synapse sets up its own private engine environment on first use.
+
+            No API key is needed. Ask and Enrich use the assistant you're already signed in to (GitHub Copilot, Claude Code or Codex).
+            See the [extension README](https://github.com/${{ github.repository }}/tree/main/vscode-extension#readme) and the [changelog](https://github.com/${{ github.repository }}/blob/main/vscode-extension/CHANGELOG.md).

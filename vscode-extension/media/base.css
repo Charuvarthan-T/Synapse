@@ -1,0 +1,227 @@
+/* Shared foundation for Synapse webviews. Everything is expressed in VS Code
+   theme tokens so the UI follows light, dark and high-contrast themes. */
+
+:root {
+  --syn-accent: #22c55e;
+  --syn-fg: var(--vscode-foreground);
+  --syn-muted: var(--vscode-descriptionForeground);
+  --syn-border: var(--vscode-widget-border, var(--vscode-panel-border, rgba(128, 128, 128, 0.22)));
+  --syn-subtle: color-mix(in srgb, var(--vscode-foreground) 5%, transparent);
+  --syn-subtle-strong: color-mix(in srgb, var(--vscode-foreground) 9%, transparent);
+  --syn-hover: var(--vscode-list-hoverBackground);
+  --syn-focus: var(--vscode-focusBorder);
+  --syn-ok: var(--vscode-testing-iconPassed, #3fb950);
+  --syn-warn: var(--vscode-editorWarning-foreground, #d29922);
+  --syn-bad: var(--vscode-errorForeground, #f85149);
+  --syn-radius: 6px;
+  --syn-radius-lg: 10px;
+  --syn-mono: var(--vscode-editor-font-family, ui-monospace, "SF Mono", Consolas, monospace);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  color: var(--syn-fg);
+  background: transparent;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 1px solid var(--syn-focus);
+  outline-offset: 1px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.muted {
+  color: var(--syn-muted);
+}
+
+.mono {
+  font-family: var(--syn-mono);
+  font-size: 0.92em;
+}
+
+/* Buttons ---------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: var(--syn-radius);
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.btn.secondary {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.btn.secondary:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--syn-fg);
+  border-color: var(--syn-border);
+}
+
+.btn.ghost:hover {
+  background: var(--syn-hover);
+}
+
+.btn.block {
+  width: 100%;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--syn-muted);
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground, var(--syn-hover));
+  color: var(--syn-fg);
+}
+
+.link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--vscode-textLink-foreground);
+  cursor: pointer;
+}
+
+.link:hover {
+  color: var(--vscode-textLink-activeForeground);
+  text-decoration: underline;
+}
+
+/* Section labels, pills, progress ----------------------------------------- */
+
+.eyebrow {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--syn-muted);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  background: var(--syn-subtle-strong);
+  color: var(--syn-muted);
+}
+
+.pill.ok {
+  color: var(--syn-ok);
+  background: color-mix(in srgb, var(--syn-ok) 14%, transparent);
+}
+
+.pill.warn {
+  color: var(--syn-warn);
+  background: color-mix(in srgb, var(--syn-warn) 14%, transparent);
+}
+
+.pill.bad {
+  color: var(--syn-bad);
+  background: color-mix(in srgb, var(--syn-bad) 14%, transparent);
+}
+
+.progress {
+  position: relative;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--syn-subtle-strong);
+}
+
+.progress::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 35%;
+  border-radius: 2px;
+  background: var(--vscode-progressBar-background, var(--syn-accent));
+  animation: syn-indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes syn-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+.codicon.spin {
+  animation: syn-spin 1s linear infinite;
+}
+
+@keyframes syn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress::after,
+  .codicon.spin {
+    animation-duration: 4s;
+  }
+}

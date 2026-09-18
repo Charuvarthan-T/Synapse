@@ -1084,6 +1084,9 @@ def build_merge(
             norm = _norm_source_file(sf, _replace_root)
             if norm:
                 new_sources.add(norm)
+    # Semantic relations are attributed to a code file but aren't produced by
+    # re-extracting it, so remember them before that file's edges are replaced.
+    previous_edges = list(existing_edges)
     if new_sources:
 
         def _kept(item: dict) -> bool:
@@ -1099,6 +1102,10 @@ def build_merge(
     G = build(
         all_chunks, directed=directed, dedup=dedup, dedup_llm_backend=dedup_llm_backend, root=root
     )
+    if had_graph:
+        from graphify.semantic_graph import restore_semantic_layer
+
+        restore_semantic_layer(G, previous_edges)
 
     prune_set: set[str] = set()
     prune_abs: set[str] = set()

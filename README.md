@@ -10,12 +10,16 @@ Traditional LLMs struggle to understand large codebases due to limited context w
 
 ## VS Code Extension: Synapse
 
-🧠 **Synapse** (v1) lives in [`vscode-extension/`](vscode-extension/) — a VS
-Code extension built on top of the graphify engine. It builds the knowledge
-graph locally (no API key required) and exposes it to GitHub Copilot Chat as
-a Language Model Tool, so Copilot can retrieve precise context instead of
-reading whole files. See [`vscode-extension/README.md`](vscode-extension/README.md)
-for setup, usage, publishing as a GitHub Release, and current limitations.
+🧠 **Synapse for VS Code** lives in [`vscode-extension/`](vscode-extension/). It
+bundles this repository's engine and brings its features into the editor:
+graph-validated answers (bidirectional reasoning), weighted and community-aware
+search, pre-execution hallucination checks for AI-written code, semantic graph
+enrichment, and tools for GitHub Copilot's agent mode. It needs no API key: it
+uses GitHub Copilot, Claude Code or Codex through your existing sign-in.
+
+Download the `.vsix` from [Releases](https://github.com/Charuvarthan-T/Synapse/releases).
+See [`vscode-extension/README.md`](vscode-extension/README.md) for installation,
+usage, development and the release process.
 
 ## Getting Started
 

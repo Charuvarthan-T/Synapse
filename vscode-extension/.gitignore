@@ -3,3 +3,7 @@ out/
 *.vsix
 *.log
 .vscode-test/
+# Generated before packaging (npm run build:engine / build:assets); never commit
+# stale copies. Anchored so src/engine/ and test/engine/ are not ignored.
+/engine/
+/media/vendor/

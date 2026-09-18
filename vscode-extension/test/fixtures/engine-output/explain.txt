@@ -1,0 +1,12 @@
+Node: login()
+  ID:        app_auth_login
+  Source:    app/auth.py L15
+  Type:      code
+  Community: Community 0
+  Degree:    4
+
+Connections (4):
+  --> Database [references] [EXTRACTED] app/auth.py:L15
+  <-- auth.py [contains] [EXTRACTED] app/auth.py:L15
+  --> create_session() [calls] [EXTRACTED] app/auth.py:L18
+  --> hash_password() [calls] [EXTRACTED] app/auth.py:L17
