@@ -3736,6 +3736,81 @@ def dispatch_command(cmd: str) -> None:
         _wja(out_path2, merged2, ensure_ascii=False)
         print(f"Merged: {len(merged2['nodes'])} nodes, {len(merged2['edges'])} edges")
 
+    elif cmd == "semantic-graph":
+        from networkx.readwrite import json_graph
+
+        from graphify.paths import write_json_atomic as _wja
+        from graphify.semantic_extraction import (
+            BackendLLMProvider,
+            RetryingProvider,
+            default_provider,
+            extract_semantic_relations,
+        )
+        from graphify.semantic_graph import apply_semantic_relations
+
+        graph_path = _default_graph_path()
+        backend_name: str | None = None
+        model_name: str | None = None
+        batch_size = 20
+        limit: int | None = None
+        dry_run = False
+        args = sys.argv[2:]
+        i = 0
+        while i < len(args):
+            if args[i] == "--graph" and i + 1 < len(args):
+                graph_path = args[i + 1]
+                i += 2
+            elif args[i] == "--backend" and i + 1 < len(args):
+                backend_name = args[i + 1]
+                i += 2
+            elif args[i] == "--model" and i + 1 < len(args):
+                model_name = args[i + 1]
+                i += 2
+            elif args[i] == "--batch-size" and i + 1 < len(args):
+                batch_size = int(args[i + 1])
+                i += 2
+            elif args[i] == "--limit" and i + 1 < len(args):
+                limit = int(args[i + 1])
+                i += 2
+            elif args[i] == "--dry-run":
+                dry_run = True
+                i += 1
+            else:
+                i += 1
+        gp = Path(graph_path).resolve()
+        if not gp.exists():
+            print(f"error: graph file not found: {gp}", file=sys.stderr)
+            sys.exit(1)
+        _enforce_graph_size_cap_or_exit(gp)
+        raw = json.loads(gp.read_text(encoding="utf-8"))
+        if "links" not in raw and "edges" in raw:
+            raw = dict(raw, links=raw["edges"])
+        G = json_graph.node_link_graph(raw, edges="links")
+
+        provider = (
+            RetryingProvider(BackendLLMProvider(backend=backend_name, model=model_name))
+            if backend_name
+            else default_provider(model=model_name)
+        )
+        result = extract_semantic_relations(
+            G, provider=provider, batch_size=batch_size, limit=limit
+        )
+        for err in result.errors[:5]:
+            print(f"[graphify semantic-graph] {err}", file=sys.stderr)
+        if result.is_empty:
+            print("No semantic relations extracted; graph left unchanged.")
+        else:
+            report = apply_semantic_relations(G, result)
+            print(
+                f"Semantic graph: +{report.edges_added} edges, "
+                f"{report.edges_augmented} edges augmented, "
+                f"+{report.concept_nodes_added} concept nodes, "
+                f"{report.relations_skipped} relations skipped"
+            )
+            if not dry_run:
+                data = json_graph.node_link_data(G, edges="links")
+                _wja(gp, data, ensure_ascii=False)
+
     elif Path(cmd).exists() or cmd in (".", "..") or cmd.startswith(("./", "../", "/", "~")):
         sys.argv.insert(2, sys.argv[1])
         sys.argv[1] = "extract"

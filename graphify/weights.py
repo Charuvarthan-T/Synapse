@@ -54,6 +54,12 @@ DEFAULT_RELATION_IMPORTANCE: dict[str, float] = {
     "participate_in": 0.25,
     "form": 0.25,
     "semantically_similar_to": 0.2,
+    # Semantic (LLM-derived intent) relations — see graphify.semantic_relations.
+    "handles": 0.65,
+    "manages": 0.65,
+    "responsible_for": 0.6,
+    "validates": 0.55,
+    "related_to": 0.3,
 }
 
 # Soften inferred/ambiguous edges relative to EXTRACTED.
@@ -110,7 +116,13 @@ class RelationWeightRegistry:
         return importance_to_cost(self.importance(relation))
 
     def edge_importance(self, edata: Mapping | None) -> float:
-        """Importance for one edge attribute dict (missing metadata → defaults)."""
+        """Importance for one edge attribute dict (missing metadata → defaults).
+
+        When the edge carries ``secondary_relations`` — semantic annotations
+        layered onto a structural edge by :mod:`graphify.semantic_graph` — the
+        strongest of the primary and secondary relations wins, so a `handles`
+        annotation on a weak `imports` edge can still surface during ranking.
+        """
         if not edata:
             return float(self.unknown_importance)
 
@@ -133,6 +145,17 @@ class RelationWeightRegistry:
         if conf is not None:
             mult = float(self.confidence_multiplier.get(str(conf), 1.0))
             base *= mult
+
+        secondary = edata.get("secondary_relations")
+        if isinstance(secondary, list):
+            for item in secondary:
+                if not isinstance(item, Mapping):
+                    continue
+                candidate = self.importance(item.get("relation"))
+                item_conf = item.get("confidence")
+                if item_conf is not None:
+                    candidate *= float(self.confidence_multiplier.get(str(item_conf), 1.0))
+                base = max(base, candidate)
 
         return max(base, _MIN_IMPORTANCE)
 
