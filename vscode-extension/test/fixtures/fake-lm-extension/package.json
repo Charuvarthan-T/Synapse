@@ -1,0 +1,13 @@
+{
+  "name": "synapse-fake-lm",
+  "displayName": "Synapse test language model",
+  "publisher": "synapse-test",
+  "version": "0.0.1",
+  "private": true,
+  "engines": { "vscode": "^1.104.0" },
+  "activationEvents": ["onStartupFinished"],
+  "main": "./extension.js",
+  "contributes": {
+    "languageModelChatProviders": [{ "vendor": "synapse-test", "displayName": "Synapse Test" }]
+  }
+}

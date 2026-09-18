@@ -560,9 +560,17 @@ def _reconcile_existing_graph(
         for item in preserved_nodes + preserved_edges + preserved_hyperedges:
             source_paths.rebase_preserved(item)
 
+        from graphify.semantic_graph import restore_semantic_edges
+
+        restored_edges = restore_semantic_edges(
+            existing.get("links", existing.get("edges", [])),
+            result["edges"] + preserved_edges,
+            all_ids,
+        )
+
         return {
             "nodes": result["nodes"] + preserved_nodes,
-            "edges": result["edges"] + preserved_edges,
+            "edges": result["edges"] + preserved_edges + restored_edges,
             "hyperedges": result.get("hyperedges", []) + preserved_hyperedges,
             "input_tokens": 0,
             "output_tokens": 0,

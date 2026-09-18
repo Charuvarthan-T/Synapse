@@ -1,0 +1,32 @@
+Traversal: BFS depth=2 | Weighted relations | Community fallback (low_confidence) | Start: ['login()', '.login()'] | 16 nodes found
+
+NODE login() [src=app/auth.py loc=L15 community=Community 0]
+NODE .login() [src=web/client.ts loc=L3 community=Community 2]
+NODE create_session() [src=app/auth.py loc=L22 community=Community 0]
+NODE hash_password() [src=app/auth.py loc=L11 community=Community 0]
+NODE .post() [src=web/client.ts loc=L6 community=Community 2]
+NODE ApiClient [src=web/client.ts loc=L1 community=Community 2]
+NODE auth.py [src=app/auth.py loc=L1 community=Community 0]
+NODE Database [src=app/db.py loc=L1 community=Community 1]
+NODE logout() [src=app/auth.py loc=L26 community=Community 0]
+NODE .add_user() [src=app/db.py loc=L8 community=Community 1]
+NODE .find_user() [src=app/db.py loc=L5 community=Community 1]
+NODE .__init__() [src=app/db.py loc=L2 community=Community 1]
+NODE .constructor() [src=web/client.ts loc=L2 community=Community 2]
+NODE User [src=app/auth.py loc=L5 community=Community 3]
+NODE db.py [src=app/db.py loc=L1 community=Community 1]
+NODE client.ts [src=web/client.ts loc=L1 community=Community 2]
+EDGE login() --calls [EXTRACTED context=call]--> create_session() at=app/auth.py:L18
+EDGE login() --calls [EXTRACTED context=call]--> hash_password() at=app/auth.py:L17
+EDGE .login() --calls [EXTRACTED context=call]--> .post() at=web/client.ts:L4
+EDGE logout() --calls [EXTRACTED context=call]--> create_session() at=app/auth.py:L27
+EDGE ApiClient --method [EXTRACTED]--> .login() at=web/client.ts:L3
+EDGE Database --method [EXTRACTED]--> .add_user() at=app/db.py:L8
+EDGE Database --method [EXTRACTED]--> .find_user() at=app/db.py:L5
+EDGE Database --method [EXTRACTED]--> .__init__() at=app/db.py:L2
+EDGE ApiClient --method [EXTRACTED]--> .constructor() at=web/client.ts:L2
+EDGE auth.py --contains [EXTRACTED]--> login() at=app/auth.py:L15
+EDGE auth.py --contains [EXTRACTED]--> User at=app/auth.py:L5
+EDGE db.py --contains [EXTRACTED]--> Database at=app/db.py:L1
+EDGE client.ts --contains [EXTRACTED]--> ApiClient at=web/client.ts:L1
+EDGE login() --references [EXTRACTED context=parameter_type]--> Database at=app/auth.py:L15

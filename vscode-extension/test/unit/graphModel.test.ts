@@ -2,7 +2,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { loadGraph, degreeByNode, topGodNodes, groupByCommunity, GraphData } from "../../src/graphModel";
+import { loadGraph, degreeByNode, topGodNodes, groupByCommunity, computeStats, parseGraph, GraphCache, GraphData } from "../../src/graphModel";
 
 function sampleGraph(): GraphData {
   return {
@@ -102,6 +102,62 @@ describe("graphModel", () => {
       const graph = loadGraph(graphPath);
       assert.ok(graph);
       assert.strictEqual(graph!.edges.length, 0);
+    });
+  });
+
+  describe("stats", () => {
+    const data = {
+      nodes: [
+        { id: "f", label: "auth.py", source_file: "app/auth.py", source_location: "L1", file_type: "code", community: 0 },
+        { id: "login", label: "login()", source_file: "app/auth.py", source_location: "L15", file_type: "code", community: 0 },
+        { id: "hash", label: "hash_password()", source_file: "app/auth.py", source_location: "L11", file_type: "code", community: 0 },
+        { id: "db", label: "Database", source_file: "app/db.py", source_location: "L1", file_type: "code", community: 1 },
+        { id: "concept", label: "authentication", file_type: "concept" },
+        { id: "main", label: "app/__main__.py", source_file: "app/__main__.py", source_location: "L1", file_type: "code", community: 1 },
+      ],
+      links: [
+        { source: "f", target: "login", relation: "contains", _origin: "ast" },
+        { source: "f", target: "hash", relation: "contains", _origin: "ast" },
+        { source: "login", target: "hash", relation: "calls", _origin: "ast", secondary_relations: [{ relation: "validates" }] },
+        { source: "login", target: "db", relation: "references", _origin: "ast" },
+        { source: "login", target: "concept", relation: "handles", _origin: "semantic_code" },
+        { source: "main", target: "login", relation: "imports", _origin: "ast" },
+        { source: "main", target: "db", relation: "imports", _origin: "ast" },
+        { source: "main", target: "hash", relation: "imports", _origin: "ast" },
+      ],
+    };
+
+    it("counts AI-inferred relations (new edges and secondary relations)", () => {
+      const stats = computeStats(parseGraph(data));
+      assert.strictEqual(stats.semanticRelations, 2);
+      assert.strictEqual(stats.nodes, 6);
+      assert.strictEqual(stats.edges, 8);
+      assert.strictEqual(stats.communities, 2);
+      assert.strictEqual(stats.files, 3);
+      assert.strictEqual(stats.codeUnits, 5);
+    });
+
+    it("ranks key symbols by degree, excluding file nodes and nodes without a location", () => {
+      const stats = computeStats(parseGraph(data));
+      assert.deepStrictEqual(stats.keySymbols[0], { id: "login", label: "login()", file: "app/auth.py", line: 15, degree: 5 });
+      assert.ok(!stats.keySymbols.some((k) => ["f", "concept", "main"].includes(k.id)), "file nodes (bare or path labels) are not key symbols");
+    });
+
+    it("GraphCache re-reads only when the file changes, and finds nodes by label", () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "synapse-cache-"));
+      try {
+        const file = path.join(dir, "graph.json");
+        fs.writeFileSync(file, JSON.stringify(data));
+        const cache = new GraphCache(() => file);
+        assert.strictEqual(cache.getStats()!.nodes, 6);
+        assert.strictEqual(cache.get(), cache.get());
+        assert.deepStrictEqual(cache.findByLabel("login").map((n) => n.id), ["login"]);
+        assert.deepStrictEqual(cache.findByLabel(".login()").map((n) => n.id), ["login"]);
+        fs.rmSync(file);
+        assert.strictEqual(cache.getStats(), null);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
     });
   });
 });

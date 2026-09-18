@@ -167,6 +167,16 @@ BACKENDS: dict[str, dict] = {
         "max_tokens": 16384,
         "vision": True,
     },
+    # Forwards prompts to the host editor (the Synapse VS Code extension), which
+    # answers with whichever assistant the user is already signed in to
+    # (GitHub Copilot, Claude Code or Codex). No API key: the editor owns auth.
+    # Only reachable when the editor exports SYNAPSE_BRIDGE_URL/_TOKEN.
+    "editor-bridge": {
+        "default_model": "editor-default",
+        "pricing": {"input": 0.0, "output": 0.0},
+        "temperature": 0,
+        "max_tokens": 16384,
+    },
 }
 
 
@@ -1342,6 +1352,71 @@ def _call_claude_cli(
     return result
 
 
+ENV_BRIDGE_URL = "SYNAPSE_BRIDGE_URL"
+ENV_BRIDGE_TOKEN = "SYNAPSE_BRIDGE_TOKEN"
+
+
+def _editor_bridge_url() -> str:
+    """Return the validated editor-bridge endpoint.
+
+    The bridge carries prompts built from the user's code, so it must be a
+    loopback http endpoint: anything else is refused rather than trusted.
+    """
+    from urllib.parse import urlparse
+
+    url = os.environ.get(ENV_BRIDGE_URL, "").strip()
+    if not url:
+        raise RuntimeError(
+            f"editor-bridge backend requires {ENV_BRIDGE_URL}; it is set by the "
+            "Synapse VS Code extension and is not meant to be configured by hand."
+        )
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme != "http" or host not in ("127.0.0.1", "localhost", "::1"):
+        raise RuntimeError(f"{ENV_BRIDGE_URL} must be a loopback http URL, got {url!r}")
+    return url
+
+
+def _call_editor_bridge(
+    prompt: str, *, max_tokens: int, model: str | None = None
+) -> tuple[str, dict]:
+    """POST one completion request to the host editor and return (text, usage).
+
+    Protocol: ``{"prompt", "max_tokens", "model"}`` in, ``{"text", "usage"}``
+    or ``{"error"}`` out, authenticated with a per-session bearer token.
+    """
+    import urllib.error
+    import urllib.request
+
+    url = _editor_bridge_url()
+    token = os.environ.get(ENV_BRIDGE_TOKEN, "")
+    body = json.dumps({"prompt": prompt, "max_tokens": max_tokens, "model": model}).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=body,
+        method="POST",
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+    )
+    # Loopback only: never route through a system/env proxy.
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        with opener.open(request, timeout=_resolve_api_timeout()) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = ""
+        try:
+            detail = json.loads(exc.read().decode("utf-8")).get("error", "")
+        except Exception:  # noqa: BLE001 — best-effort error detail
+            pass
+        raise RuntimeError(f"editor bridge error {exc.code}: {detail or exc.reason}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"editor bridge unreachable: {exc.reason}") from exc
+    if not isinstance(payload, dict) or not isinstance(payload.get("text"), str):
+        raise RuntimeError("editor bridge returned a malformed response")
+    usage = payload.get("usage") if isinstance(payload.get("usage"), dict) else {}
+    return payload["text"], usage
+
+
 def _azure_client(api_key: str, endpoint: str):
     """Construct an AzureOpenAI client with env-driven api_version and timeout."""
     try:
@@ -2243,7 +2318,7 @@ def _call_llm(
         ollama_url = _resolve_ollama_base_url(cfg.get("base_url", ""))
         _validate_ollama_base_url(ollama_url)
         key = "ollama"
-    if not key and backend not in ("bedrock", "claude-cli"):
+    if not key and backend not in ("bedrock", "claude-cli", "editor-bridge"):
         raise ValueError(
             f"No API key for backend '{backend}'. Set {_format_backend_env_keys(backend)}."
         )
@@ -2274,6 +2349,11 @@ def _call_llm(
         if u is not None:
             _rec(getattr(u, "input_tokens", 0), getattr(u, "output_tokens", 0))
         return resp.content[0].text if resp.content else ""
+
+    if backend == "editor-bridge":
+        text, usage = _call_editor_bridge(prompt, max_tokens=max_tokens, model=model)
+        _rec(usage.get("input_tokens", 0), usage.get("output_tokens", 0))
+        return text
 
     if backend == "claude-cli":
         import platform, shutil, subprocess
@@ -2511,6 +2591,7 @@ def detect_backend() -> str | None:
             "bedrock",
             "ollama",
             "claude-cli",
+            "editor-bridge",
         ):
             if _get_backend_api_key(name):
                 return name
