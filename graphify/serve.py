@@ -1431,6 +1431,69 @@ def _build_server(graph_path: str):
                     },
                 },
             ),
+            types.Tool(
+                name="reason_with_graph",
+                description=(
+                    "Bidirectional LLM↔graph reasoning (Synapse C2): retrieve graph context, "
+                    "ask the LLM for structured claims, validate claims against the graph, "
+                    "revise if needed, and return the final answer with evidence."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "question": {
+                            "type": "string",
+                            "description": "Question to answer using the knowledge graph",
+                        },
+                        "revise": {
+                            "type": "boolean",
+                            "default": True,
+                            "description": "Re-prompt the LLM when validation finds issues",
+                        },
+                        "community_aware": {
+                            "type": "boolean",
+                            "default": True,
+                            "description": "Use community-scoped retrieval when confident",
+                        },
+                        "weighted": {
+                            "type": "boolean",
+                            "default": True,
+                            "description": "Prefer stronger relations during retrieval",
+                        },
+                    },
+                    "required": ["question"],
+                },
+            ),
+            types.Tool(
+                name="validate_proposal",
+                description=(
+                    "Pre-execution hallucination check (Synapse C3): validate proposed "
+                    "Python code or a tool-call payload against the repository graph "
+                    "before execution. Returns VALID / INVALID / UNKNOWN with evidence."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "code": {
+                            "type": "string",
+                            "description": "Proposed source code to validate",
+                        },
+                        "tool_name": {
+                            "type": "string",
+                            "description": "Optional tool name (Write/Edit/Bash) when validating a tool payload",
+                        },
+                        "tool_input": {
+                            "type": "object",
+                            "description": "Optional tool_input dict (content/new_string/file_path/command)",
+                        },
+                        "strict": {
+                            "type": "boolean",
+                            "default": False,
+                            "description": "If true, mark blocked=true on INVALID/CONTRADICTED",
+                        },
+                    },
+                },
+            ),
         ]
         for _t in _tools:
             _t.inputSchema.setdefault("properties", {})["project_path"] = {
@@ -1739,6 +1802,39 @@ def _build_server(graph_path: str):
             )
         return "\n\n".join(lines)
 
+    def _tool_reason_with_graph(arguments: dict) -> str:
+        from graphify.bidirectional_reasoner import reason
+
+        result = reason(
+            G,
+            arguments["question"],
+            revise=bool(arguments.get("revise", True)),
+            community_aware=bool(arguments.get("community_aware", True)),
+            weighted=bool(arguments.get("weighted", True)),
+        )
+        return result.final_answer
+
+    def _tool_validate_proposal(arguments: dict) -> str:
+        from graphify.preexec_validate import (
+            proposal_from_tool_input,
+            validate_code,
+            validate_proposal,
+        )
+
+        strict = bool(arguments.get("strict", False))
+        code = arguments.get("code")
+        if code:
+            report = validate_code(G, str(code), strict=strict)
+        elif arguments.get("tool_input") is not None:
+            action = proposal_from_tool_input(
+                arguments.get("tool_name"),
+                arguments.get("tool_input") or {},
+            )
+            report = validate_proposal(G, action, strict=strict)
+        else:
+            return "Provide either 'code' or 'tool_input' for validation."
+        return json.dumps(report.to_dict(), indent=2, ensure_ascii=False)
+
     _handlers = {
         "query_graph": _tool_query_graph,
         "get_node": _tool_get_node,
@@ -1750,6 +1846,8 @@ def _build_server(graph_path: str):
         "list_prs": _tool_list_prs,
         "get_pr_impact": _tool_get_pr_impact,
         "triage_prs": _tool_triage_prs,
+        "reason_with_graph": _tool_reason_with_graph,
+        "validate_proposal": _tool_validate_proposal,
     }
 
     def _load_community_labels() -> dict[int, str]:

@@ -579,6 +579,42 @@ def _run_hook_guard(kind: str, strict: bool = False) -> None:
                 sys.stdout.write(_READ_DENY)
                 return
             sys.stdout.write(_READ_NUDGE)
+        elif kind == "write":
+            # Opt-in C3 pre-execution validation for Write/Edit (and similar) tools.
+            from graphify.preexec_validate import (
+                hook_decision_payload,
+                preexec_enabled,
+                preexec_strict_enabled,
+                proposal_from_tool_input,
+                validate_proposal,
+            )
+            from networkx.readwrite import json_graph
+
+            if not preexec_enabled() and "--preexec" not in sys.argv:
+                return
+            graph_file = out_path("graph.json")
+            if not graph_file.is_file():
+                return
+            try:
+                raw = json.loads(graph_file.read_text(encoding="utf-8"))
+                if "links" not in raw and "edges" in raw:
+                    raw = dict(raw, links=raw["edges"])
+                G = json_graph.node_link_graph(raw, edges="links")
+            except Exception:
+                return
+            action = proposal_from_tool_input(
+                str(d.get("tool_name") or ""),
+                t if isinstance(t, dict) else {},
+            )
+            report = validate_proposal(
+                G,
+                action,
+                strict=preexec_strict_enabled(cli_strict=strict),
+            )
+            if not report.checks.results and not report.notes:
+                return
+            payload = hook_decision_payload(report, kind="claude")
+            sys.stdout.write(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
     except Exception:
         pass
 
@@ -1895,7 +1931,7 @@ def dispatch_command(cmd: str) -> None:
     elif cmd == "hook-guard":
         _run_hook_guard(
             sys.argv[2] if len(sys.argv) > 2 else "",
-            strict="--strict" in sys.argv[3:],
+            strict="--strict" in sys.argv[3:] or "--strict-preexec" in sys.argv[3:],
         )
         sys.exit(0)
     elif cmd == "check-update":
@@ -3810,6 +3846,162 @@ def dispatch_command(cmd: str) -> None:
             if not dry_run:
                 data = json_graph.node_link_data(G, edges="links")
                 _wja(gp, data, ensure_ascii=False)
+
+    elif cmd == "reason":
+        # C2: bidirectional LLM ↔ graph reasoning (opt-in CLI).
+        from networkx.readwrite import json_graph
+
+        from graphify.bidirectional_reasoner import reason
+        from graphify.semantic_extraction import (
+            BackendLLMProvider,
+            RetryingProvider,
+            default_provider,
+        )
+
+        if len(sys.argv) < 3:
+            print(
+                'Usage: graphify reason "<question>" [--graph path] '
+                "[--no-revise] [--no-community-aware] [--unweighted] "
+                "[--backend NAME] [--model NAME] [--json]",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        question = sys.argv[2]
+        graph_path = _default_graph_path()
+        revise = "--no-revise" not in sys.argv
+        community_aware = "--no-community-aware" not in sys.argv
+        weighted = "--unweighted" not in sys.argv
+        as_json = "--json" in sys.argv
+        backend_name: str | None = None
+        model_name: str | None = None
+        args = sys.argv[3:]
+        i = 0
+        while i < len(args):
+            if args[i] == "--graph" and i + 1 < len(args):
+                graph_path = args[i + 1]
+                i += 2
+            elif args[i] == "--backend" and i + 1 < len(args):
+                backend_name = args[i + 1]
+                i += 2
+            elif args[i] == "--model" and i + 1 < len(args):
+                model_name = args[i + 1]
+                i += 2
+            else:
+                i += 1
+        gp = Path(graph_path).resolve()
+        if not gp.exists():
+            print(f"error: graph file not found: {gp}", file=sys.stderr)
+            sys.exit(1)
+        _enforce_graph_size_cap_or_exit(gp)
+        raw = json.loads(gp.read_text(encoding="utf-8"))
+        if "links" not in raw and "edges" in raw:
+            raw = dict(raw, links=raw["edges"])
+        G = json_graph.node_link_graph(raw, edges="links")
+        provider = (
+            RetryingProvider(BackendLLMProvider(backend=backend_name, model=model_name))
+            if backend_name
+            else default_provider(model=model_name)
+        )
+        result = reason(
+            G,
+            question,
+            provider=provider,
+            revise=revise,
+            weighted=weighted,
+            community_aware=community_aware,
+        )
+        if as_json:
+            print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+        else:
+            print(result.final_answer, end="" if result.final_answer.endswith("\n") else "\n")
+
+    elif cmd == "validate-claims":
+        from networkx.readwrite import json_graph
+
+        from graphify.claims import parse_claims, validate_claims
+
+        graph_path = _default_graph_path()
+        claims_path: str | None = None
+        args = sys.argv[2:]
+        i = 0
+        while i < len(args):
+            if args[i] == "--graph" and i + 1 < len(args):
+                graph_path = args[i + 1]
+                i += 2
+            elif args[i] == "--claims" and i + 1 < len(args):
+                claims_path = args[i + 1]
+                i += 2
+            else:
+                i += 1
+        if claims_path is None and not sys.stdin.isatty():
+            payload = sys.stdin.read()
+        elif claims_path is not None:
+            payload = Path(claims_path).read_text(encoding="utf-8")
+        else:
+            print(
+                "Usage: graphify validate-claims --claims file.json [--graph path]\n"
+                "   or: type claims.json | graphify validate-claims [--graph path]",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        gp = Path(graph_path).resolve()
+        if not gp.exists():
+            print(f"error: graph file not found: {gp}", file=sys.stderr)
+            sys.exit(1)
+        raw = json.loads(gp.read_text(encoding="utf-8"))
+        if "links" not in raw and "edges" in raw:
+            raw = dict(raw, links=raw["edges"])
+        G = json_graph.node_link_graph(raw, edges="links")
+        claims, errors = parse_claims(payload)
+        report = validate_claims(G, claims)
+        out = report.to_dict()
+        out["parse_errors"] = errors
+        print(json.dumps(out, indent=2, ensure_ascii=False))
+
+    elif cmd == "preexec-check":
+        from networkx.readwrite import json_graph
+
+        from graphify.preexec_validate import validate_code
+
+        graph_path = _default_graph_path()
+        code_path: str | None = None
+        strict = "--strict" in sys.argv
+        args = sys.argv[2:]
+        i = 0
+        while i < len(args):
+            if args[i] == "--graph" and i + 1 < len(args):
+                graph_path = args[i + 1]
+                i += 2
+            elif args[i] == "--code" and i + 1 < len(args):
+                code_path = args[i + 1]
+                i += 2
+            else:
+                i += 1
+        if code_path is not None:
+            code = Path(code_path).read_text(encoding="utf-8")
+            file_path = code_path
+        elif not sys.stdin.isatty():
+            code = sys.stdin.read()
+            file_path = None
+        else:
+            print(
+                "Usage: graphify preexec-check --code file.py [--graph path] [--strict]\n"
+                "   or: type snippet.py | graphify preexec-check [--graph path]",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        gp = Path(graph_path).resolve()
+        if not gp.exists():
+            print(f"error: graph file not found: {gp}", file=sys.stderr)
+            sys.exit(1)
+        raw = json.loads(gp.read_text(encoding="utf-8"))
+        if "links" not in raw and "edges" in raw:
+            raw = dict(raw, links=raw["edges"])
+        G = json_graph.node_link_graph(raw, edges="links")
+        report = validate_code(G, code, file_path=file_path, strict=strict)
+        print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
+        if report.blocked:
+            sys.exit(2)
 
     elif Path(cmd).exists() or cmd in (".", "..") or cmd.startswith(("./", "../", "/", "~")):
         sys.argv.insert(2, sys.argv[1])

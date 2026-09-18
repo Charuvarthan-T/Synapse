@@ -506,6 +506,9 @@ def _run_cli() -> None:
         print(
             "  kilo uninstall          remove native Kilo skill + command + AGENTS.md + .kilo plugin"
         )
+        print("  reason \"<q>\"           bidirectional LLM↔graph reasoning (claims + validation)")
+        print("  validate-claims         validate structured claims JSON against the graph")
+        print("  preexec-check           pre-execution hallucination check for proposed code")
         print("  aider install           write graphify section to AGENTS.md (Aider)")
         print("  aider uninstall         remove graphify section from AGENTS.md")
         print(

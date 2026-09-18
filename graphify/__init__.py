@@ -36,6 +36,14 @@ def __getattr__(name):
             "extract_semantic_relations",
         ),
         "apply_semantic_relations": ("graphify.semantic_graph", "apply_semantic_relations"),
+        "Verdict": ("graphify.graph_checks", "Verdict"),
+        "check_exists": ("graphify.graph_checks", "check_exists"),
+        "check_calls": ("graphify.graph_checks", "check_calls"),
+        "validate_claims": ("graphify.claims", "validate_claims"),
+        "parse_claims": ("graphify.claims", "parse_claims"),
+        "reason": ("graphify.bidirectional_reasoner", "reason"),
+        "validate_proposal": ("graphify.preexec_validate", "validate_proposal"),
+        "validate_code": ("graphify.preexec_validate", "validate_code"),
     }
     if name in _map:
         import importlib
