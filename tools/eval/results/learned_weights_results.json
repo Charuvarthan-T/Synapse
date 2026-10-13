@@ -1,0 +1,14 @@
+{
+  "benchmark": "learned_weights",
+  "benchmark_version": 1,
+  "generated_at": "2026-10-13T10:24:34.832914+00:00",
+  "synapse_commit": "319511ece4d797337eaf1a0cf499dd86a2a6babe",
+  "completed": true,
+  "prior_imports": 0.4,
+  "learned_imports": 0.6571428571428571,
+  "records_used": 6,
+  "records_excluded": 1,
+  "held_out_benchmark_record_excluded": true,
+  "retrieval_uses_learned_header": true,
+  "note": "Development feedback is synthetic and is not the 20-question ground truth. This shows the update rule, not a user-study gain."
+}

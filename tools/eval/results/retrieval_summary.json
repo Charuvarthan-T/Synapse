@@ -1,0 +1,109 @@
+{
+  "benchmark": "graph_retrieval",
+  "generated_at": "2026-10-13T10:25:38.066555+00:00",
+  "synapse_commit": "319511ece4d797337eaf1a0cf499dd86a2a6babe",
+  "original_graphify": {
+    "repository": "https://github.com/Graphify-Labs/graphify.git",
+    "commit": "a9860f70dc3cc2e9c2d8cb923484cfa0592b9067",
+    "note": "Unmodified upstream checkout. Not the Synapse tree."
+  },
+  "graph": {
+    "path": "tools/eval/frozen_corpus/graphify-out/graph.json",
+    "nodes": 260,
+    "edges": 536
+  },
+  "n_questions": 20,
+  "summary": {
+    "original_graphify": {
+      "n": 20,
+      "precision_at_1": 0.1,
+      "precision_at_5": 0.08,
+      "precision_at_10": 0.045,
+      "recall_at_1": 0.1,
+      "recall_at_5": 0.35,
+      "recall_at_10": 0.4,
+      "mrr": 0.2598997916905362,
+      "latency_median_s": 0.6592498999962118,
+      "latency_p95_s": 0.7428540000109933,
+      "errors": 0
+    },
+    "synapse_unweighted": {
+      "n": 20,
+      "precision_at_1": 0.1,
+      "precision_at_5": 0.08,
+      "precision_at_10": 0.05,
+      "recall_at_1": 0.1,
+      "recall_at_5": 0.35,
+      "recall_at_10": 0.45,
+      "mrr": 0.2490494818696381,
+      "latency_median_s": 0.8124428500013892,
+      "latency_p95_s": 0.9082393000135198,
+      "errors": 0
+    },
+    "synapse_weighted": {
+      "n": 20,
+      "precision_at_1": 0.1,
+      "precision_at_5": 0.09,
+      "precision_at_10": 0.07,
+      "recall_at_1": 0.1,
+      "recall_at_5": 0.4,
+      "recall_at_10": 0.65,
+      "mrr": 0.2651995373048005,
+      "latency_median_s": 1.029792150016874,
+      "latency_p95_s": 1.8740929000196047,
+      "errors": 0
+    },
+    "synapse_community": {
+      "n": 20,
+      "precision_at_1": 0.1,
+      "precision_at_5": 0.08,
+      "precision_at_10": 0.075,
+      "recall_at_1": 0.1,
+      "recall_at_5": 0.35,
+      "recall_at_10": 0.7,
+      "mrr": 0.26471440698520493,
+      "latency_median_s": 0.9391728999908082,
+      "latency_p95_s": 1.2909072999609634,
+      "errors": 0
+    },
+    "synapse_ppr": {
+      "n": 20,
+      "precision_at_1": 0.1,
+      "precision_at_5": 0.09,
+      "precision_at_10": 0.06000000000000001,
+      "recall_at_1": 0.1,
+      "recall_at_5": 0.4,
+      "recall_at_10": 0.55,
+      "mrr": 0.24975062656641606,
+      "latency_median_s": 1.5398105500207748,
+      "latency_p95_s": 1.8610101999947801,
+      "errors": 0
+    },
+    "synapse_learned": {
+      "n": 20,
+      "precision_at_1": 0.1,
+      "precision_at_5": 0.09,
+      "precision_at_10": 0.07,
+      "recall_at_1": 0.1,
+      "recall_at_5": 0.4,
+      "recall_at_10": 0.65,
+      "mrr": 0.2651995373048005,
+      "latency_median_s": 0.8862428500142414,
+      "latency_p95_s": 1.0721046999678947,
+      "errors": 0
+    },
+    "synapse_full_flags": {
+      "n": 20,
+      "precision_at_1": 0.1,
+      "precision_at_5": 0.09,
+      "precision_at_10": 0.06000000000000001,
+      "recall_at_1": 0.1,
+      "recall_at_5": 0.4,
+      "recall_at_10": 0.55,
+      "mrr": 0.25220598370927316,
+      "latency_median_s": 1.2822441000316758,
+      "latency_p95_s": 1.5885999000165612,
+      "errors": 0
+    }
+  }
+}

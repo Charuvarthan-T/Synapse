@@ -1,0 +1,18 @@
+{
+  "benchmark": "in_process_latency",
+  "benchmark_version": 1,
+  "generated_at": "2026-10-13T10:24:35.272612+00:00",
+  "synapse_commit": "319511ece4d797337eaf1a0cf499dd86a2a6babe",
+  "completed": true,
+  "nodes": 32,
+  "weighted_query_seconds": [
+    0.0009605999803170562,
+    0.0005161000299267471,
+    0.0004699999699369073,
+    0.00048230000538751483,
+    0.000451600004453212
+  ],
+  "weighted_query_median_s": 0.00048230000538751483,
+  "ppr_seconds": 0.390578499995172,
+  "note": "In-process timings. CLI latency in retrieval_summary.json includes process startup."
+}

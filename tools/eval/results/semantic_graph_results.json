@@ -1,0 +1,17 @@
+{
+  "benchmark": "graph_representation",
+  "benchmark_version": 1,
+  "generated_at": "2026-10-13T10:24:34.744852+00:00",
+  "synapse_commit": "319511ece4d797337eaf1a0cf499dd86a2a6babe",
+  "completed": true,
+  "parallel_relations": [
+    "calls",
+    "handles"
+  ],
+  "reloaded_relations": [
+    "calls",
+    "handles"
+  ],
+  "round_trip_ok": true,
+  "original_graphify": "SIMPLE_GRAPH_COLLAPSES_PARALLEL_EDGES"
+}

@@ -1,0 +1,13 @@
+{
+  "retrieval": "COMPLETE",
+  "validation": "COMPLETE",
+  "representation": "COMPLETE",
+  "learned_weights_mechanism": "COMPLETE",
+  "reasoning_graph_checks": "COMPLETE",
+  "in_process_latency": "COMPLETE",
+  "crosscodeeval": "BLOCKED",
+  "crosscodeeval_reason": "OPENAI_API_KEY and GROQ_API_KEY are unset. No completions were requested.",
+  "extension_gui": "PARTIAL",
+  "ndcg_map": "NOT RUN",
+  "ndcg_map_reason": "Ground truth is binary node ids, not graded relevance."
+}

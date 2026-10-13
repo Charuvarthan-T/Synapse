@@ -1,0 +1,8 @@
+configuration,precision_at_10,recall_at_10,mrr,latency_median_s
+original_graphify,0.045,0.400,0.2599,0.6592
+synapse_unweighted,0.050,0.450,0.2490,0.8124
+synapse_weighted,0.070,0.650,0.2652,1.0298
+synapse_community,0.075,0.700,0.2647,0.9392
+synapse_learned,0.070,0.650,0.2652,0.8862
+synapse_ppr,0.060,0.550,0.2498,1.5398
+synapse_full_flags,0.060,0.550,0.2522,1.2822

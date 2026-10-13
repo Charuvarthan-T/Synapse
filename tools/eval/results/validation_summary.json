@@ -1,0 +1,69 @@
+{
+  "benchmark": "code_validation",
+  "benchmark_version": 1,
+  "generated_at": "2026-10-13T10:24:34.694844+00:00",
+  "synapse_commit": "319511ece4d797337eaf1a0cf499dd86a2a6babe",
+  "completed": true,
+  "n": 7,
+  "correct": 7,
+  "accuracy": 1.0,
+  "false_positives": 0,
+  "levels": {
+    "python": "ast",
+    "javascript": "tree-sitter",
+    "go": "tree-sitter",
+    "not-a-language": "unsupported"
+  },
+  "original_graphify": "NO_EQUIVALENT_VALIDATOR",
+  "tasks": [
+    {
+      "id": "py-valid-call",
+      "expected": "not_contradicted",
+      "verdict": "SUPPORTED",
+      "ok": true,
+      "notes": ""
+    },
+    {
+      "id": "py-bad-method",
+      "expected": "not_supported",
+      "verdict": "UNKNOWN",
+      "ok": true,
+      "notes": ""
+    },
+    {
+      "id": "py-unknown",
+      "expected": "unknown",
+      "verdict": "UNKNOWN",
+      "ok": true,
+      "notes": ""
+    },
+    {
+      "id": "js-call",
+      "expected": "not_contradicted",
+      "verdict": "SUPPORTED",
+      "ok": true,
+      "notes": ""
+    },
+    {
+      "id": "js-syntax",
+      "expected": "syntax_note",
+      "verdict": "UNKNOWN",
+      "ok": true,
+      "notes": "syntax error in javascript source; extracted references are partial and are not hallucinations no symbol/import/call references extracted from proposal"
+    },
+    {
+      "id": "js-unknown",
+      "expected": "unknown",
+      "verdict": "UNKNOWN",
+      "ok": true,
+      "notes": ""
+    },
+    {
+      "id": "unsupported",
+      "expected": "no_checks",
+      "verdict": "UNKNOWN",
+      "ok": true,
+      "notes": "language 'unknown' validation level is unsupported; no structural checks were applied and nothing was marked invalid no symbol/import/call references extracted from proposal"
+    }
+  ]
+}

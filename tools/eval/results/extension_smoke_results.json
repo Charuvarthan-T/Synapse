@@ -1,0 +1,14 @@
+{
+  "benchmark": "vscode_extension",
+  "completed": "partial",
+  "generated_at": "2026-10-13T10:27:20.755482+00:00",
+  "typescript_compile": "pass",
+  "unit_tests": "55 passed, 1 pending (npm run test:unit, before this packaging commit)",
+  "vsix": "vscode-extension/synapse-0.2.0.vsix",
+  "vsix_bytes": 1070000,
+  "install_command": "code --install-extension vscode-extension/synapse-0.2.0.vsix --force",
+  "install_result": "Extension synapse-0.2.0.vsix was successfully installed (VS Code 1.140.0).",
+  "gui_ask_search_verify_enrich_map": "NOT RUN",
+  "live_provider": "NOT RUN",
+  "multi_root_unit_tests": "pass"
+}

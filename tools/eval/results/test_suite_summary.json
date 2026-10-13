@@ -1,0 +1,9 @@
+{
+  "command": "python -m pytest tests -q -p no:cacheprovider --tb=no",
+  "passed": 3624,
+  "failed": 64,
+  "skipped": 149,
+  "exit_code": 1,
+  "duration_s": 277.23,
+  "generated_at": "2026-10-13T10:33:53.476305+00:00"
+}

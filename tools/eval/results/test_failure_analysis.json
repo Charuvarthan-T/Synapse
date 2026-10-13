@@ -1,0 +1,102 @@
+{
+  "command": "python -m pytest tests -q -p no:cacheprovider --tb=no",
+  "result": "3624 passed, 64 failed, 149 skipped, exit 1, 277.23s",
+  "generated_at": "2026-10-13T10:33:53.476305+00:00",
+  "fixed_since_previous_59": "tests/test_watch.py::test_queue_and_drain_pending_round_trip now passes. Pending paths are written with as_posix().",
+  "isolation_rerun": "The six tests/test_cli_export.py query/explain failures passed when rerun alone (6 passed).",
+  "classes": {
+    "windows_symlink_or_lock": {
+      "count": 25,
+      "tests": [
+        "tests/test_atomic_writes.py::test_write_text_atomic_preserves_existing_mode",
+        "tests/test_atomic_writes.py::test_write_text_atomic_writes_through_symlink",
+        "tests/test_detect.py::test_detect_follows_symlinked_directory",
+        "tests/test_detect.py::test_detect_follows_symlinked_file",
+        "tests/test_detect.py::test_gitignore_nested_negation_overrides_broader_root_rule",
+        "tests/test_detect.py::test_nested_ignore_overrides_git_info_exclude_and_root",
+        "tests/test_detect.py::test_detect_handles_circular_symlinks",
+        "tests/test_detect.py::test_detect_default_does_not_auto_follow_direct_symlink_child",
+        "tests/test_detect.py::test_detect_explicit_false_overrides_auto_detect",
+        "tests/test_detect.py::test_detect_skips_out_of_root_symlinked_directory_even_when_following",
+        "tests/test_detect.py::test_detect_skips_out_of_root_symlinked_file_by_default",
+        "tests/test_detect.py::test_detect_incremental_propagates_follow_symlinks",
+        "tests/test_detect.py::test_path_pattern_single_star_does_not_cross_segment",
+        "tests/test_detect.py::test_detect_surfaces_unreadable_dir_instead_of_silent_skip",
+        "tests/test_extract.py::test_collect_files_follows_symlinked_directory",
+        "tests/test_extract.py::test_collect_files_skips_out_of_root_symlinked_directory",
+        "tests/test_extract.py::test_collect_files_skips_out_of_root_symlinked_file_by_default",
+        "tests/test_extract.py::test_collect_files_handles_circular_symlinks",
+        "tests/test_image_vision.py::test_read_files_skips_out_of_root_symlink",
+        "tests/test_image_vision.py::test_build_image_refs_sets_rel_media_and_bytes",
+        "tests/test_image_vision.py::test_build_image_refs_skips_out_of_root_symlink",
+        "tests/test_image_vision.py::test_builders_fall_back_to_string_without_pixels",
+        "tests/test_image_vision.py::test_extract_files_direct_gates_pixels_by_capability",
+        "tests/test_watch.py::test_rebuild_code_deleted_cwd_without_repo_root_returns_false",
+        "tests/test_watch.py::test_rebuild_code_deleted_cwd_uses_graphify_repo_root"
+      ]
+    },
+    "windows_path": {
+      "count": 0,
+      "tests": []
+    },
+    "dns_or_network": {
+      "count": 6,
+      "tests": [
+        "tests/test_security.py::test_validate_url_accepts_http",
+        "tests/test_security.py::test_safe_fetch_returns_bytes",
+        "tests/test_security.py::test_safe_fetch_raises_on_non_2xx",
+        "tests/test_security.py::test_safe_fetch_raises_on_size_exceeded",
+        "tests/test_security.py::test_safe_fetch_text_decodes_utf8",
+        "tests/test_security.py::test_safe_fetch_text_replaces_bad_bytes"
+      ]
+    },
+    "optional_grammar_or_extractor": {
+      "count": 11,
+      "tests": [
+        "tests/test_astro_import_ids.py::test_astro_relative_inputs_keep_canonical_ids",
+        "tests/test_cpp_preprocess.py::test_cpp_preprocess_passes_absolute_path",
+        "tests/test_languages.py::test_dm_finds_type_definition",
+        "tests/test_languages.py::test_dm_qualifies_proc_with_type_path",
+        "tests/test_languages.py::test_dm_finds_path_form_proc_definition",
+        "tests/test_languages.py::test_dm_emits_include_edge",
+        "tests/test_languages.py::test_dm_unresolved_include_flagged_external",
+        "tests/test_languages.py::test_dm_resolves_in_file_calls",
+        "tests/test_languages.py::test_dm_ambiguous_member_call_left_unresolved",
+        "tests/test_languages.py::test_dm_emits_new_as_instantiates",
+        "tests/test_languages.py::test_dm_call_edges_have_call_context"
+      ]
+    },
+    "passes_in_isolation": {
+      "count": 6,
+      "tests": [
+        "tests/test_cli_export.py::test_query_returns_output",
+        "tests/test_cli_export.py::test_query_dfs_flag",
+        "tests/test_cli_export.py::test_query_budget_flag",
+        "tests/test_cli_export.py::test_query_uses_graphify_out_env",
+        "tests/test_cli_export.py::test_explain_runs_without_error",
+        "tests/test_cli_export.py::test_explain_uses_graphify_out_env"
+      ]
+    },
+    "other": {
+      "count": 16,
+      "tests": [
+        "tests/test_build.py::test_semantic_rekey_relative_vs_absolute_source_file",
+        "tests/test_hook_strict.py::test_out_of_project_read_silenced",
+        "tests/test_hooks.py::test_python_detect_allowlists_still_reject_shell_metacharacters[foo;rm -rf /]",
+        "tests/test_hooks.py::test_python_detect_allowlists_still_reject_shell_metacharacters[foo`id`]",
+        "tests/test_hooks.py::test_python_detect_allowlists_still_reject_shell_metacharacters[foo$(id)]",
+        "tests/test_hooks.py::test_python_detect_allowlists_still_reject_shell_metacharacters[foo$IFS]",
+        "tests/test_hooks.py::test_worktree_guard_runs_on_primary_skips_linked",
+        "tests/test_install.py::test_codex_skill_uses_graphify_with_existing_graph",
+        "tests/test_install.py::test_hermes_skill_destination_posix_uses_home",
+        "tests/test_install_references.py::test_gemini_install_references_all_resolve",
+        "tests/test_install_references.py::test_built_wheel_ships_the_full_skill_payload",
+        "tests/test_install_roundtrip.py::test_skill_roundtrip_at_real_destination[user-hermes]",
+        "tests/test_merge_chunks_validation.py::test_merge_chunks_accepts_unicode_id",
+        "tests/test_obsidian_filename_cap.py::test_obsidian_long_ascii_label_does_not_crash",
+        "tests/test_obsidian_filename_cap.py::test_obsidian_distinct_long_labels_sharing_prefix_do_not_collide",
+        "tests/test_obsidian_filename_cap.py::test_obsidian_wikilink_resolves_after_truncation"
+      ]
+    }
+  }
+}

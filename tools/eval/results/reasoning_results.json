@@ -1,0 +1,36 @@
+{
+  "benchmark": "graph_evidence_checks",
+  "benchmark_version": 1,
+  "generated_at": "2026-10-13T10:24:34.789976+00:00",
+  "synapse_commit": "319511ece4d797337eaf1a0cf499dd86a2a6babe",
+  "completed": true,
+  "n": 4,
+  "correct": 4,
+  "note": "Deterministic graph checks. The LLM revision loop is covered by tests/test_bidirectional_reasoner.py with a fake provider, not a live model.",
+  "tasks": [
+    {
+      "id": "supported-exists",
+      "actual": "SUPPORTED",
+      "expected": "SUPPORTED",
+      "ok": true
+    },
+    {
+      "id": "unknown-exists",
+      "actual": "UNKNOWN",
+      "expected": "UNKNOWN",
+      "ok": true
+    },
+    {
+      "id": "supported-calls",
+      "actual": "SUPPORTED",
+      "expected": "SUPPORTED",
+      "ok": true
+    },
+    {
+      "id": "unknown-calls",
+      "actual": "UNKNOWN",
+      "expected": "UNKNOWN",
+      "ok": true
+    }
+  ]
+}

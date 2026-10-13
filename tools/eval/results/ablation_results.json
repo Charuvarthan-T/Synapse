@@ -1,0 +1,77 @@
+{
+  "benchmark": "retrieval_ablation",
+  "generated_at": "2026-10-13T10:27:20.676337+00:00",
+  "synapse_commit_at_run": "319511ece4d797337eaf1a0cf499dd86a2a6babe",
+  "original_graphify": {
+    "repository": "https://github.com/Graphify-Labs/graphify.git",
+    "commit": "a9860f70dc3cc2e9c2d8cb923484cfa0592b9067",
+    "note": "Unmodified upstream checkout. Not the Synapse tree."
+  },
+  "why_combined_flags_underperform": "graphify query --ppr replaces neighborhood ranking with Personalized PageRank. On these 20 questions that ordering has Recall@10 0.55, matching synapse_full_flags, and does not keep the 0.70 from community-aware BFS.",
+  "community_detection": "Louvain fallback. graspologic Leiden is not installed and is unsupported on Python 3.13.",
+  "rows": [
+    {
+      "configuration": "original_graphify",
+      "n": 20,
+      "precision_at_10": 0.045,
+      "recall_at_10": 0.4,
+      "mrr": 0.2598997916905362,
+      "recall_at_10_minus_original": 0.0,
+      "latency_median_s": 0.6592498999962118
+    },
+    {
+      "configuration": "synapse_unweighted",
+      "n": 20,
+      "precision_at_10": 0.05,
+      "recall_at_10": 0.45,
+      "mrr": 0.2490494818696381,
+      "recall_at_10_minus_original": 0.04999999999999999,
+      "latency_median_s": 0.8124428500013892
+    },
+    {
+      "configuration": "synapse_weighted",
+      "n": 20,
+      "precision_at_10": 0.07,
+      "recall_at_10": 0.65,
+      "mrr": 0.2651995373048005,
+      "recall_at_10_minus_original": 0.25,
+      "latency_median_s": 1.029792150016874
+    },
+    {
+      "configuration": "synapse_community",
+      "n": 20,
+      "precision_at_10": 0.075,
+      "recall_at_10": 0.7,
+      "mrr": 0.26471440698520493,
+      "recall_at_10_minus_original": 0.29999999999999993,
+      "latency_median_s": 0.9391728999908082
+    },
+    {
+      "configuration": "synapse_ppr",
+      "n": 20,
+      "precision_at_10": 0.06000000000000001,
+      "recall_at_10": 0.55,
+      "mrr": 0.24975062656641606,
+      "recall_at_10_minus_original": 0.15000000000000002,
+      "latency_median_s": 1.5398105500207748
+    },
+    {
+      "configuration": "synapse_learned",
+      "n": 20,
+      "precision_at_10": 0.07,
+      "recall_at_10": 0.65,
+      "mrr": 0.2651995373048005,
+      "recall_at_10_minus_original": 0.25,
+      "latency_median_s": 0.8862428500142414
+    },
+    {
+      "configuration": "synapse_full_flags",
+      "n": 20,
+      "precision_at_10": 0.06000000000000001,
+      "recall_at_10": 0.55,
+      "mrr": 0.25220598370927316,
+      "recall_at_10_minus_original": 0.15000000000000002,
+      "latency_median_s": 1.2822441000316758
+    }
+  ]
+}
