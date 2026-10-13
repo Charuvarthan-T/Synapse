@@ -116,7 +116,9 @@ Synapse is not uniformly better. Unweighted Synapse has a slightly lower MRR tha
 
 ## 7.12 Agent efficiency and cost
 
-Status: **PARTIALLY COMPLETE**. No model request was sent. `OPENAI_API_KEY`, `GROQ_API_KEY`, and `ANTHROPIC_API_KEY` were unset, and the CrossCodeEval parquet is not in the repository. The 80 agent rows in `tools/eval/results/agent_efficiency/agent_tasks.jsonl` have null token counts, null cost, and null success. Those nulls are not zeros.
+Status: **PARTIALLY COMPLETE**. A later Groq run, recorded in `docs/eval/AGENT_EFFICIENCY_REPORT.md`, did call `openai/gpt-oss-20b` and stored provider token counts. The character estimates below are from the earlier run and are not that measurement.
+
+On the free on-demand cap (200,000 tokens per day), Original Graphify finished all 20 questions at 76,956 provider tokens and 6 nonempty answers. Synapse default finished 11 questions at 42,905 tokens before the cap, 2.7% fewer tokens than upstream on those same 11 questions (44,108 versus 42,905), with 2 citations on each side. The nonempty-answer overlap is one question (4,837 versus 4,670 tokens). Synapse full sent no request. The no-graph arm used 34,510 tokens and produced 3 citations. This is not a general claim that Synapse lowers token use.
 
 What did run is graph infrastructure, on commit `f928959a5b0be581f6749f53d5d3bfbccac1e57f`, against upstream Graphify `a9860f70dc3cc2e9c2d8cb923484cfa0592b9067`. The retrieval sweep queried the existing frozen Synapse graph. It is not an agent result and it is not a provider token count. Context size is `len(query stdout) // 4`.
 

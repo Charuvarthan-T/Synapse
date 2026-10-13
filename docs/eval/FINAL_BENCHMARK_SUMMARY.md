@@ -52,7 +52,7 @@ PageRank versus community-aware Synapse: Recall@10 0.55 versus 0.70. PageRank MR
 - Leiden (Python 3.13).
 - Live Ask / Search / Verify / Enrich / Graph Map.
 - A fully green engine suite: 3,624 passed, 64 failed, 149 skipped. Six of those failures passed when rerun alone. The Windows pending-path failure is fixed.
-- Agent token use, API cost, tool-call efficiency, and answer correctness. No provider key and no CrossCodeEval parquet. The harness is in `tools/eval/run_agent_efficiency.py`. Measured graph indexing, query latency, and retrieval-context size are in `docs/eval/AGENT_EFFICIENCY_REPORT.md`.
+- Agent token use was measured on Groq `openai/gpt-oss-20b` until the 200,000-token daily cap. Synapse full did not run. See `docs/eval/AGENT_EFFICIENCY_REPORT.md`. The earlier character estimates are not provider tokens.
 
 ## Reproduce
 

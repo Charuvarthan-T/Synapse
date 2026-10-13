@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-10-13T11:36:48.733624+00:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.13.5",
+  "synapse_commit": "b03079546644f8a55c7de0b305014cdb8ead82f7",
+  "upstream_commit": "a9860f70dc3cc2e9c2d8cb923484cfa0592b9067",
+  "upstream_repository": "https://github.com/Graphify-Labs/graphify.git",
+  "model": "openai/gpt-oss-20b",
+  "models_visible": [
+    "openai/gpt-oss-20b",
+    "openai/gpt-oss-120b",
+    "allam-2-7b",
+    "qwen/qwen3.8-27b",
+    "whisper-large-v3-turbo",
+    "canopylabs/orpheus-arabic-saudi",
+    "whisper-large-v3",
+    "meta-llama/llama-prompt-guard-2-86m",
+    "meta-llama/llama-prompt-guard-2-22m",
+    "canopylabs/orpheus-v1-english",
+    "openai/gpt-oss-safeguard-20b"
+  ],
+  "probe_usage": {
+    "input_tokens": 78,
+    "output_tokens": 8,
+    "total_tokens": 86,
+    "cached_input_tokens": null,
+    "reasoning_tokens": 6,
+    "counting_method": "provider",
+    "usage_complete": true
+  },
+  "probe_request_id": "req_01m4tgqa67e1yrhw3nmfkdvvs5",
+  "probe_rate_headers": {
+    "x-ratelimit-limit-requests": "1000",
+    "x-ratelimit-limit-tokens": "8000",
+    "x-ratelimit-remaining-requests": "988",
+    "x-ratelimit-remaining-tokens": "7914",
+    "x-ratelimit-reset-requests": "17m16.8s",
+    "x-ratelimit-reset-tokens": "644ms",
+    "x-request-id": "req_01m4tgqa67e1yrhw3nmfkdvvs5"
+  },
+  "max_steps": 3,
+  "max_output_tokens": 180,
+  "query_budget": 800,
+  "tool_char_cap": 6000,
+  "temperature": 0,
+  "system_prompt": "You are a coding agent answering a question about one repository snapshot. Use only the tools that are available. Cite repository evidence for every code claim. If the tools do not contain enough evidence, answer exactly: unknown. Do not invent files, symbols, or test results.",
+  "groq_api_key_present": true,
+  "cost_basis": "Free-tier requests are recorded as 0 USD when usage is complete. This is not an invoice and the paid price table is not applied.",
+  "counting_method": "provider",
+  "local_char_estimate_used": false,
+  "mode": "pilot",
+  "stop_reason": null
+}

@@ -1,12 +1,40 @@
 # Agent efficiency and cost
 
-Status: **PARTIALLY COMPLETE**. The agent token, cost, tool-use, and correctness experiments are **BLOCKED**. Graph indexing, query latency, retrieval-context size, and graph reliability were measured and are not agent results.
+Status: **PARTIALLY COMPLETE**. A Groq on-demand run recorded provider token counts for part of the agent benchmark. The `len(text) // 4` figures further down are text-size estimates from the earlier run. They are not token consumption.
 
-Tested commit: `f928959a5b0be581f6749f53d5d3bfbccac1e57f`. Upstream Graphify: `https://github.com/Graphify-Labs/graphify.git` at `a9860f70dc3cc2e9c2d8cb923484cfa0592b9067`. Host: Windows, Python 3.13.5. Generated 13 October 2026. Artifacts: `tools/eval/results/agent_efficiency/`.
+## Provider-reported Groq run
 
-## What was not run
+Model: `openai/gpt-oss-20b`. This key's model list did not include `llama-3.1-8b-instant` or `llama-3.3-70b-versatile`. A probe completion returned provider usage before the tasks: 78 input tokens, 8 output tokens, 86 total, 6 reasoning tokens, and null cached tokens. The probe's rate-limit headers were 8,000 tokens and 1,000 requests. The full run then hit the on-demand daily cap of 200,000 tokens (199,060 used; the next request asked for 1,452). Billing was not enabled. Completed calls are stored as 0 USD because they ran on that free cap. The paid price table was not applied. Cached tokens were absent and stay null.
 
-`OPENAI_API_KEY`, `GROQ_API_KEY`, and `ANTHROPIC_API_KEY` were unset. The adapter recorded 20 existing retrieval questions for each of four configurations and did not send a request:
+Synapse commit `b03079546644f8a55c7de0b305014cdb8ead82f7`. Upstream Graphify `a9860f70dc3cc2e9c2d8cb923484cfa0592b9067`. Same system prompt, temperature 0, at most 3 model steps, completion cap 320, graph query budget 800, tool text capped at 6,000 characters. The shared instruction said to call `query_graph` once when that tool existed. A graph query is not itself a model token. Its text counts only when a later model call receives it.
+
+A nonempty answer is not a passing test. These questions have no executable oracle. Citation means the answer contains a ground-truth node label. Ten no-graph tasks failed with HTTP 400 because the model called a tool named `search`, which was not offered. Other failures are mostly `step_limit`.
+
+| Configuration | Attempted | Completed | Blocked | Nonempty answers | Citations | Mean input | Mean output | Provider tokens |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| No graph | 20 | 20 | 0 | 3 | 3 | 1,519.8 | 205.7 | 34,510 |
+| Original Graphify | 20 | 20 | 0 | 6 | 6 | 3,551.6 | 296.2 | 76,956 |
+| Synapse default | 20 | 11 | 9 | 2 | 2 | 3,626.4 | 274.1 | 42,905 |
+| Synapse full | 20 | 0 | 20 | 0 | 0 |  |  |  |
+
+Means use completed tasks with complete provider usage. One Synapse-default task hit the daily cap after earlier calls in that same task had reported 311 input tokens and 64 output tokens. Those tokens are in the call log and are outside the 42,905, because the task outcome is blocked. Synapse full sent no benchmark request.
+
+| Comparison | Paired questions | Upstream tokens | Other tokens | Total difference | Citations |
+|---|---:|---:|---:|---:|---|
+| Synapse default vs upstream, completed | 11 | 44,108 | 42,905 | 2.7% fewer for Synapse | 2 vs 2 |
+| Synapse default vs upstream, nonempty answers | 1 | 4,837 | 4,670 | 3.5% fewer for Synapse | 1 vs 1 |
+| Synapse full vs upstream | 0 |  |  |  | blocked |
+| No graph vs upstream, completed | 20 | 76,956 | 34,510 | 55.2% fewer for no graph | 3 vs 6 |
+
+On those 11 questions Synapse default used 1,080 fewer input tokens (2.6%) and 123 fewer output tokens (3.9%). The single shared nonempty answer is "how is a JSON file written to disk atomically". One question is not a general reduction, and no significance test is claimed. The no-graph arm spent fewer tokens and cited fewer labels. Original Graphify issued 22 graph queries. Synapse default issued 12 before the cap. Synapse full issued none.
+
+A one-question pilot with a 180-token completion cap is stored separately in `tools/eval/results/agent_efficiency/groq/pilot_graph_instruction/`. Upstream used 6,131 tokens and returned an empty answer. Synapse default used 4,482 and cited `validate_url()`. Synapse full used 4,451 and cited it too. An earlier automatic-tool pilot never called `query_graph`; it is in `pilot_tool_choice_auto/`. Neither pilot is mixed into the table.
+
+Artifacts: `tools/eval/results/agent_efficiency/groq/full_graph_instruction/`. Reproduce with `GROQ_API_KEY` set and `python tools/eval/run_groq_token_benchmark.py --all`. At this prompt size the 200,000-token daily cap does not cover all four arms.
+
+## Earlier run without a provider
+
+The sections below describe the run that did not call a model. `GROQ_API_KEY` was unset then. Those token figures are local character estimates.
 
 | Configuration | Graph tool | Flags |
 |---|---|---|
