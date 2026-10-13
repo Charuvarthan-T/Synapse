@@ -212,11 +212,9 @@ def proposal_from_tool_input(tool_name: str | None, tool_input: dict[str, Any]) 
         )
         path = tool_input.get("file_path") or tool_input.get("path")
 
-    language = "python"
-    if path and str(path).endswith((".ts", ".tsx", ".js", ".jsx")):
-        language = "javascript"
-    elif path and str(path).endswith((".py",)):
-        language = "python"
+    from graphify.lang_structural import infer_language
+
+    language = infer_language(str(path) if path else None, fallback="python")
 
     return ProposedAction(
         kind=kind,
@@ -284,15 +282,20 @@ def validate_proposal(
         notes.append("empty proposal content — nothing to validate")
         return PreExecReport(action=action, notes=notes)
 
-    if action.language != "python":
-        notes.append(
-            f"language {action.language!r} uses existence heuristics only; "
-            "full AST checks are Python-first"
-        )
-        # Still run regex-based python extractor — often works for JS-like calls too.
+    from graphify.lang_structural import validate_tree_sitter_code, validation_level
+
+    level = validation_level(action.language)
+    if action.language == "python" or level == "ast":
         checks = _validate_python_action(G, action)
+    elif level == "tree-sitter":
+        checks, tree_notes = validate_tree_sitter_code(G, action.content, action.language)
+        notes.extend(tree_notes)
     else:
-        checks = _validate_python_action(G, action)
+        notes.append(
+            f"language {action.language!r} validation level is {level}; "
+            "no structural checks were applied and nothing was marked invalid"
+        )
+        checks = AggregateReport()
 
     if not checks.results:
         notes.append("no symbol/import/call references extracted from proposal")
@@ -308,7 +311,10 @@ def validate_code(
     file_path: str | None = None,
     strict: bool = False,
 ) -> PreExecReport:
-    action = ProposedAction(kind="code", language="python", content=code, file_path=file_path)
+    from graphify.lang_structural import infer_language
+
+    language = infer_language(file_path, fallback="python") if file_path else "python"
+    action = ProposedAction(kind="code", language=language, content=code, file_path=file_path)
     return validate_proposal(G, action, strict=strict)
 
 

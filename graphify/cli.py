@@ -879,7 +879,7 @@ def dispatch_command(cmd: str) -> None:
             print(
                 'Usage: graphify query "<question>" [--dfs] [--context C] [--budget N] '
                 "[--weighted|--unweighted] [--community-aware|--no-community-aware] "
-                "[--graph path]",
+                "[--ppr] [--learned-weights] [--graph path]",
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -892,6 +892,8 @@ def dispatch_command(cmd: str) -> None:
         use_dfs = "--dfs" in sys.argv
         weighted = "--unweighted" not in sys.argv
         community_aware = "--community-aware" in sys.argv
+        use_ppr = "--ppr" in sys.argv
+        use_learned = "--learned-weights" in sys.argv
         budget = 2000
         graph_path = _default_graph_path()
         context_filters: list[str] = []
@@ -927,6 +929,8 @@ def dispatch_command(cmd: str) -> None:
                 "--dfs",
                 "--community-aware",
                 "--no-community-aware",
+                "--ppr",
+                "--learned-weights",
             ):
                 i += 1
             else:
@@ -954,7 +958,9 @@ def dispatch_command(cmd: str) -> None:
                 ],
             )
             try:
-                G = json_graph.node_link_graph(_raw, edges="links")
+                from graphify.multigraph_store import graph_from_node_link as _from_link
+
+                G = _from_link(_raw)
             except TypeError:
                 G = json_graph.node_link_graph(_raw)
             try:
@@ -976,6 +982,13 @@ def dispatch_command(cmd: str) -> None:
 
         _t0 = _time.perf_counter()
         _mode = "dfs" if use_dfs else "bfs"
+        _registry = None
+        _learned = False
+        if use_learned:
+            from graphify.learned_weights import load_registry_for_graph
+
+            _registry = load_registry_for_graph(gp)
+            _learned = _registry is not None
         _result = _query_graph_text(
             G,
             question,
@@ -985,6 +998,9 @@ def dispatch_command(cmd: str) -> None:
             context_filters=context_filters,
             weighted=weighted,
             community_aware=community_aware,
+            retrieval="ppr" if use_ppr else "traversal",
+            learned=_learned,
+            registry=_registry,
         )
         querylog.log_query(
             kind="query",
@@ -998,6 +1014,62 @@ def dispatch_command(cmd: str) -> None:
         )
         _touch_query_stamp(gp)
         print(_result)
+    elif cmd == "learn-weights":
+        from graphify.learned_weights import learn_from_log, weights_path_for_graph
+
+        log_path = None
+        graph_path = _default_graph_path()
+        out_path = None
+        args = sys.argv[2:]
+        i = 0
+        while i < len(args):
+            if args[i] == "--log" and i + 1 < len(args):
+                log_path = args[i + 1]
+                i += 2
+            elif args[i] == "--graph" and i + 1 < len(args):
+                graph_path = args[i + 1]
+                i += 2
+            elif args[i] == "--out" and i + 1 < len(args):
+                out_path = args[i + 1]
+                i += 2
+            else:
+                i += 1
+        if not log_path:
+            print(
+                "Usage: graphify learn-weights --log feedback.jsonl [--graph path] [--out path]",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        dest = Path(out_path) if out_path else weights_path_for_graph(graph_path)
+        state = learn_from_log(log_path, dest)
+        print(
+            f"Learned weights: {state['records_used']} feedback records, "
+            f"{state['records_excluded']} excluded, wrote {dest}"
+        )
+    elif cmd == "migrate-multigraph":
+        from graphify.multigraph_store import graph_from_node_link, graph_to_node_link
+        from graphify.paths import write_json_atomic as _wja
+
+        graph_path = _default_graph_path()
+        args = sys.argv[2:]
+        i = 0
+        while i < len(args):
+            if args[i] == "--graph" and i + 1 < len(args):
+                graph_path = args[i + 1]
+                i += 2
+            else:
+                i += 1
+        gp = Path(graph_path).resolve()
+        if not gp.exists():
+            print(f"error: graph file not found: {gp}", file=sys.stderr)
+            sys.exit(1)
+        raw = json.loads(gp.read_text(encoding="utf-8"))
+        G = graph_from_node_link(raw)
+        from graphify.multigraph_store import ensure_multigraph
+
+        G = ensure_multigraph(G)
+        _wja(gp, graph_to_node_link(G), ensure_ascii=False)
+        print(f"Migrated {gp} to a multigraph ({G.number_of_edges()} edges)")
     elif cmd == "affected":
         if len(sys.argv) < 3:
             print(
@@ -3821,7 +3893,9 @@ def dispatch_command(cmd: str) -> None:
         raw = json.loads(gp.read_text(encoding="utf-8"))
         if "links" not in raw and "edges" in raw:
             raw = dict(raw, links=raw["edges"])
-        G = json_graph.node_link_graph(raw, edges="links")
+        from graphify.multigraph_store import ensure_multigraph, graph_from_node_link, graph_to_node_link
+
+        G = ensure_multigraph(graph_from_node_link(raw))
 
         provider = (
             RetryingProvider(BackendLLMProvider(backend=backend_name, model=model_name))
@@ -3844,7 +3918,7 @@ def dispatch_command(cmd: str) -> None:
                 f"{report.relations_skipped} relations skipped"
             )
             if not dry_run:
-                data = json_graph.node_link_data(G, edges="links")
+                data = graph_to_node_link(G)
                 _wja(gp, data, ensure_ascii=False)
 
     elif cmd == "reason":
@@ -3894,9 +3968,9 @@ def dispatch_command(cmd: str) -> None:
             sys.exit(1)
         _enforce_graph_size_cap_or_exit(gp)
         raw = json.loads(gp.read_text(encoding="utf-8"))
-        if "links" not in raw and "edges" in raw:
-            raw = dict(raw, links=raw["edges"])
-        G = json_graph.node_link_graph(raw, edges="links")
+        from graphify.multigraph_store import graph_from_node_link
+
+        G = graph_from_node_link(raw)
         provider = (
             RetryingProvider(BackendLLMProvider(backend=backend_name, model=model_name))
             if backend_name
@@ -3949,9 +4023,9 @@ def dispatch_command(cmd: str) -> None:
             print(f"error: graph file not found: {gp}", file=sys.stderr)
             sys.exit(1)
         raw = json.loads(gp.read_text(encoding="utf-8"))
-        if "links" not in raw and "edges" in raw:
-            raw = dict(raw, links=raw["edges"])
-        G = json_graph.node_link_graph(raw, edges="links")
+        from graphify.multigraph_store import graph_from_node_link as _claims_graph
+
+        G = _claims_graph(raw)
         claims, errors = parse_claims(payload)
         report = validate_claims(G, claims)
         out = report.to_dict()
@@ -3995,9 +4069,9 @@ def dispatch_command(cmd: str) -> None:
             print(f"error: graph file not found: {gp}", file=sys.stderr)
             sys.exit(1)
         raw = json.loads(gp.read_text(encoding="utf-8"))
-        if "links" not in raw and "edges" in raw:
-            raw = dict(raw, links=raw["edges"])
-        G = json_graph.node_link_graph(raw, edges="links")
+        from graphify.multigraph_store import graph_from_node_link as _preexec_graph
+
+        G = _preexec_graph(raw)
         report = validate_code(G, code, file_path=file_path, strict=strict)
         print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
         if report.blocked:

@@ -54,7 +54,9 @@ def _load_graph(graph_path: str) -> nx.Graph:
         except Exception:
             pass
         try:
-            G = json_graph.node_link_graph(data, edges="links")
+            from graphify.multigraph_store import graph_from_node_link
+
+            G = graph_from_node_link(data)
         except TypeError:
             G = json_graph.node_link_graph(data)
         try:
@@ -976,6 +978,8 @@ def _query_graph_text(
     community_aware: bool = False,
     max_communities: int = 2,
     community_min_confidence: float = 0.55,
+    retrieval: str = "traversal",
+    learned: bool = False,
 ) -> str:
     terms = _query_terms(question)
     qs = _score_query(G, terms, collect_per_term_seeds=True)
@@ -1008,13 +1012,21 @@ def _query_graph_text(
             weighted=weighted,
             registry=registry,
         )
+    if retrieval == "ppr":
+        from graphify.pagerank_retrieval import ppr_traversal
+
+        traversal = ppr_traversal(traversal_graph, start_nodes, registry=registry)
     nodes, edges = traversal.nodes, traversal.edges
     header_parts = [
         f"Traversal: {mode.upper()} depth={depth}",
         f"Start: {[G.nodes[n].get('label', n) for n in start_nodes]}",
     ]
-    if weighted:
+    if retrieval == "ppr":
+        header_parts.insert(1, "Personalized PageRank")
+    elif weighted:
         header_parts.insert(1, "Weighted relations")
+    if learned:
+        header_parts.append("Learned weights")
     if selection is not None and selection.selected:
         header_parts.insert(
             1 if not weighted else 2,
@@ -1272,6 +1284,22 @@ def _build_server(graph_path: str):
                                 "full-graph retrieval when community confidence is low"
                             ),
                         },
+                        "retrieval": {
+                            "type": "string",
+                            "enum": ["traversal", "ppr"],
+                            "default": "traversal",
+                            "description": (
+                                "traversal uses weighted BFS/DFS; ppr uses Personalized PageRank"
+                            ),
+                        },
+                        "learned_weights": {
+                            "type": "boolean",
+                            "default": False,
+                            "description": (
+                                "Use learned_weights.json beside the graph when it exists; "
+                                "otherwise keep the fixed relation table"
+                            ),
+                        },
                     },
                     "required": ["question"],
                 },
@@ -1517,6 +1545,14 @@ def _build_server(graph_path: str):
         context_filter = arguments.get("context_filter")
         weighted = bool(arguments.get("weighted", True))
         community_aware = bool(arguments.get("community_aware", False))
+        retrieval = arguments.get("retrieval", "traversal")
+        learned = bool(arguments.get("learned_weights", False))
+        registry = None
+        if learned and active_graph_path:
+            from graphify.learned_weights import load_registry_for_graph
+
+            registry = load_registry_for_graph(active_graph_path)
+            learned = registry is not None
         _t0 = _time.perf_counter()
         result = _query_graph_text(
             G,
@@ -1527,6 +1563,9 @@ def _build_server(graph_path: str):
             context_filters=context_filter,
             weighted=weighted,
             community_aware=community_aware,
+            retrieval=retrieval if retrieval in {"traversal", "ppr"} else "traversal",
+            learned=learned,
+            registry=registry,
         )
         querylog.log_query(
             kind="mcp_query",

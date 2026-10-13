@@ -46,6 +46,13 @@ def _existing_edge_endpoints(G: nx.Graph, source: str, target: str) -> tuple[str
     return None
 
 
+def _multigraph_has_semantic(G: nx.Graph, u: str, v: str, relation: SemanticRelation) -> bool:
+    for data in G[u][v].values():
+        if data.get("relation") == relation.relation and data.get("_origin") == SEMANTIC_ORIGIN:
+            return True
+    return False
+
+
 def _augment_existing_edge(
     G: nx.Graph,
     u: str,
@@ -96,6 +103,17 @@ def apply_semantic_relations(
             continue
         source_file = default_source_file or str(G.nodes[relation.source].get("source_file") or "")
         existing = _existing_edge_endpoints(G, relation.source, relation.target)
+        if existing is not None and G.is_multigraph():
+            u, v = existing
+            if _multigraph_has_semantic(G, u, v, relation):
+                relations_skipped += 1
+            else:
+                attrs = relation.to_edge_attrs(source_file=source_file)
+                attrs["_src"] = relation.source
+                attrs["_tgt"] = relation.target
+                G.add_edge(u, v, **attrs)
+                edges_augmented += 1
+            continue
         if existing is not None:
             u, v = existing
             if _augment_existing_edge(G, u, v, relation, source_file):

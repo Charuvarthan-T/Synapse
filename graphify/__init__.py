@@ -44,6 +44,10 @@ def __getattr__(name):
         "reason": ("graphify.bidirectional_reasoner", "reason"),
         "validate_proposal": ("graphify.preexec_validate", "validate_proposal"),
         "validate_code": ("graphify.preexec_validate", "validate_code"),
+        "learn_from_log": ("graphify.learned_weights", "learn_from_log"),
+        "ensure_multigraph": ("graphify.multigraph_store", "ensure_multigraph"),
+        "personalized_pagerank": ("graphify.pagerank_retrieval", "personalized_pagerank"),
+        "validation_level": ("graphify.lang_structural", "validation_level"),
     }
     if name in _map:
         import importlib
