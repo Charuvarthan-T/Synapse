@@ -167,12 +167,17 @@ export class Engine {
   }
 
   /** Relationship-weighted, community-aware retrieval. */
-  async search(root: string, question: string, budget: number, signal?: AbortSignal): Promise<SearchResult> {
-    const r = await this.run(
-      root,
-      ["query", asArgument(question), "--graph", graphPath(root), "--budget", String(Math.round(budget)), "--community-aware"],
-      { signal }
-    );
+  async search(
+    root: string,
+    question: string,
+    budget: number,
+    signal?: AbortSignal,
+    options?: { ppr?: boolean; learnedWeights?: boolean }
+  ): Promise<SearchResult> {
+    const args = ["query", asArgument(question), "--graph", graphPath(root), "--budget", String(Math.round(budget)), "--community-aware"];
+    if (options?.ppr) args.push("--ppr");
+    if (options?.learnedWeights) args.push("--learned-weights");
+    const r = await this.run(root, args, { signal });
     if (r.code !== 0) this.fail("Search", r);
     return parseSearchOutput(r.stdout.trim());
   }

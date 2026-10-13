@@ -13,6 +13,7 @@ import { openGraphMap, refreshGraphMap } from "./ui/graphMap";
 import { answerView, explainView, NodeLookup, searchView, verifyView } from "./ui/presenters";
 import { ResultsPanel } from "./ui/resultsPanel";
 import { SidebarProvider, SidebarState } from "./ui/sidebar";
+import { implicitRoot, listFolderPaths, rootForFile } from "./workspaceRoots";
 
 interface Task {
   title: string;
@@ -39,7 +40,9 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
   const version = context.extension.packageJSON.version as string;
   log(`Synapse ${version} activating`);
 
-  const root = (): string | undefined => vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  const folders = (): string[] => listFolderPaths(vscode.workspace.workspaceFolders);
+  const activeFile = (): string | undefined => vscode.window.activeTextEditor?.document.uri.fsPath;
+  const root = (): string | undefined => implicitRoot(folders(), activeFile());
   const config = () => vscode.workspace.getConfiguration("synapse");
   const home = process.env.SYNAPSE_HOME || path.join(os.homedir(), ".synapse");
 
@@ -83,6 +86,7 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
   );
 
   function currentState(): SidebarState {
+    const foldersNow = folders();
     const r = root();
     const stats = r && vscode.workspace.isTrusted ? graph.getStats() : null;
     let builtAt: number | null = null;
@@ -92,7 +96,7 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
       builtAt = null;
     }
     const task = tasks.find((t) => t.exclusive) ?? tasks[tasks.length - 1];
-    const phase = !r ? "no-workspace" : !vscode.workspace.isTrusted ? "untrusted" : lastError ? "error" : stats ? "ready" : "empty";
+    const phase = !foldersNow.length ? "no-workspace" : !vscode.workspace.isTrusted ? "untrusted" : lastError ? "error" : stats ? "ready" : "empty";
     return {
       phase,
       task: task ? { title: task.title, detail: task.detail, cancellable: task.cancellable } : null,
@@ -180,9 +184,9 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
     return err instanceof Error ? err.message : String(err);
   }
 
-  function requireWorkspace(): string | undefined {
-    const r = root();
-    if (!r) {
+  async function requireWorkspace(): Promise<string | undefined> {
+    const all = folders();
+    if (!all.length) {
       vscode.window.showWarningMessage("Synapse: open a folder first.");
       return undefined;
     }
@@ -190,11 +194,17 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
       vscode.window.showWarningMessage("Synapse only runs in trusted workspaces.");
       return undefined;
     }
-    return r;
+    const implied = implicitRoot(all, activeFile());
+    if (implied) return implied;
+    const pick = await vscode.window.showQuickPick(
+      all.map((folder) => ({ label: path.basename(folder), description: folder })),
+      { placeHolder: "Synapse: which workspace folder?" }
+    );
+    return pick?.description;
   }
 
-  function requireGraph(): string | undefined {
-    const r = requireWorkspace();
+  async function requireGraph(): Promise<string | undefined> {
+    const r = await requireWorkspace();
     if (!r) return undefined;
     if (!graph.getStats()) {
       void vscode.window
@@ -208,7 +218,7 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
   // --- Graph building ---------------------------------------------------------
 
   async function build(): Promise<void> {
-    const r = requireWorkspace();
+    const r = await requireWorkspace();
     if (!r) return;
     await runTask({ title: "Building graph", detail: "Starting", exclusive: true }, async (task, report) => {
       try {
@@ -228,14 +238,17 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
 
   let updateTimer: ReturnType<typeof setTimeout> | undefined;
   let pendingUpdate = false;
+  let pendingRoot: string | undefined;
 
-  function scheduleUpdate(delay = 1500): void {
+  function scheduleUpdate(delay = 1500, folder?: string): void {
+    if (folder) pendingRoot = folder;
     if (updateTimer) clearTimeout(updateTimer);
     updateTimer = setTimeout(() => void update(), delay);
   }
 
   async function update(): Promise<void> {
-    const r = root();
+    const r = pendingRoot ?? root();
+    pendingRoot = undefined;
     if (!r || !vscode.workspace.isTrusted || !graph.getStats()) return;
     if (tasks.some((t) => t.exclusive)) {
       pendingUpdate = true;
@@ -286,7 +299,7 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
   }
 
   async function ask(question: string): Promise<void> {
-    const r = requireGraph();
+    const r = await requireGraph();
     if (!r) return;
     let ai: { label: string; complete: CompletionHandler };
     try {
@@ -320,13 +333,16 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
   }
 
   async function search(question: string): Promise<void> {
-    const r = requireGraph();
+    const r = await requireGraph();
     if (!r) return;
     sidebar.clearInput();
     showView({ kind: "loading", mode: "search", title: question, subtitle: "Local graph search", steps: ["Traversing the graph"], current: 0 });
     await runTask({ title: "Searching", exclusive: false }, async (task) => {
       try {
-        const result = await engine.search(r, question, config().get<number>("queryBudget", 2000), task.abort.signal);
+        const result = await engine.search(r, question, config().get<number>("queryBudget", 2000), task.abort.signal, {
+          ppr: config().get<string>("retrieval", "weighted") === "ppr",
+          learnedWeights: config().get<boolean>("learnedWeights", false),
+        });
         showView(searchView(question, result));
       } catch (err) {
         if (isCancel(err)) return;
@@ -336,7 +352,7 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
   }
 
   async function explainSymbol(): Promise<void> {
-    const r = requireGraph();
+    const r = await requireGraph();
     if (!r) return;
     const editor = vscode.window.activeTextEditor;
     let symbol = "";
@@ -367,7 +383,7 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
   }
 
   async function verifyCode(): Promise<void> {
-    const r = requireGraph();
+    const r = await requireGraph();
     if (!r) return;
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -400,7 +416,7 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
   }
 
   async function enrich(): Promise<void> {
-    const r = requireGraph();
+    const r = await requireGraph();
     if (!r) return;
     let ai: { label: string; complete: CompletionHandler };
     try {
@@ -448,13 +464,28 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
   // --- Navigation ---------------------------------------------------------------
 
   async function openFile(file: string, line?: number): Promise<void> {
-    const r = root();
-    if (!r) return;
-    const full = path.resolve(r, file);
-    const rel = path.relative(r, full);
-    if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) {
-      log(`refusing to open a path outside the workspace: ${file}`);
-      return;
+    const all = folders();
+    if (!all.length) return;
+    let full: string | undefined;
+    let owner: string | undefined;
+    for (const candidate of all) {
+      const resolved = path.resolve(candidate, file);
+      const rel = path.relative(candidate, resolved);
+      if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) continue;
+      if (fs.existsSync(resolved)) {
+        full = resolved;
+        owner = candidate;
+        break;
+      }
+    }
+    if (!full) {
+      owner = root() ?? all[0];
+      full = path.resolve(owner, file);
+      const rel = path.relative(owner, full);
+      if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) {
+        log(`refusing to open a path outside the workspace: ${file}`);
+        return;
+      }
     }
     try {
       const editor = await vscode.window.showTextDocument(vscode.Uri.file(full), { preview: true, viewColumn: vscode.ViewColumn.One });
@@ -511,8 +542,8 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
     }),
     vscode.commands.registerCommand("synapse.showLog", showOutput),
     vscode.commands.registerCommand("synapse.openNode", (id: string) => openSymbol({ id })),
-    vscode.commands.registerCommand("synapse.openGraphMap", () => {
-      const r = requireGraph();
+    vscode.commands.registerCommand("synapse.openGraphMap", async () => {
+      const r = await requireGraph();
       if (!r) return;
       if (!openGraphMap(context.extensionUri, r, (id) => void openSymbol({ id }))) {
         vscode.window.showInformationMessage("Synapse: the graph map isn't generated yet. Rebuild the graph to create it.", "Build Graph")
@@ -524,8 +555,10 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
   registerLmTools(context, {
     engine,
     graphRoot: () => {
+      const all = folders();
+      if (!all.length) return { unavailable: "No folder is open, so Synapse has no graph. Read files directly instead." };
       const r = root();
-      if (!r) return { unavailable: "No folder is open, so Synapse has no graph. Read files directly instead." };
+      if (!r) return { unavailable: "Several workspace folders are open. Focus a file in the folder Synapse should search." };
       if (!vscode.workspace.isTrusted) return { unavailable: "This workspace isn't trusted, so Synapse is disabled." };
       if (!graph.getStats()) return { unavailable: "No Synapse graph exists yet. Ask the user to run 'Synapse: Build Graph', or read files directly." };
       return { root: r };
@@ -537,12 +570,13 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
 
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument((doc) => {
-      const r = root();
-      if (!r || !config().get<boolean>("autoUpdateOnSave", true) || !vscode.workspace.isTrusted) return;
+      if (!config().get<boolean>("autoUpdateOnSave", true) || !vscode.workspace.isTrusted) return;
       if (doc.uri.scheme !== "file" || !isCodeFile(doc.fileName)) return;
+      const r = rootForFile(folders(), doc.fileName);
+      if (!r) return;
       const rel = path.relative(r, doc.fileName);
       if (rel.startsWith("..") || path.isAbsolute(rel) || rel.split(/[\\/]/).includes("graphify-out")) return;
-      scheduleUpdate();
+      scheduleUpdate(1500, r);
     }),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("synapse.ai")) void refreshAi();
@@ -551,29 +585,37 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
       refresh();
       void maybeAutoBuild();
     }),
-    vscode.workspace.onDidChangeWorkspaceFolders(() => refresh()),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      bindGraphWatchers();
+      refresh();
+    }),
     vscode.extensions.onDidChange(() => void refreshAi())
   );
   if (vscode.lm.onDidChangeChatModels) {
     context.subscriptions.push(vscode.lm.onDidChangeChatModels(() => void refreshAi()));
   }
 
-  const r0 = root();
-  if (r0) {
-    const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(r0, "graphify-out/graph.json"));
-    let debounce: ReturnType<typeof setTimeout> | undefined;
-    const onGraphChange = () => {
-      if (debounce) clearTimeout(debounce);
-      debounce = setTimeout(() => {
-        refresh();
-        refreshGraphMap(context.extensionUri, r0, (id) => void openSymbol({ id }));
-      }, 300);
-    };
-    watcher.onDidChange(onGraphChange);
-    watcher.onDidCreate(onGraphChange);
-    watcher.onDidDelete(onGraphChange);
-    context.subscriptions.push(watcher);
+  const graphWatchers: vscode.Disposable[] = [];
+  function bindGraphWatchers(): void {
+    while (graphWatchers.length) graphWatchers.pop()?.dispose();
+    for (const folder of folders()) {
+      const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(folder, "graphify-out/graph.json"));
+      let debounce: ReturnType<typeof setTimeout> | undefined;
+      const onGraphChange = () => {
+        if (debounce) clearTimeout(debounce);
+        debounce = setTimeout(() => {
+          refresh();
+          refreshGraphMap(context.extensionUri, folder, (id) => void openSymbol({ id }));
+        }, 300);
+      };
+      watcher.onDidChange(onGraphChange);
+      watcher.onDidCreate(onGraphChange);
+      watcher.onDidDelete(onGraphChange);
+      graphWatchers.push(watcher);
+    }
   }
+  bindGraphWatchers();
+  context.subscriptions.push({ dispose: () => graphWatchers.forEach((watcher) => watcher.dispose()) });
 
   async function maybeAutoBuild(): Promise<void> {
     const r = root();

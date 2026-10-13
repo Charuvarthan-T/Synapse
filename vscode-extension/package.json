@@ -239,6 +239,19 @@
           "order": 4,
           "description": "Maximum tokens of graph context returned per search (also used for context given to Copilot agent mode)."
         },
+        "synapse.retrieval": {
+          "type": "string",
+          "enum": ["weighted", "ppr"],
+          "default": "weighted",
+          "order": 5,
+          "markdownDescription": "Search strategy. **weighted** is relationship-weighted traversal. **ppr** is Personalized PageRank over the same relation weights."
+        },
+        "synapse.learnedWeights": {
+          "type": "boolean",
+          "default": false,
+          "order": 6,
+          "markdownDescription": "Use `graphify-out/learned_weights.json` when searching. Missing file keeps the fixed relation weights."
+        },
         "synapse.pythonPath": {
           "type": "string",
           "default": "",

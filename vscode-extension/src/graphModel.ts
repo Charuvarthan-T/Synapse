@@ -158,6 +158,7 @@ export function computeStats(graph: GraphData, keySymbolLimit = 8): GraphStats {
 /** Caches the parsed graph by mtime so UI refreshes don't re-parse big files. */
 export class GraphCache {
   private mtime = -1;
+  private loadedFile: string | undefined;
   private graph: GraphData | null = null;
   private stats: GraphStats | null = null;
 
@@ -171,7 +172,8 @@ export class GraphCache {
     } catch {
       mtime = -1;
     }
-    if (mtime === this.mtime) return;
+    if (mtime === this.mtime && file === this.loadedFile) return;
+    this.loadedFile = file;
     this.mtime = mtime;
     this.graph = mtime >= 0 && file ? loadGraph(file) : null;
     this.stats = this.graph ? computeStats(this.graph) : null;
