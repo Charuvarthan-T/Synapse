@@ -1,0 +1,10 @@
+{
+  "kind": "naive_full_corpus_local_estimate",
+  "agent_result": false,
+  "files": 7,
+  "context_tokens_local_estimate": 57366,
+  "counting_method": "local_chars_div_4",
+  "provider_tokens": null,
+  "api_cost_usd": null,
+  "agent_success": null
+}

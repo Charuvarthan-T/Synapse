@@ -52,6 +52,7 @@ PageRank versus community-aware Synapse: Recall@10 0.55 versus 0.70. PageRank MR
 - Leiden (Python 3.13).
 - Live Ask / Search / Verify / Enrich / Graph Map.
 - A fully green engine suite: 3,624 passed, 64 failed, 149 skipped. Six of those failures passed when rerun alone. The Windows pending-path failure is fixed.
+- Agent token use, API cost, tool-call efficiency, and answer correctness. No provider key and no CrossCodeEval parquet. The harness is in `tools/eval/run_agent_efficiency.py`. Measured graph indexing, query latency, and retrieval-context size are in `docs/eval/AGENT_EFFICIENCY_REPORT.md`.
 
 ## Reproduce
 
@@ -60,6 +61,8 @@ git clone --depth 1 https://github.com/Graphify-Labs/graphify.git
 python tools/eval/final_retrieval.py
 python tools/eval/run_graphify_comparison.py
 python tools/eval/run_local_benchmarks.py
+python tools/eval/run_agent_efficiency.py
+python -m pytest tests/test_agent_efficiency.py -q
 python -m pytest tests -q
 ```
 

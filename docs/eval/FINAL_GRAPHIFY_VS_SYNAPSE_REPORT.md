@@ -46,6 +46,9 @@ Both engines queried the same frozen graph: 260 nodes, 536 edges, built by Synap
 | Graph evidence checks | 4 claims | no equivalent | 4/4 | capability difference | COMPLETE |
 | CrossCodeEval 47-task | 47 | historical partial file only | not rerun |  | BLOCKED |
 | Extension GUI flows |  | no extension | VSIX installed; Ask/Search/Verify/Enrich/Map not clicked |  | PARTIAL |
+| Agent token, cost, and task success | 20 questions × 4 configurations |  |  |  | BLOCKED |
+| Retrieval context size, local estimate | 20 questions × 5 configurations × 4 budgets | see `docs/eval/AGENT_EFFICIENCY_REPORT.md` | community-aware context is smaller than upstream at equal Recall@10 | not an API cost | COMPLETE |
+| Indexing wall clock and RSS | 1, 7, and 25 files | measured | measured |  | COMPLETE |
 | NDCG / MAP |  |  |  |  | NOT RUN |
 
 ## 7.5 Retrieval comparison
@@ -102,9 +105,23 @@ In-process, on a 32-node graph, weighted query median time was about 0.5 ms and 
 - The bad-method validation example returned UNKNOWN, not CONTRADICTED. The label only required "not supported."
 - CrossCodeEval and the extension GUI are incomplete.
 - Six full-suite failures did not reproduce alone.
+- Agent token, cost, tool-use, and answer-correctness experiments did not run. No provider key was available, and the CrossCodeEval parquet is not in the tree.
+- The combined PageRank configuration's rendered node order changed across repeated launches. Its budget-sweep Recall@10 values are not a stable budget curve.
 
 ## 7.11 Conclusion
 
 Synapse's weighted and community-aware retrieval outperform unmodified Graphify 0.9.88 on Recall@10 and Precision@10 for these 20 questions. Community-aware is the best measured retrieval configuration. PageRank is a real, selectable algorithm and, on this set, it is worse than weighted traversal and only partly better than upstream. Learned weights, the multigraph, language checks, and multi-root workspaces do not explain the retrieval gain. The first two are demonstrated as mechanisms. The retrieval gain tracks relationship weights and community-aware search.
 
 Synapse is not uniformly better. Unweighted Synapse has a slightly lower MRR than upstream (0.249 versus 0.260). PageRank has a lower MRR than upstream as well (0.250). There is no evidence here about code-completion accuracy.
+
+## 7.12 Agent efficiency and cost
+
+Status: **PARTIALLY COMPLETE**. No model request was sent. `OPENAI_API_KEY`, `GROQ_API_KEY`, and `ANTHROPIC_API_KEY` were unset, and the CrossCodeEval parquet is not in the repository. The 80 agent rows in `tools/eval/results/agent_efficiency/agent_tasks.jsonl` have null token counts, null cost, and null success. Those nulls are not zeros.
+
+What did run is graph infrastructure, on commit `f928959a5b0be581f6749f53d5d3bfbccac1e57f`, against upstream Graphify `a9860f70dc3cc2e9c2d8cb923484cfa0592b9067`. The retrieval sweep queried the existing frozen Synapse graph. It is not an agent result and it is not a provider token count. Context size is `len(query stdout) // 4`.
+
+At a 2,000-token query budget, community-aware Synapse again led retrieval (Recall@10 0.700, Precision@10 0.075) and its mean local context estimate was 1,552 tokens, against 2,726 for upstream Graphify at Recall@10 0.400. The seven source files, concatenated, estimate to 57,366 tokens by the same character rule. Raising the budget to 4,000, 8,000, and 16,000 did not change Recall@10 for upstream, weighted Synapse, community-aware Synapse, or PageRank alone. The combined `--community-aware --learned-weights --ppr` run did change (Recall@10 0.600, 0.450, 0.550, 0.500). A separate check of that same command at a fixed 2,000 budget also changed the fifth node across three launches, while the community header stayed `Communities=[2, 1]`. That movement is run-to-run instability, not a demonstrated budget effect. No learned-weight file was present.
+
+Code-only indexing of the seven frozen files took 1.88 s for Synapse (259 nodes, 512 edges, peak RSS 98,435,072 bytes) and 2.58 s for upstream (341 nodes, 629 edges, peak RSS 26,533,888 bytes). These are separate extractions. Upstream was not indexed on the 25-file sample. A dollar break-even is not computed. After one discarded warmup, five queries of one question took median 0.71 s upstream, 0.87 s for default Synapse, and 1.22 s for the combined flags. Each query is a new process.
+
+Details, reproduction commands, and the blocked list are in `docs/eval/AGENT_EFFICIENCY_REPORT.md`.

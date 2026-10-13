@@ -1,0 +1,7 @@
+{
+  "status": "BLOCKED",
+  "agent_unsupported_claim_rate": null,
+  "reason": "No live agent answers were produced. Existing graph-evidence checks in tools/eval/results/reasoning_results.json are not agent results.",
+  "crosscodeeval": "BLOCKED",
+  "crosscodeeval_reason": "No CrossCodeEval parquet in the repository and no provider key."
+}

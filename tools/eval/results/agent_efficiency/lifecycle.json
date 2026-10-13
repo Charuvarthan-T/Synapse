@@ -1,0 +1,191 @@
+{
+  "kind": "graph_lifecycle_not_agent",
+  "api_cost_usd": null,
+  "break_even_tasks": null,
+  "break_even_reason": "API cost was not measured, so a dollar break-even is not computed.",
+  "indexing": [
+    {
+      "engine": "synapse",
+      "source": "frozen_1",
+      "files": 1,
+      "returncode": 0,
+      "wall_clock_s": 1.029347500007134,
+      "graph_bytes": 11098,
+      "nodes": 13,
+      "edges": 29,
+      "api_cost_usd": null,
+      "api_cost_reason": "extract --code-only does not call a model",
+      "memory_rss_peak_bytes": 88621056,
+      "memory_note": null,
+      "stderr_tail": "",
+      "corpus": "frozen_1"
+    },
+    {
+      "engine": "upstream",
+      "source": "frozen_1",
+      "files": 1,
+      "returncode": 0,
+      "wall_clock_s": 1.8727479000226595,
+      "graph_bytes": 9589,
+      "nodes": 26,
+      "edges": 31,
+      "api_cost_usd": null,
+      "api_cost_reason": "extract --code-only does not call a model",
+      "memory_rss_peak_bytes": 26124288,
+      "memory_note": null,
+      "stderr_tail": "",
+      "corpus": "frozen_1"
+    },
+    {
+      "engine": "synapse",
+      "source": "frozen_7",
+      "files": 7,
+      "returncode": 0,
+      "wall_clock_s": 1.8751784999622032,
+      "graph_bytes": 208170,
+      "nodes": 259,
+      "edges": 512,
+      "api_cost_usd": null,
+      "api_cost_reason": "extract --code-only does not call a model",
+      "memory_rss_peak_bytes": 98435072,
+      "memory_note": null,
+      "stderr_tail": "",
+      "corpus": "frozen_7"
+    },
+    {
+      "engine": "upstream",
+      "source": "frozen_7",
+      "files": 7,
+      "returncode": 0,
+      "wall_clock_s": 2.581763399997726,
+      "graph_bytes": 186017,
+      "nodes": 341,
+      "edges": 629,
+      "api_cost_usd": null,
+      "api_cost_reason": "extract --code-only does not call a model",
+      "memory_rss_peak_bytes": 26533888,
+      "memory_note": null,
+      "stderr_tail": "",
+      "corpus": "frozen_7"
+    },
+    {
+      "engine": "synapse",
+      "source": "package_sample",
+      "files": 25,
+      "returncode": 0,
+      "wall_clock_s": 4.705666700028814,
+      "graph_bytes": 803870,
+      "nodes": 896,
+      "edges": 1959,
+      "api_cost_usd": null,
+      "api_cost_reason": "extract --code-only does not call a model",
+      "memory_rss_peak_bytes": 142598144,
+      "memory_note": null,
+      "stderr_tail": "",
+      "corpus": "package_sample"
+    }
+  ],
+  "incremental": [
+    {
+      "first_wall_clock_s": 1.8751784999622032,
+      "second": {
+        "engine": "synapse",
+        "source": "frozen_7",
+        "files": 7,
+        "returncode": 0,
+        "wall_clock_s": 1.0626312000094913,
+        "graph_bytes": 208330,
+        "nodes": 260,
+        "edges": 512,
+        "api_cost_usd": null,
+        "api_cost_reason": "extract --code-only does not call a model",
+        "memory_rss_peak_bytes": 89952256,
+        "memory_note": null,
+        "stderr_tail": "",
+        "corpus": "frozen_7",
+        "pass": "incremental_after_one_file_touch"
+      }
+    }
+  ],
+  "query_latency": [
+    {
+      "configuration": "original_graphify",
+      "engine": "upstream",
+      "flags": [],
+      "warmup_discarded": 1,
+      "repeats": 5,
+      "returncodes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "latency_p50_s": 0.7128794000018388,
+      "latency_p95_s": 0.7245619000168517,
+      "latency_samples_s": [
+        0.719222699990496,
+        0.7128794000018388,
+        0.6796870000544004,
+        0.7245619000168517,
+        0.7070461000548676
+      ],
+      "includes_process_startup": true,
+      "api_cost_usd": null
+    },
+    {
+      "configuration": "synapse_default",
+      "engine": "synapse",
+      "flags": [],
+      "warmup_discarded": 1,
+      "repeats": 5,
+      "returncodes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "latency_p50_s": 0.8684443000238389,
+      "latency_p95_s": 1.0272233000141568,
+      "latency_samples_s": [
+        1.0272233000141568,
+        0.8684443000238389,
+        0.8891122000059113,
+        0.8672478999942541,
+        0.8302597999572754
+      ],
+      "includes_process_startup": true,
+      "api_cost_usd": null
+    },
+    {
+      "configuration": "synapse_full",
+      "engine": "synapse",
+      "flags": [
+        "--community-aware",
+        "--learned-weights",
+        "--ppr"
+      ],
+      "warmup_discarded": 1,
+      "repeats": 5,
+      "returncodes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "latency_p50_s": 1.2202675999724306,
+      "latency_p95_s": 1.2309232999687083,
+      "latency_samples_s": [
+        1.2057283999747597,
+        1.2233197999885306,
+        1.2202675999724306,
+        1.2085454000043683,
+        1.2309232999687083
+      ],
+      "includes_process_startup": true,
+      "api_cost_usd": null
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "benchmark": "agent_efficiency",
+  "benchmark_version": 1,
+  "generated_at": "2026-10-13T11:03:00.527194+00:00",
+  "synapse_commit": "f928959a5b0be581f6749f53d5d3bfbccac1e57f",
+  "upstream_commit": "a9860f70dc3cc2e9c2d8cb923484cfa0592b9067",
+  "experiments": {
+    "A_token_and_cost": "BLOCKED",
+    "B_context_budget_agent_success": "BLOCKED",
+    "B_retrieval_context_budget": "COMPLETE",
+    "C_agent_tool_efficiency": "BLOCKED",
+    "D_indexing_break_even_wall_clock": "COMPLETE",
+    "D_indexing_break_even_dollars": "BLOCKED",
+    "E_agent_ablation": "BLOCKED",
+    "E_retrieval_ablation_reference": "RETRIEVAL_ONLY",
+    "F_repository_scale": "COMPLETE",
+    "G_graph_reliability": "COMPLETE",
+    "H_agent_correctness": "BLOCKED"
+  }
+}

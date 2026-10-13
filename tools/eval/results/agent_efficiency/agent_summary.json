@@ -1,0 +1,83 @@
+{
+  "benchmark": "agent_efficiency",
+  "status": "BLOCKED",
+  "reason": "BLOCKED: no OPENAI_API_KEY, GROQ_API_KEY, or ANTHROPIC_API_KEY. The agent adapter did not send a request. CrossCodeEval parquet is also absent, so coding-task success was not scored.",
+  "n_tasks_per_configuration": 20,
+  "configurations": [
+    "no_graph",
+    "original_graphify",
+    "synapse_default",
+    "synapse_full"
+  ],
+  "summary": {
+    "no_graph": {
+      "n": 20,
+      "completed": 0,
+      "blocked": 20,
+      "successes": 0,
+      "success_rate": null,
+      "input_tokens_per_task": null,
+      "output_tokens_per_task": null,
+      "total_tokens_per_task": null,
+      "cost_usd_per_task": null,
+      "cost_usd_per_success": null,
+      "llm_calls_per_success": null,
+      "tool_calls_per_success": null,
+      "latency_p50_s": null,
+      "latency_p95_s": null,
+      "missing_usage": 20
+    },
+    "original_graphify": {
+      "n": 20,
+      "completed": 0,
+      "blocked": 20,
+      "successes": 0,
+      "success_rate": null,
+      "input_tokens_per_task": null,
+      "output_tokens_per_task": null,
+      "total_tokens_per_task": null,
+      "cost_usd_per_task": null,
+      "cost_usd_per_success": null,
+      "llm_calls_per_success": null,
+      "tool_calls_per_success": null,
+      "latency_p50_s": null,
+      "latency_p95_s": null,
+      "missing_usage": 20
+    },
+    "synapse_default": {
+      "n": 20,
+      "completed": 0,
+      "blocked": 20,
+      "successes": 0,
+      "success_rate": null,
+      "input_tokens_per_task": null,
+      "output_tokens_per_task": null,
+      "total_tokens_per_task": null,
+      "cost_usd_per_task": null,
+      "cost_usd_per_success": null,
+      "llm_calls_per_success": null,
+      "tool_calls_per_success": null,
+      "latency_p50_s": null,
+      "latency_p95_s": null,
+      "missing_usage": 20
+    },
+    "synapse_full": {
+      "n": 20,
+      "completed": 0,
+      "blocked": 20,
+      "successes": 0,
+      "success_rate": null,
+      "input_tokens_per_task": null,
+      "output_tokens_per_task": null,
+      "total_tokens_per_task": null,
+      "cost_usd_per_task": null,
+      "cost_usd_per_success": null,
+      "llm_calls_per_success": null,
+      "tool_calls_per_success": null,
+      "latency_p50_s": null,
+      "latency_p95_s": null,
+      "missing_usage": 20
+    }
+  },
+  "not_agent_measurements": "Indexing, budget, and reliability files in this directory are separate."
+}

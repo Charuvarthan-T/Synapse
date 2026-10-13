@@ -1,0 +1,63 @@
+{
+  "generated_at": "2026-10-13T11:03:00.527194+00:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.13.5",
+  "synapse_commit": "f928959a5b0be581f6749f53d5d3bfbccac1e57f",
+  "upstream_repository": "https://github.com/Graphify-Labs/graphify.git",
+  "upstream_commit": "a9860f70dc3cc2e9c2d8cb923484cfa0592b9067",
+  "upstream_checkout": "C:\\Users\\charu\\AppData\\Local\\Temp\\graphify-upstream",
+  "upstream_present": true,
+  "frozen_graph": "tools/eval/frozen_corpus/graphify-out/graph.json",
+  "frozen_graph_present": true,
+  "provider": {
+    "available": false,
+    "providers_present": [],
+    "model": null,
+    "note": "Key values are not recorded."
+  },
+  "system_prompt_sha256_note": "The same SYSTEM_PROMPT is defined for every configuration.",
+  "system_prompt": "You are a coding agent answering a question about one repository snapshot. Use only the tools that are available. Cite repository evidence for every code claim. If the tools do not contain enough evidence, answer exactly: unknown. Do not invent files, symbols, or test results.",
+  "configurations": {
+    "no_graph": {
+      "graph_tool": false,
+      "engine": null,
+      "query_flags": [],
+      "description": "File list and file read only. No code-graph query tool."
+    },
+    "original_graphify": {
+      "graph_tool": true,
+      "engine": "upstream",
+      "query_flags": [],
+      "description": "Same prompt and file tools, plus query_graph implemented by unmodified upstream Graphify with no Synapse flags."
+    },
+    "synapse_default": {
+      "graph_tool": true,
+      "engine": "synapse",
+      "query_flags": [],
+      "description": "Synapse query_graph using default weighted traversal. Personalized PageRank, learned weights, and community-aware retrieval are off."
+    },
+    "synapse_full": {
+      "graph_tool": true,
+      "engine": "synapse",
+      "query_flags": [
+        "--community-aware",
+        "--learned-weights",
+        "--ppr"
+      ],
+      "description": "Synapse query_graph with community-aware retrieval, learned weights, and Personalized PageRank. PageRank replaces neighborhood ranking, so this is not the community walk plus PageRank."
+    }
+  },
+  "pricing": {
+    "source": "https://developers.openai.com/api/docs/pricing",
+    "as_of": "2026-10-13",
+    "tier": "standard",
+    "models": [
+      "openai:gpt-4.1",
+      "openai:gpt-4.1-mini",
+      "openai:gpt-4.1-nano",
+      "openai:gpt-4o-mini"
+    ],
+    "applied_to_a_live_run": false
+  },
+  "token_estimate": "Retrieved context uses len(text)//4 from graphify's local estimator. It is not a provider token count."
+}

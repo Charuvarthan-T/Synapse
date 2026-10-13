@@ -1,0 +1,8 @@
+{
+  "status": "RETRIEVAL_ONLY",
+  "agent_ablation": "BLOCKED",
+  "reason": "No provider credentials were used. Learned weights were not trained on the 20 labels.",
+  "prior_retrieval_summary": "tools/eval/results/retrieval_summary.json",
+  "learned_weights": "Not run. No genuine feedback file. Benchmark labels were not used as training data.",
+  "synapse_full_note": "--ppr replaces neighborhood ranking, including when community-aware is also set."
+}

@@ -1,0 +1,62 @@
+{
+  "kind": "graph_reliability_not_agent",
+  "probes": [
+    {
+      "probe": "missing_graph",
+      "returncode": 1,
+      "refused": true,
+      "stderr_tail": "error: graph file not found: C:\\Users\\charu\\AppData\\Local\\Temp\\synapse-reliability-hvc2n57s\\does-not-exist.json\n"
+    },
+    {
+      "probe": "corrupt_graph",
+      "returncode": 1,
+      "refused": true,
+      "stderr_tail": "error: could not load graph: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)\n"
+    },
+    {
+      "probe": "stale_graph",
+      "extract_returncode": 0,
+      "query_returncode": 0,
+      "new_symbol_absent_from_stale_graph": true,
+      "old_symbol_still_served": false,
+      "note": "The query was not followed by an incremental rebuild."
+    },
+    {
+      "probe": "parser_availability",
+      "levels": {
+        "python": "ast",
+        "javascript": "tree-sitter",
+        "go": "tree-sitter",
+        "not-a-language": "unsupported"
+      },
+      "note": "unsupported and parser-unavailable are not hallucination verdicts."
+    },
+    {
+      "probe": "interrupted_extract",
+      "status": "interrupted",
+      "returncode": 1,
+      "graph_json_valid": null,
+      "graph_exists": false
+    },
+    {
+      "probe": "concurrent_queries",
+      "workers": 4,
+      "returncodes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "all_ok": true
+    },
+    {
+      "probe": "repeated_query",
+      "returncodes": [
+        0,
+        0
+      ],
+      "same_node_labels": true,
+      "nodes": 8
+    }
+  ]
+}
