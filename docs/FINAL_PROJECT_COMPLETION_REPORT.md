@@ -87,7 +87,15 @@ Feedback records need `useful` and `relations`. `source: benchmark` and `held_ou
 
 ## F. Release and Git status
 
-Filled in after commit and push.
+Branch `main`, remote `https://github.com/Charuvarthan-T/Synapse.git`.
+
+| Commit | Message |
+|---|---|
+| `471201a` | feat: add learned weights, multigraph edges, structural checks, and PageRank |
+| `f037f0b` | feat: support multi-root VS Code workspaces |
+| `dc03fa6` | docs: record the integrated retrieval rerun and completion report |
+
+The retrieval JSON was generated from the tree that became `471201a` and `f037f0b`. `tools/eval/frozen_corpus/` is a local copy created by the benchmark script and is not committed. Push status is recorded after `git push origin main`.
 
 ## G. Outstanding blockers
 
