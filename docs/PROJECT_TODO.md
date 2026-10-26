@@ -37,7 +37,7 @@ means it waits for other tasks.
 
 ## C. Waiting on decisions
 
-- [x] API provider for A4 and A5: DeepSeek Flash; key created, $5 top-up (2026-10-26)
+- [x] API provider for A4 and A5: DeepSeek Flash; key created, $2 balance (2026-10-26), enough off-peak
 - [ ] Whether B6 is required, and its deadline
 
 ## Dropped

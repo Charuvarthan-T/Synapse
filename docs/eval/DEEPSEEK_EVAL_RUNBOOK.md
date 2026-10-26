@@ -9,8 +9,10 @@ order. Everything runs on your own machine; only the model calls go to DeepSeek.
 Every condition is re-run on this one model, so the September Groq numbers stay
 in the reports as historical results; don't mix the two in one table.
 
-**Expected cost:** about $0.30–$0.70 for CrossCodeEval and under $0.50 for the
-agent runs. The $5 top-up covers everything, including a repeat.
+**Expected cost:** about $0.45 for everything off-peak, about $0.90 at peak
+(CrossCodeEval ~$0.30 / $0.60, agent runs up to ~$0.15 / $0.30). The account has
+a **$2 balance**: enough for everything once at any time, or twice off-peak. Check
+the spend on DeepSeek's **Usage** page after A4, before starting A5.
 
 **Run off-peak** (half price): DeepSeek's peak hours are 01:00–04:00 and
 06:00–10:00 UTC, Monday–Friday, which is **6:30–9:30 and 11:30–15:30 IST**.
