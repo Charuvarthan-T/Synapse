@@ -3936,6 +3936,7 @@ def dispatch_command(cmd: str) -> None:
             print(
                 'Usage: graphify reason "<question>" [--graph path] '
                 "[--no-revise] [--no-community-aware] [--unweighted] "
+                "[--with-code] [--code-budget TOKENS] [--root PATH] "
                 "[--backend NAME] [--model NAME] [--json]",
                 file=sys.stderr,
             )
@@ -3946,6 +3947,9 @@ def dispatch_command(cmd: str) -> None:
         community_aware = "--no-community-aware" not in sys.argv
         weighted = "--unweighted" not in sys.argv
         as_json = "--json" in sys.argv
+        include_code = "--with-code" in sys.argv
+        code_budget_tokens = 3000
+        code_root: str | None = None
         backend_name: str | None = None
         model_name: str | None = None
         args = sys.argv[3:]
@@ -3953,6 +3957,16 @@ def dispatch_command(cmd: str) -> None:
         while i < len(args):
             if args[i] == "--graph" and i + 1 < len(args):
                 graph_path = args[i + 1]
+                i += 2
+            elif args[i] == "--code-budget" and i + 1 < len(args):
+                try:
+                    code_budget_tokens = max(100, int(args[i + 1]))
+                except ValueError:
+                    print("error: --code-budget must be an integer", file=sys.stderr)
+                    sys.exit(1)
+                i += 2
+            elif args[i] == "--root" and i + 1 < len(args):
+                code_root = args[i + 1]
                 i += 2
             elif args[i] == "--backend" and i + 1 < len(args):
                 backend_name = args[i + 1]
@@ -3976,6 +3990,9 @@ def dispatch_command(cmd: str) -> None:
             if backend_name
             else default_provider(model=model_name)
         )
+        if include_code and code_root is None:
+            # source_file paths are relative to the folder that holds graphify-out/.
+            code_root = str(gp.parent.parent if gp.parent.name == "graphify-out" else Path.cwd())
         result = reason(
             G,
             question,
@@ -3983,6 +4000,9 @@ def dispatch_command(cmd: str) -> None:
             revise=revise,
             weighted=weighted,
             community_aware=community_aware,
+            include_code=include_code,
+            root=code_root,
+            code_char_budget=code_budget_tokens * 3,
         )
         if as_json:
             print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))

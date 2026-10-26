@@ -43,6 +43,25 @@ export interface ReasonResult {
   parse_errors: string[];
   provider_errors: string[];
   graph_context_chars: number;
+  /** Source excerpts sent with the graph context (absent from engines before 0.3). */
+  code_context_chars?: number;
+  code_excerpts?: CodeExcerpt[];
+}
+
+export interface CodeExcerpt {
+  node_id: string;
+  label: string;
+  file: string;
+  start_line: number;
+  end_line: number;
+  truncated: boolean;
+}
+
+export interface ReasonOptions {
+  /** Send source excerpts of the top retrieved symbols along with the graph. */
+  includeCode?: boolean;
+  /** Token budget for those excerpts. */
+  codeBudget?: number;
 }
 
 export interface VerifyResult {
@@ -201,17 +220,19 @@ export class Engine {
     question: string,
     complete: CompletionHandler,
     signal?: AbortSignal,
-    onRequest?: (count: number) => void
+    onRequest?: (count: number) => void,
+    options?: ReasonOptions
   ): Promise<ReasonResult> {
     await this.ensure(signal);
     const ai = recordErrors(complete);
     const bridge = await startBridge(ai.handler, onRequest);
+    const args = ["reason", asArgument(question), "--graph", graphPath(root), "--backend", "editor-bridge", "--json"];
+    if (options?.includeCode) {
+      args.push("--with-code", "--root", root);
+      if (options.codeBudget) args.push("--code-budget", String(Math.round(options.codeBudget)));
+    }
     try {
-      const r = await this.run(
-        root,
-        ["reason", asArgument(question), "--graph", graphPath(root), "--backend", "editor-bridge", "--json"],
-        { signal, env: bridge.env }
-      );
+      const r = await this.run(root, args, { signal, env: bridge.env });
       if (r.code !== 0) this.fail("Reasoning", r);
       const result = parseJson<ReasonResult>(r.stdout, "reasoning");
       // The engine reports a failed first call as a placeholder draft; surface the real cause.

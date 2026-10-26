@@ -127,6 +127,25 @@ describe("Synapse engine (end to end)", function () {
     assert.ok(r.validation.counts.supported >= 1);
     assert.match(r.final_answer, /verifies the password/);
     assert.deepStrictEqual(requests, [1, 2]);
+    assert.ok(!/SOURCE CODE/.test(prompts[0].prompt), "graph only unless code context is requested");
+    assert.deepStrictEqual(r.code_excerpts, []);
+  });
+
+  it("sends the source of the retrieved symbols when code context is on", async () => {
+    const prompts: string[] = [];
+    const fakeAi: CompletionHandler = async (req) => {
+      prompts.push(req.prompt);
+      return { text: JSON.stringify({ answer: "`login()` compares a SHA-256 hash.", claims: [{ type: "calls", source: "login", target: "hash_password" }] }) };
+    };
+    const r = await engine.reason(ws, "how does login check the password", fakeAi, undefined, undefined, { includeCode: true, codeBudget: 2000 });
+    assert.match(prompts[0], /SOURCE CODE \(excerpts of the retrieved symbols\)/);
+    assert.match(prompts[0], /<untrusted_source path="app\/auth\.py"/);
+    assert.match(prompts[0], /\d+\| def login\(db: Database, name, password\):/, "real source lines reach the AI");
+    assert.ok(r.code_excerpts && r.code_excerpts.length > 0);
+    const login = r.code_excerpts.find((e) => e.label === "login()");
+    assert.deepStrictEqual(login && [login.file, login.start_line, login.end_line], ["app/auth.py", 15, 19]);
+    assert.ok((r.code_context_chars ?? 0) > 0 && (r.code_context_chars ?? 0) <= 2000 * 3 + 2000);
+    assert.ok(r.validation.counts.supported >= 1, "claims are still checked against the graph");
   });
 
   it("surfaces the real AI error instead of a generic engine message", async () => {

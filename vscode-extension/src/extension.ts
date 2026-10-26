@@ -309,12 +309,21 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
       return;
     }
     sidebar.clearInput();
-    const steps = ["Retrieving context from the graph", `Asking ${ai.label}`, "Checking claims against the graph", "Revising if the graph disagrees"];
+    const includeCode = config().get<boolean>("ai.includeCode", true);
+    const steps = [
+      includeCode ? "Retrieving graph context and source code" : "Retrieving context from the graph",
+      `Asking ${ai.label}`,
+      "Checking claims against the graph",
+      "Revising if the graph disagrees",
+    ];
     const loading = (current: number) => showView({ kind: "loading", mode: "ask", title: question, subtitle: ai.label, steps, current });
     loading(0);
     await runTask({ title: "Answering", detail: ai.label, exclusive: false }, async (task) => {
       try {
-        const result = await engine.reason(r, question, ai.complete, task.abort.signal, (n) => loading(n === 1 ? 1 : 3));
+        const result = await engine.reason(r, question, ai.complete, task.abort.signal, (n) => loading(n === 1 ? 1 : 3), {
+          includeCode,
+          codeBudget: config().get<number>("ai.codeBudget", 3000),
+        });
         showView(answerView(result, ai.label, lookup));
       } catch (err) {
         if (isCancel(err)) {

@@ -2,7 +2,7 @@
   "name": "synapse",
   "displayName": "Synapse",
   "description": "Graph-grounded answers about your codebase. A local knowledge graph with graph-validated reasoning and hallucination checks, using the AI you already have (GitHub Copilot, Claude Code or Codex).",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "synapse-labs",
   "license": "Apache-2.0",
   "icon": "media/icon.png",
@@ -218,6 +218,20 @@
           "default": "",
           "order": 1,
           "markdownDescription": "Model to use with the selected provider. Leave empty for the provider's default. Easiest to set with **Synapse: Choose AI Model**."
+        },
+        "synapse.ai.includeCode": {
+          "type": "boolean",
+          "default": true,
+          "order": 1.1,
+          "markdownDescription": "When you **Ask**, also send the source code of the most relevant symbols to your AI, next to the graph context, so it can explain how the code works and not only how it is connected. Only files inside the workspace are read. Turn off to send the graph (names, relations, file locations) only. Enrich Graph never sends source code."
+        },
+        "synapse.ai.codeBudget": {
+          "type": "number",
+          "default": 3000,
+          "minimum": 500,
+          "maximum": 20000,
+          "order": 1.2,
+          "markdownDescription": "Maximum tokens of source code sent per **Ask** when `#synapse.ai.includeCode#` is on."
         },
         "synapse.autoBuildOnOpen": {
           "type": "boolean",

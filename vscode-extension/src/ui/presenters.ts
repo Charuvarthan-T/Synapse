@@ -160,6 +160,14 @@ export function answerView(result: ReasonResult, providerLabel: string, lookup: 
     verdict: reasonVerdict(result),
     claims,
     contextChars: result.graph_context_chars,
+    codeChars: result.code_context_chars ?? 0,
+    code: (result.code_excerpts ?? []).map((ex) => ({
+      label: ex.label,
+      file: ex.file,
+      line: ex.start_line,
+      endLine: ex.end_line,
+      truncated: ex.truncated,
+    })),
   };
 }
 
