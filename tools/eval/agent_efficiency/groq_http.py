@@ -1,6 +1,7 @@
-"""Groq OpenAI-compatible chat client.
+"""OpenAI-compatible chat client for the agent-efficiency benchmark.
 
-The API key is read from GROQ_API_KEY and is never included in returned
+Groq by default; SYNAPSE_EVAL_PROVIDER=deepseek switches to DeepSeek
+(DEEPSEEK_API_KEY, non-thinking mode). The API key is never included in returned
 records. Rate-limit responses are retried with backoff. Usage from each
 attempt is returned even when a later attempt succeeds.
 """
@@ -18,7 +19,13 @@ from agent_efficiency.groq_client import parse_groq_usage, redact
 
 API_URL = "https://api.groq.com/openai/v1/chat/completions"
 MODELS_URL = "https://api.groq.com/openai/v1/models"
+PROVIDERS = {
+    "groq": {"base": "https://api.groq.com/openai/v1", "key_env": "GROQ_API_KEY", "extra": {}},
+    # Thinking is DeepSeek's default; hidden reasoning would eat the per-step output cap.
+    "deepseek": {"base": "https://api.deepseek.com", "key_env": "DEEPSEEK_API_KEY", "extra": {"thinking": {"type": "disabled"}}},
+}
 PREFERRED_MODELS = (
+    "deepseek-flash",
     "llama-3.1-8b-instant",
     "llama-3.3-70b-versatile",
     "meta-llama/llama-4-scout-17b-16e-instruct",
@@ -73,8 +80,20 @@ def request_json(
         return exc.code, body, _rate_headers(exc.headers)
 
 
+def provider_name() -> str:
+    name = os.environ.get("SYNAPSE_EVAL_PROVIDER", "groq").strip().lower()
+    if name not in PROVIDERS:
+        raise SystemExit(f"Unknown SYNAPSE_EVAL_PROVIDER {name!r}; use one of {sorted(PROVIDERS)}.")
+    return name
+
+
+def provider() -> dict[str, Any]:
+    return PROVIDERS[provider_name()]
+
+
 def list_model_ids(api_key: str, timeout: float = 30) -> list[str]:
-    status, body, _headers_out = request_json(url=MODELS_URL, api_key=api_key, payload=None, timeout=timeout)
+    url = provider()["base"] + "/models"
+    status, body, _headers_out = request_json(url=url, api_key=api_key, payload=None, timeout=timeout)
     if status != 200:
         message = redact(json.dumps(body)[:500])
         raise GroqCallError(f"model list failed with HTTP {status}: {message}", status=status, attempts=[])
@@ -117,9 +136,11 @@ def complete_chat(
     if tools:
         payload["tools"] = tools
         payload["tool_choice"] = "auto"
+    payload.update(provider()["extra"])
+    url = provider()["base"] + "/chat/completions"
     attempts: list[dict[str, Any]] = []
     for attempt in range(1, max_attempts + 1):
-        status, body, headers = request_json(url=API_URL, api_key=api_key, payload=payload, timeout=timeout)
+        status, body, headers = request_json(url=url, api_key=api_key, payload=payload, timeout=timeout)
         parsed = parse_groq_usage(body if isinstance(body, dict) else None)
         request_id = None
         if isinstance(body, dict) and body.get("id"):

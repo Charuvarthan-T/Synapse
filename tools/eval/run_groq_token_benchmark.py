@@ -36,10 +36,12 @@ from agent_efficiency.groq_http import (  # noqa: E402
     GroqCallError,
     choose_model,
     complete_chat,
+    provider,
+    provider_name,
     list_model_ids,
 )
 
-RESULTS = HERE / "results" / "agent_efficiency" / "groq"
+RESULTS = HERE / "results" / "agent_efficiency"  # one subfolder per provider
 USER_INSTRUCTION = (
     " Answer in at most 120 words and cite the function or symbol names the snapshot supports."
     " If the query_graph tool is available, call it once with this question before answering."
@@ -146,6 +148,7 @@ def _query_graph(configuration: str, question: str) -> tuple[str, list[str]]:
     env["GRAPHIFY_NO_AUTO_REFRESH"] = "1"
     env.pop("PYTHONPATH", None)
     env.pop("GROQ_API_KEY", None)
+    env.pop("DEEPSEEK_API_KEY", None)
     env.pop("OPENAI_API_KEY", None)
     env.pop("ANTHROPIC_API_KEY", None)
     cwd = ROOT
@@ -431,9 +434,10 @@ def _blocked(task: dict, configuration: str, run_id: str, model: str, reason: st
 
 def main() -> None:
     run_all = "--all" in sys.argv
-    api_key = os.environ.get("GROQ_API_KEY", "")
+    key_env = provider()["key_env"]
+    api_key = os.environ.get(key_env, "")
     if not api_key:
-        raise SystemExit("GROQ_API_KEY is not set. No request was sent.")
+        raise SystemExit(f"{key_env} is not set. No request was sent.")
     if not GRAPH.exists():
         raise SystemExit(f"frozen graph missing: {GRAPH}")
     if not (UPSTREAM / "graphify" / "__init__.py").exists():
@@ -456,7 +460,7 @@ def main() -> None:
     )
     if not probe["usage"]["usage_complete"]:
         raise SystemExit("The probe completion did not include input and output token counts. Benchmark not started.")
-    out = RESULTS / ("full_graph_instruction" if run_all else "pilot_graph_instruction")
+    out = RESULTS / provider_name() / ("full_graph_instruction" if run_all else "pilot_graph_instruction")
     out.mkdir(parents=True, exist_ok=True)
     records: list[dict] = []
     call_rows: list[dict] = []
@@ -534,8 +538,14 @@ def main() -> None:
         "tool_char_cap": TOOL_CHAR_CAP,
         "temperature": 0,
         "system_prompt": SYSTEM_PROMPT,
-        "groq_api_key_present": True,
-        "cost_basis": "Free-tier requests are recorded as 0 USD when usage is complete. This is not an invoice and the paid price table is not applied.",
+        "provider": provider_name(),
+        "thinking": provider()["extra"].get("thinking", {}).get("type", "provider default"),
+        "api_key_present": True,
+        "cost_basis": (
+            "Free-tier requests are recorded as 0 USD when usage is complete. This is not an invoice and the paid price table is not applied."
+            if provider_name() == "groq"
+            else "Paid API. Cost = provider token counts x the provider's list price; the provider's usage page is the invoice."
+        ),
         "counting_method": "provider",
         "local_char_estimate_used": False,
         "mode": "all" if run_all else "pilot",

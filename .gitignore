@@ -40,3 +40,8 @@ paper/
 
 # macOS Finder metadata
 .DS_Store
+
+# DeepSeek evaluation inputs (docs/eval/DEEPSEEK_EVAL_RUNBOOK.md)
+/cceval_python.parquet
+/tools/eval/cceval_smoke.json*
+/tools/eval/frozen_corpus/
