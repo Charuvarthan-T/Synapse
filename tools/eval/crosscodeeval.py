@@ -10,7 +10,20 @@ thing that changes between conditions is the cross-file context:
                                  (checkout in GRAPHIFY_UPSTREAM, no Synapse flags)
   4. synapse_context           - `graphify query --community-aware` from this repo
 
-Both graph conditions query the same AST-only graph of the task's repository,
+`--conditions all` adds four Synapse variants (same tasks, same model):
+
+  5. synapse_hybrid_context      - `--community-aware --hybrid`: graph ranking fused
+                                   with BM25 over each symbol's source code
+  6. synapse_code_context        - condition 4's ranking, but whole symbol bodies
+                                   (graphify.code_context, as the extension's Ask
+                                   sends them) instead of 8-line snippets
+  7. synapse_hybrid_code_context - condition 5's ranking with whole symbol bodies
+  8. bm25_synapse_context        - 3 BM25 chunks + 3 Synapse snippets
+
+Conditions 6 and 7 are capped at CODE_CHAR_BUDGET characters, about the size of
+the BM25 context, so they are compared at a similar token cost.
+
+All graph conditions query the same AST-only graph of the task's repository,
 built once by this repo (`prepare`), so the comparison isolates retrieval. As
 in CrossCodeEval's own BM25 retrieval, snippets from the file being completed
 are excluded: the full repository contains the answer line.
@@ -48,8 +61,17 @@ REPO_ROOT = HERE.parent.parent
 UPSTREAM = Path(os.environ.get("GRAPHIFY_UPSTREAM", Path(os.environ.get("TEMP", "/tmp")) / "graphify-upstream"))
 
 CONDITIONS = ("no_context", "bm25_context", "original_graphify_context", "synapse_context")
+EXTRA_CONDITIONS = (
+    "synapse_hybrid_context",
+    "synapse_code_context",
+    "synapse_hybrid_code_context",
+    "bm25_synapse_context",
+)
 MAX_OUTPUT_TOKENS = 300  # one line of code; unchanged from the September runs
 SYNAPSE_QUERY_FLAGS = ["--community-aware"]  # what the VS Code extension's Search uses
+HYBRID_QUERY_FLAGS = ["--community-aware", "--hybrid"]
+CODE_CHAR_BUDGET = 2600  # ~ the mean BM25 context (5 chunks) on the A4 tasks
+CODE_MAX_EXCERPTS = 5
 
 # OpenAI-compatible providers. DeepSeek runs in non-thinking mode: thinking is
 # its default, and hidden reasoning would count against MAX_OUTPUT_TOKENS.
@@ -165,11 +187,42 @@ def snippets(repo_dir: Path, nodes: list[tuple[str, str, int]], exclude_file: st
 
 
 class GraphContext:
-    """Runs one engine's `graphify query` against a repository's graph."""
+    """Runs one engine's `graphify query` against a repository's graph.
 
-    def __init__(self, engine: str):
+    With ``code=True`` the ranked symbols are rendered as whole source bodies
+    (graphify.code_context, within CODE_CHAR_BUDGET) instead of 8-line snippets."""
+
+    def __init__(self, engine: str, flags: list[str] | None = None, code: bool = False, k: int = 5):
         self.engine = engine
+        self.flags = SYNAPSE_QUERY_FLAGS if flags is None else flags
+        self.code = code
+        self.k = k
         self._labels: dict[Path, dict[str, dict]] = {}
+        self._graphs: dict[Path, object] = {}
+
+    def _code_body_context(self, repo_dir: Path, graph: Path, nodes: list[tuple[str, str, int]], exclude_file: str) -> str:
+        from graphify.code_context import collect_code_excerpts
+        from graphify.multigraph_store import graph_from_node_link
+
+        if graph not in self._graphs:
+            self._graphs[graph] = graph_from_node_link(json.loads(graph.read_text(encoding="utf-8")))
+        G = self._graphs[graph]
+        by_loc = {}
+        for nid, d in G.nodes(data=True):
+            m = re.search(r"L(\d+)", str(d.get("source_location") or ""))
+            if m:
+                by_loc.setdefault((str(d.get("source_file") or "").replace("\\", "/"), int(m.group(1))), nid)
+        ids = [
+            by_loc[(src, loc)]
+            for label, src, loc in nodes
+            if (src, loc) in by_loc and not label.endswith(".py") and not (exclude_file and src == exclude_file)
+        ]
+        excerpts = collect_code_excerpts(G, ids, repo_dir, char_budget=CODE_CHAR_BUDGET, max_excerpts=CODE_MAX_EXCERPTS)
+        return "\n\n".join(
+            f"# from {ex.file} (lines {ex.start_line}-{ex.end_line}, {ex.label})\n"
+            + re.sub(r"(?m)^\d+\| ", "", ex.text)
+            for ex in excerpts
+        )
 
     def _graph_labels(self, graph: Path) -> dict[str, dict]:
         if graph not in self._labels:
@@ -193,9 +246,12 @@ class GraphContext:
             env["PYTHONPATH"] = str(UPSTREAM)
             cwd = UPSTREAM
         else:
-            cmd += SYNAPSE_QUERY_FLAGS
+            cmd += self.flags
         proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=cwd, env=env)
-        return snippets(repo_dir, parse_query_nodes(proc.stdout, self._graph_labels(graph)), exclude_file)
+        nodes = parse_query_nodes(proc.stdout, self._graph_labels(graph))
+        if self.code:
+            return self._code_body_context(repo_dir, graph, nodes, exclude_file)
+        return snippets(repo_dir, nodes, exclude_file, k=self.k)
 
 
 # --- Model ------------------------------------------------------------------------
@@ -231,12 +287,13 @@ class Model:
     """One completion per call. Failed calls are retried and then reported as
     errors (never scored as wrong answers), and token usage is totalled."""
 
-    def __init__(self, provider: str, model: str | None, dry_run: bool = False):
+    def __init__(self, provider: str, model: str | None, dry_run: bool = False, temperature: float | None = None):
         self.provider = provider
         cfg = PROVIDERS[provider]
         self.model = model or cfg["model"]
         self.extra_body = cfg["extra_body"]
         self.dry_run = dry_run
+        self.temperature = temperature
         self.usage = {"calls": 0, "input_tokens": 0, "output_tokens": 0, "cache_hit_tokens": 0}
         self.served_models: set[str] = set()
         if not dry_run:
@@ -265,6 +322,8 @@ class Model:
                 kwargs = {"model": self.model, "messages": messages, "max_tokens": MAX_OUTPUT_TOKENS}
                 if self.extra_body:
                     kwargs["extra_body"] = self.extra_body
+                if self.temperature is not None:
+                    kwargs["temperature"] = self.temperature
                 resp = self.client.chat.completions.create(**kwargs)
                 u = resp.usage
                 self.usage["calls"] += 1
@@ -356,8 +415,16 @@ def cmd_run(args) -> None:
     if not (UPSTREAM / "graphify" / "__init__.py").exists():
         raise SystemExit(f"Original Graphify checkout missing: {UPSTREAM} (set GRAPHIFY_UPSTREAM).")
 
-    model = Model(args.provider, args.model, dry_run=args.dry_run)
-    engines = {"original_graphify_context": GraphContext("upstream"), "synapse_context": GraphContext("synapse")}
+    conditions = args.conditions
+    model = Model(args.provider, args.model, dry_run=args.dry_run, temperature=args.temperature)
+    engines = {
+        "original_graphify_context": GraphContext("upstream"),
+        "synapse_context": GraphContext("synapse"),
+        "synapse_hybrid_context": GraphContext("synapse", HYBRID_QUERY_FLAGS),
+        "synapse_code_context": GraphContext("synapse", code=True),
+        "synapse_hybrid_code_context": GraphContext("synapse", HYBRID_QUERY_FLAGS, code=True),
+    }
+    synapse_top3 = GraphContext("synapse", k=3)
     progress = Path(str(args.out) + ".progress.jsonl")
     rows = [json.loads(line) for line in progress.read_text(encoding="utf-8").splitlines() if line.strip()] if progress.exists() else []
     done = {r["task_id"] for r in rows}
@@ -371,7 +438,7 @@ def cmd_run(args) -> None:
     for repo_id in args.repos:
         group = df[df["metadata"].apply(lambda m: m["repository"]) == repo_id]
         selected.extend(group.head(args.n_per_repo).iterrows())
-    print(f"{len(selected)} tasks x {len(CONDITIONS)} conditions, model {model.model} ({args.provider}).")
+    print(f"{len(selected)} tasks x {len(conditions)} conditions, model {model.model} ({args.provider}).")
 
     stopped = None
     with progress.open("a", encoding="utf-8") as log:
@@ -386,17 +453,30 @@ def cmd_run(args) -> None:
             repo_id = repository(r)
             repo_dir = args.repos_dir / repo_map.get(repo_id, repo_id)
             prompt, gold, own_file = r["prompt"], r["groundtruth"], task_file(r)
-            contexts = {
-                "no_context": "",
-                "bm25_context": bm25_context(r),
-                "original_graphify_context": engines["original_graphify_context"](repo_dir, prompt, own_file),
-                "synapse_context": engines["synapse_context"](repo_dir, prompt, own_file),
-            }
+            contexts = {}
+            for cond in conditions:
+                if cond == "no_context":
+                    contexts[cond] = ""
+                elif cond == "bm25_context":
+                    contexts[cond] = bm25_context(r)
+                elif cond == "bm25_synapse_context":
+                    parts = [bm25_context(r, k=3), synapse_top3(repo_dir, prompt, own_file)]
+                    contexts[cond] = "\n\n".join(p for p in parts if p)
+                else:
+                    contexts[cond] = engines[cond](repo_dir, prompt, own_file)
             row = {"task_id": task_id, "repo": repo_id, "gold": gold}
             before = dict(model.usage)
-            for cond in CONDITIONS:
+            for cond in conditions:
+                cond_before = dict(model.usage)
                 pred, error = model.complete(build_messages(prompt, contexts[cond]))
-                row[cond] = {"pred": pred, "error": error, "context_found": bool(contexts[cond])}
+                row[cond] = {
+                    "pred": pred,
+                    "error": error,
+                    "context_found": bool(contexts[cond]),
+                    "context_chars": len(contexts[cond]),
+                    "input_tokens": model.usage["input_tokens"] - cond_before["input_tokens"],
+                    "output_tokens": model.usage["output_tokens"] - cond_before["output_tokens"],
+                }
                 if pred is not None:
                     row[cond].update(score(pred, gold))
             row["usage"] = {k: model.usage[k] - before.get(k, 0) for k in model.usage}
@@ -404,7 +484,7 @@ def cmd_run(args) -> None:
             log.flush()
             rows.append(row)
             marks = " ".join(
-                f"{c.replace('_context', '')}={'ERR' if row[c]['error'] else row[c]['exact_match']}" for c in CONDITIONS
+                f"{c.replace('_context', '')}={'ERR' if row[c]['error'] else row[c]['exact_match']}" for c in conditions
             )
             print(f"[{n}/{len(selected)}] {task_id}: {marks}")
 
@@ -412,20 +492,26 @@ def cmd_run(args) -> None:
 
 
 def write_summary(args, model: Model, rows: list[dict], stopped: str | None = None) -> None:
-    complete = [r for r in rows if all(r[c].get("error") is None and r[c].get("pred") is not None for c in CONDITIONS)]
+    conditions = args.conditions
+    complete = [
+        r for r in rows if all(c in r and r[c].get("error") is None and r[c].get("pred") is not None for c in conditions)
+    ]
     summary: dict = {
         "n_tasks_total": len(rows),
         "n_tasks_scored": len(complete),
         "n_tasks_with_errors": len(rows) - len(complete),
         "note": "Tasks where any condition failed after retries are excluded from every condition, so all conditions are scored on the same tasks.",
     }
-    for cond in CONDITIONS:
+    for cond in conditions:
         n = len(complete) or 1
         summary[cond] = {
             "exact_match": sum(r[cond]["exact_match"] for r in complete) / n,
             "edit_sim": sum(r[cond]["edit_sim"] for r in complete) / n,
             "context_found_rate": sum(r[cond]["context_found"] for r in complete) / n,
         }
+        if all("input_tokens" in r[cond] for r in complete):  # rows from before per-condition usage lack it
+            summary[cond]["mean_input_tokens"] = sum(r[cond]["input_tokens"] for r in complete) / n
+            summary[cond]["mean_context_chars"] = sum(r[cond]["context_chars"] for r in complete) / n
     price = PROVIDERS[args.provider]["price"]
     usage = dict(model.usage)
     if price:
@@ -441,6 +527,10 @@ def write_summary(args, model: Model, rows: list[dict], stopped: str | None = No
         "thinking": "disabled" if PROVIDERS[args.provider]["extra_body"] else "provider default",
         "max_output_tokens": MAX_OUTPUT_TOKENS,
         "synapse_query_flags": SYNAPSE_QUERY_FLAGS,
+        "conditions": list(conditions),
+        "temperature": args.temperature,
+        "hybrid_query_flags": HYBRID_QUERY_FLAGS,
+        "code_char_budget": CODE_CHAR_BUDGET,
         "synapse_commit": _git(REPO_ROOT),
         "upstream_commit": _git(UPSTREAM),
         "repos": args.repos,
@@ -489,8 +579,15 @@ def main() -> None:
         "--max-cost", type=float, default=None,
         help="stop once this session's spend, estimated at peak prices, reaches this many USD (resume later)",
     )
+    run.add_argument(
+        "--conditions", choices=["base", "all"], default="base",
+        help="base: the four A4 conditions; all: also the four Synapse variants (hybrid, code bodies, BM25+Synapse)",
+    )
+    run.add_argument("--temperature", type=float, default=None, help="sampling temperature (default: the provider's)")
 
     args = ap.parse_args()
+    if args.command == "run":
+        args.conditions = CONDITIONS + (EXTRA_CONDITIONS if args.conditions == "all" else ())
     {"list-repos": cmd_list_repos, "prepare": cmd_prepare, "run": cmd_run}[args.command](args)
 
 

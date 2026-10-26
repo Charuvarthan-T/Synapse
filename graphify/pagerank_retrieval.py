@@ -69,15 +69,54 @@ def personalized_pagerank(
     personalization = {node: share for node in personalization_nodes}
     if host.number_of_edges() == 0:
         return {node: (share if node in personalization else 0.0) for node in host.nodes}
-    scores = nx.pagerank(
-        host,
-        alpha=float(alpha),
-        personalization=personalization,
-        weight="weight",
-        tol=float(tol),
-        max_iter=int(max_iter),
-    )
+    try:
+        scores = nx.pagerank(
+            host,
+            alpha=float(alpha),
+            personalization=personalization,
+            weight="weight",
+            tol=float(tol),
+            max_iter=int(max_iter),
+        )
+    except ImportError:
+        # NetworkX's pagerank needs scipy, which is not a graphify dependency.
+        scores = _pagerank_power(host, alpha=float(alpha), personalization=personalization, tol=float(tol), max_iter=int(max_iter))
     return {node: float(score) for node, score in scores.items()}
+
+
+def _pagerank_power(
+    host: nx.DiGraph,
+    *,
+    alpha: float,
+    personalization: dict[str, float],
+    tol: float,
+    max_iter: int,
+) -> dict[str, float]:
+    """Pure-Python power iteration with NetworkX's semantics (uniform start,
+    weight-normalised out-edges, dangling mass redistributed by personalization)."""
+    nodes = list(host.nodes)
+    n = len(nodes)
+    total = sum(personalization.values())
+    p = {node: personalization.get(node, 0.0) / total for node in nodes}
+    out: dict[str, list[tuple[str, float]]] = {}
+    for node in nodes:
+        edges = [(v, float(d.get("weight", 1.0))) for _, v, d in host.out_edges(node, data=True)]
+        s = sum(w for _, w in edges)
+        out[node] = [(v, w / s) for v, w in edges] if s > 0 else []
+    dangling = [node for node in nodes if not out[node]]
+    x = {node: 1.0 / n for node in nodes}
+    for _ in range(max_iter):
+        last = x
+        x = dict.fromkeys(nodes, 0.0)
+        dangle = alpha * sum(last[node] for node in dangling)
+        for node in nodes:
+            for v, w in out[node]:
+                x[v] += alpha * last[node] * w
+        for node in nodes:
+            x[node] += (dangle + (1.0 - alpha)) * p[node]
+        if sum(abs(x[node] - last[node]) for node in nodes) < n * tol:
+            return x
+    raise nx.PowerIterationFailedConvergence(max_iter)
 
 
 def rank_by_pagerank(scores: dict[str, float]) -> list[str]:

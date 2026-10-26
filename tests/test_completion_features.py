@@ -159,6 +159,20 @@ def test_personalized_pagerank_is_deterministic_and_prefers_call_chain():
     assert "Personalized PageRank" in text
 
 
+def test_personalized_pagerank_works_without_scipy(monkeypatch):
+    def needs_scipy(*args, **kwargs):
+        raise ModuleNotFoundError("No module named 'scipy'")
+
+    monkeypatch.setattr(nx, "pagerank", needs_scipy)
+    G = _code_graph()
+    scores = personalized_pagerank(G, ["auth"])
+    assert abs(sum(scores.values()) - 1.0) < 1e-6
+    ranked = rank_by_pagerank(scores)
+    assert ranked[0] == "auth"
+    assert ranked.index("login") < ranked.index("types")
+    assert scores == personalized_pagerank(G, ["auth"])
+
+
 def test_ppr_uses_learned_registry_and_multigraph_edges():
     G = ensure_multigraph(_code_graph())
     apply_semantic_relations(
