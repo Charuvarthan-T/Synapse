@@ -20,10 +20,17 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Every suite runs on all three systems users install on. Linux also builds the
+    # .vsix that is attached to the release.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: vscode-extension
+        shell: bash
     env:
       SYNAPSE_TEST_HOME: ${{ github.workspace }}/.synapse-test-home
     steps:
@@ -35,10 +42,14 @@ jobs:
           cache: npm
           cache-dependency-path: vscode-extension/package-lock.json
 
-      - name: Install uv and Python
-        uses: astral-sh/setup-uv@v8.1.0
+      # A standard Python on PATH, as on a user's machine: the extension finds it
+      # (py / python / python3) to create its private engine environment.
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
 
       - name: Install dependencies
         run: npm ci
@@ -62,17 +73,18 @@ jobs:
         run: npm run test:engine
 
       - name: VS Code integration tests
-        run: xvfb-run -a npm run test:integration
+        run: ${{ runner.os == 'Linux' && 'xvfb-run -a ' || '' }}npm run test:integration
 
       - name: Package
         run: npx vsce package --out "synapse-$(node -p "require('./package.json').version").vsix"
 
       - name: Test the packaged .vsix as installed by users
-        run: xvfb-run -a npm run test:vsix
+        run: ${{ runner.os == 'Linux' && 'xvfb-run -a ' || '' }}npm run test:vsix
         env:
           SYNAPSE_VSIX_TEST_HOME: ${{ github.workspace }}/.synapse-vsix-home
 
       - uses: actions/upload-artifact@v4
+        if: runner.os == 'Linux'
         with:
           name: synapse-vsix
           path: vscode-extension/*.vsix
