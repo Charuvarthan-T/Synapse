@@ -879,7 +879,7 @@ def dispatch_command(cmd: str) -> None:
             print(
                 'Usage: graphify query "<question>" [--dfs] [--context C] [--budget N] '
                 "[--weighted|--unweighted] [--community-aware|--no-community-aware] "
-                "[--ppr] [--learned-weights] [--graph path]",
+                "[--ppr] [--learned-weights] [--hybrid] [--root PATH] [--graph path]",
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -894,6 +894,8 @@ def dispatch_command(cmd: str) -> None:
         community_aware = "--community-aware" in sys.argv
         use_ppr = "--ppr" in sys.argv
         use_learned = "--learned-weights" in sys.argv
+        use_hybrid = "--hybrid" in sys.argv
+        code_root: str | None = None
         budget = 2000
         graph_path = _default_graph_path()
         context_filters: list[str] = []
@@ -923,6 +925,9 @@ def dispatch_command(cmd: str) -> None:
             elif args[i] == "--graph" and i + 1 < len(args):
                 graph_path = args[i + 1]
                 i += 2
+            elif args[i] == "--root" and i + 1 < len(args):
+                code_root = args[i + 1]
+                i += 2
             elif args[i] in (
                 "--weighted",
                 "--unweighted",
@@ -931,6 +936,7 @@ def dispatch_command(cmd: str) -> None:
                 "--no-community-aware",
                 "--ppr",
                 "--learned-weights",
+                "--hybrid",
             ):
                 i += 1
             else:
@@ -989,6 +995,9 @@ def dispatch_command(cmd: str) -> None:
 
             _registry = load_registry_for_graph(gp)
             _learned = _registry is not None
+        if use_hybrid and code_root is None:
+            # source_file paths are relative to the folder that holds graphify-out/.
+            code_root = str(gp.parent.parent if gp.parent.name == "graphify-out" else Path.cwd())
         _result = _query_graph_text(
             G,
             question,
@@ -1001,6 +1010,8 @@ def dispatch_command(cmd: str) -> None:
             retrieval="ppr" if use_ppr else "traversal",
             learned=_learned,
             registry=_registry,
+            hybrid=use_hybrid,
+            root=code_root,
         )
         querylog.log_query(
             kind="query",

@@ -825,11 +825,15 @@ def _subgraph_to_text(
     distance: dict[str, int] | None = None,
     registry: RelationWeightRegistry | None = None,
     ranked_out: list[str] | None = None,
+    lexical_ranked: list[str] | None = None,
 ) -> str:
     """Render subgraph as text, cutting at token_budget (approx 3 chars/token).
 
     ranked_out: if given, receives the node ids in rendered (relevance) order,
     so callers such as code-context selection can follow the same ranking.
+
+    lexical_ranked: hybrid retrieval. The top BM25-over-code symbols join the
+    node set and the order is the reciprocal rank fusion of graph and lexical.
 
     seeds: exact-match nodes rendered first before the degree-sorted expansion,
     so the queried symbol always appears at the top of the output.
@@ -869,6 +873,12 @@ def _subgraph_to_text(
         degree_of=G.degree,
         weighted=weighted,
     )
+    if lexical_ranked:
+        from graphify.lexical_retrieval import HYBRID_LEXICAL_LIMIT, rrf_fuse
+
+        extra = [n for n in lexical_ranked[:HYBRID_LEXICAL_LIMIT] if n in G]
+        ordered = rrf_fuse(ordered, extra)
+        nodes = set(nodes) | set(extra)
     if ranked_out is not None:
         ranked_out.extend(ordered)
     render_edges = rank_edges_for_retrieval(list(edges), G, weighted=weighted, registry=registry)
@@ -987,12 +997,25 @@ def _query_graph_text(
     retrieval: str = "traversal",
     learned: bool = False,
     ranked_out: list[str] | None = None,
+    hybrid: bool = False,
+    root: str | Path | None = None,
 ) -> str:
     terms = _query_terms(question)
     qs = _score_query(G, terms, collect_per_term_seeds=True)
     start_nodes = _pick_seeds(qs.ranked, G=G, best_seed_by_term=qs.best_seed_by_term)
+    lexical: list[str] = []
+    if hybrid and root is not None:
+        from graphify.lexical_retrieval import lexical_ranking
+
+        lexical = lexical_ranking(G, question, root)
     if not start_nodes:
-        return "No matching nodes found."
+        if not lexical:
+            return "No matching nodes found."
+        header = f"Traversal: none (no symbol name matched) | Hybrid lexical | {len(lexical)} code matches\n\n"
+        return header + _subgraph_to_text(
+            G, set(), [], token_budget, seeds=[], weighted=weighted, registry=registry,
+            ranked_out=ranked_out, lexical_ranked=lexical,
+        )
     resolved_filters, filter_source = _resolve_context_filters(question, context_filters)
     traversal_graph = _filter_graph_by_context(G, resolved_filters)
     traversal_mode = "dfs" if mode == "dfs" else "bfs"
@@ -1034,6 +1057,8 @@ def _query_graph_text(
         header_parts.insert(1, "Weighted relations")
     if learned:
         header_parts.append("Learned weights")
+    if hybrid:
+        header_parts.append("Hybrid lexical" if lexical else "Hybrid lexical (no code matches)")
     if selection is not None and selection.selected:
         header_parts.insert(
             1 if not weighted else 2,
@@ -1059,6 +1084,7 @@ def _query_graph_text(
         distance=traversal.distance,
         registry=registry,
         ranked_out=ranked_out,
+        lexical_ranked=lexical,
     )
 
 
