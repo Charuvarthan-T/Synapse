@@ -1640,6 +1640,8 @@ def dispatch_command(cmd: str) -> None:
         force_relabel = cmd == "label"
         no_viz = "--no-viz" in sys.argv
         no_label = "--no-label" in sys.argv
+        # Name communities by their contents (no AI) instead of Community N.
+        structural_labels = "--structural-labels" in sys.argv
         missing_only = "--missing-only" in sys.argv
         co_timing = "--timing" in sys.argv
         _backend_arg = next((a for a in sys.argv if a.startswith("--backend=")), None)
@@ -1787,7 +1789,7 @@ def dispatch_command(cmd: str) -> None:
         label_token_usage = {"input": 0, "output": 0}
         placeholder_only = False
         if labels_path.exists() and not force_relabel:
-            from graphify.cluster import community_member_sigs, label_communities_by_hub
+            from graphify.cluster import community_member_sigs, label_communities_by_content
 
             sig_path = labels_path.parent / (labels_path.name + ".sig")
             saved_sigs: dict[int, str] = {}
@@ -1815,7 +1817,7 @@ def dispatch_command(cmd: str) -> None:
                     labels[cid] = existing_labels[cid]
                 else:
                     if hub_labels is None:
-                        hub_labels = label_communities_by_hub(G, communities)
+                        hub_labels = label_communities_by_content(G, communities)
                     labels[cid] = hub_labels[cid]
                     if have_label:
                         changed += 1
@@ -1823,19 +1825,23 @@ def dispatch_command(cmd: str) -> None:
                 print(
                     f"[graphify] community set changed since labeling "
                     f"({len(existing_labels)} saved labels, {len(communities)} communities now; "
-                    f"renamed {changed} community(ies) by their hub). "
+                    f"renamed {changed} community(ies) by their contents). "
                     f"Run `graphify label` to refresh names with the LLM.",
                     file=sys.stderr,
                 )
+        elif structural_labels and not force_relabel:
+            from graphify.cluster import label_communities_by_content
+
+            labels = label_communities_by_content(G, communities)
         elif no_label and not force_relabel:
             labels = {cid: f"Community {cid}" for cid in communities}
             placeholder_only = True
         else:
-            from graphify.cluster import label_communities_by_hub
+            from graphify.cluster import label_communities_by_content
             from graphify.llm import generate_community_labels
 
             print("Labeling communities...")
-            hub_labels = label_communities_by_hub(G, communities)
+            hub_labels = label_communities_by_content(G, communities)
             label_communities_input = communities
             labels = dict(hub_labels)
             if missing_only:

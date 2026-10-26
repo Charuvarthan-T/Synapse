@@ -143,6 +143,17 @@ describe("graphModel", () => {
       assert.ok(!stats.keySymbols.some((k) => ["f", "concept", "main"].includes(k.id)), "file nodes (bare or path labels) are not key symbols");
     });
 
+    it("lists the largest communities by name, with their most connected member", () => {
+      const named = {
+        ...data,
+        nodes: data.nodes.map((n) => (n.community === 0 ? { ...n, community_name: "app/auth.py · login" } : n)),
+      };
+      assert.deepStrictEqual(computeStats(parseGraph(named)).topCommunities, [
+        { id: 0, name: "app/auth.py · login", size: 3, hubId: "login" },
+        { id: 1, name: "Community 1", size: 2, hubId: "main" },
+      ]);
+    });
+
     it("GraphCache re-reads only when the file changes, and finds nodes by label", () => {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), "synapse-cache-"));
       try {

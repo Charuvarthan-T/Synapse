@@ -2,7 +2,7 @@
   "name": "synapse",
   "displayName": "Synapse",
   "description": "Graph-grounded answers about your codebase. A local knowledge graph with graph-validated reasoning and hallucination checks, using the AI you already have (GitHub Copilot, Claude Code or Codex).",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "publisher": "synapse-labs",
   "license": "Apache-2.0",
   "icon": "media/icon.png",
@@ -83,6 +83,11 @@
         "category": "Synapse"
       },
       {
+        "command": "synapse.nameCommunities",
+        "title": "Name Communities with AI",
+        "category": "Synapse"
+      },
+      {
         "command": "synapse.openGraphMap",
         "title": "Open Graph Map",
         "category": "Synapse",
@@ -146,6 +151,11 @@
           "group": "1_ai@2"
         },
         {
+          "command": "synapse.nameCommunities",
+          "when": "view == synapse.dashboard && synapse.hasGraph",
+          "group": "1_ai@3"
+        },
+        {
           "command": "synapse.showLog",
           "when": "view == synapse.dashboard",
           "group": "2_log@1"
@@ -178,6 +188,10 @@
         },
         {
           "command": "synapse.enrichGraph",
+          "when": "synapse.hasGraph"
+        },
+        {
+          "command": "synapse.nameCommunities",
           "when": "synapse.hasGraph"
         },
         {

@@ -241,6 +241,34 @@
     );
   }
 
+  function communitiesSection() {
+    const items = state.stats.topCommunities || [];
+    if (!items.length) return null;
+    return h(
+      "section",
+      {},
+      h("h3", { class: "eyebrow" }, "Communities"),
+      h(
+        "ul",
+        { class: "list" },
+        items.map((c) =>
+          h(
+            "li",
+            {},
+            h(
+              "button",
+              { class: "row", title: `${c.name}
+${c.size} symbols. Open its most connected symbol.`, onclick: () => c.hubId && send({ type: "openSymbol", id: c.hubId }) },
+              icon("symbol-namespace"),
+              h("span", { class: "name" }, c.name),
+              h("span", { class: "count" }, c.size)
+            )
+          )
+        )
+      )
+    );
+  }
+
   function toolsSection() {
     const tool = (iconName, title, sub, command) =>
       h("li", {}, h("button", { class: "row tool", onclick: () => run(command) }, icon(iconName), h("span", { class: "text" }, h("span", {}, title), h("span", { class: "sub" }, sub))));
@@ -254,7 +282,8 @@
         { class: "list" },
         tool("shield", "Verify code", "Catch APIs that don't exist in this repo", "synapse.verifyCode"),
         tool("type-hierarchy", "Graph map", "Explore the whole codebase visually", "synapse.openGraphMap"),
-        tool("sparkle", enriched ? "Re-run AI enrichment" : "Enrich with AI", "Add intent relations like handles, validates", "synapse.enrichGraph")
+        tool("tag", "Name communities with AI", "Readable titles for clusters of related code", "synapse.nameCommunities"),
+        tool("sparkle", enriched ? "Re-run AI enrichment" : "Enrich with AI", "Add intent relations and name communities", "synapse.enrichGraph")
       )
     );
   }
@@ -273,7 +302,7 @@
       if (state.phase === "error") parts.push(errorSection());
       if (hasGraph) {
         renderComposer();
-        parts.push(h("section", {}, composer), statsSection(), symbolsSection(), toolsSection());
+        parts.push(h("section", {}, composer), statsSection(), symbolsSection(), communitiesSection(), toolsSection());
       } else if (state.task) {
         parts.push(h("section", {}, h("p", { class: "muted" }, "Everything runs on your machine. You can keep working while Synapse finishes.")));
       } else if (state.phase !== "error") {

@@ -175,7 +175,7 @@ export class Engine {
       this.fail("Building the graph", extract);
     }
     onProgress?.("Detecting communities");
-    const cluster = await this.run(root, ["cluster-only", root, "--no-label"], { signal });
+    const cluster = await this.run(root, ["cluster-only", root, "--structural-labels"], { signal });
     if (cluster.code !== 0) this.fail("Clustering the graph", cluster);
   }
 
@@ -281,10 +281,37 @@ export class Engine {
     };
     if (m) {
       // Regenerate clustering, report and map so they include the new relations.
-      const cluster = await this.run(root, ["cluster-only", root, "--no-label"], { signal });
+      const cluster = await this.run(root, ["cluster-only", root, "--structural-labels"], { signal });
       if (cluster.code !== 0) this.fail("Refreshing the graph map", cluster);
     }
     return result;
+  }
+
+  /** Give communities readable titles with the editor's AI. Only symbol names and
+   * file paths are sent. Titles are saved and kept until a community's members
+   * change; communities the AI doesn't name keep their content-based names. */
+  async nameCommunities(
+    root: string,
+    complete: CompletionHandler,
+    signal?: AbortSignal,
+    onRequest?: (count: number) => void
+  ): Promise<{ requests: number; failedRequests: number }> {
+    await this.ensure(signal);
+    const ai = recordErrors(complete);
+    const bridge = await startBridge(ai.handler, onRequest);
+    try {
+      const r = await this.run(root, ["label", root, "--backend", "editor-bridge", "--max-concurrency", "2"], {
+        signal,
+        env: bridge.env,
+      });
+      if (r.code !== 0) this.fail("Naming communities", r);
+    } finally {
+      await bridge.close();
+    }
+    if (!ai.successes && ai.errors.length) {
+      throw new EngineError(ai.errors[ai.errors.length - 1], ai.errors.join("\n"), "ai");
+    }
+    return { requests: ai.successes + ai.errors.length, failedRequests: ai.errors.length };
   }
 }
 

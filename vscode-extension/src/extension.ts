@@ -443,8 +443,9 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
         modal: true,
         detail:
           `${ai.label} will be asked about ${units.toLocaleString()} symbols in about ${batches.toLocaleString()} ` +
-          `request${batches === 1 ? "" : "s"}. Only symbol names and file locations are sent, not your source code. ` +
-          `Relations are validated before they're added, and never replace structural ones.`,
+          `request${batches === 1 ? "" : "s"}, then asked to name the graph's communities. Only symbol names and file ` +
+          `locations are sent, not your source code. Relations are validated before they're added, and never replace ` +
+          `structural ones.`,
       },
       "Enrich"
     );
@@ -454,15 +455,70 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
         const res = await engine.enrich(r, ai.complete, task.abort.signal, (n) => report(`${Math.min(n, batches)} of ~${batches} requests`));
         const added = res.edgesAdded + res.edgesAugmented;
         const failed = res.failedRequests ? ` ${res.failedRequests} request${res.failedRequests === 1 ? "" : "s"} failed; see the log.` : "";
+        report("Naming communities");
+        const named = await nameWith(r, ai, task.abort.signal);
         if (added) {
-          vscode.window.showInformationMessage(`Synapse: added ${added.toLocaleString()} AI-inferred relations to the graph.${failed}`);
+          vscode.window.showInformationMessage(`Synapse: added ${added.toLocaleString()} AI-inferred relations to the graph${named}.${failed}`);
         } else {
-          vscode.window.showWarningMessage(`Synapse: the AI didn't return any relations that passed validation.${failed}`);
+          vscode.window.showWarningMessage(`Synapse: the AI didn't return any relations that passed validation${named}.${failed}`);
         }
         refreshGraphMap(context.extensionUri, r, (id) => void openSymbol({ id }));
       } catch (err) {
         if (isCancel(err)) return;
         logError("enrich failed", err);
+        const pick = await vscode.window.showErrorMessage(`Synapse: ${errorMessage(err)}`, "Show Log");
+        if (pick) showOutput();
+      }
+    });
+    void refreshAi();
+  }
+
+  /** Ask the AI for community titles; returns a short note for the summary
+   * message (naming failures leave the content-based names in place). */
+  async function nameWith(r: string, ai: { label: string; complete: CompletionHandler }, signal: AbortSignal): Promise<string> {
+    try {
+      await engine.nameCommunities(r, ai.complete, signal);
+      return " and named its communities";
+    } catch (err) {
+      if (isCancel(err)) throw err;
+      logError("naming communities failed", err);
+      return "; naming communities failed (see the log)";
+    }
+  }
+
+  async function nameCommunities(): Promise<void> {
+    const r = await requireGraph();
+    if (!r) return;
+    let ai: { label: string; complete: CompletionHandler };
+    try {
+      ai = await provider();
+    } catch (err) {
+      const pick = await vscode.window.showWarningMessage(errorMessage(err), "Choose AI Model");
+      if (pick) await vscode.commands.executeCommand("synapse.chooseModel");
+      return;
+    }
+    const count = graph.getStats()?.communities ?? 0;
+    const go = await vscode.window.showInformationMessage(
+      `Name the graph's ${count.toLocaleString()} communities with ${ai.label}?`,
+      {
+        modal: true,
+        detail:
+          `Each community gets a short title such as "Payment flow" in place of its file-and-symbol name. ` +
+          `Only symbol names and file paths are sent, not your source code. Titles are kept until a ` +
+          `community's members change.`,
+      },
+      "Name Communities"
+    );
+    if (go !== "Name Communities") return;
+    await runTask({ title: "Naming communities", detail: ai.label, exclusive: true }, async (task, report) => {
+      try {
+        const res = await engine.nameCommunities(r, ai.complete, task.abort.signal, (n) => report(`${n} request${n === 1 ? "" : "s"}`));
+        const failed = res.failedRequests ? ` ${res.failedRequests} request${res.failedRequests === 1 ? "" : "s"} failed; see the log.` : "";
+        vscode.window.showInformationMessage(`Synapse: named the graph's communities with ${ai.label}.${failed}`);
+        refreshGraphMap(context.extensionUri, r, (id) => void openSymbol({ id }));
+      } catch (err) {
+        if (isCancel(err)) return;
+        logError("naming communities failed", err);
         const pick = await vscode.window.showErrorMessage(`Synapse: ${errorMessage(err)}`, "Show Log");
         if (pick) showOutput();
       }
@@ -546,6 +602,7 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
     vscode.commands.registerCommand("synapse.explainSymbol", explainSymbol),
     vscode.commands.registerCommand("synapse.verifyCode", verifyCode),
     vscode.commands.registerCommand("synapse.enrichGraph", enrich),
+    vscode.commands.registerCommand("synapse.nameCommunities", nameCommunities),
     vscode.commands.registerCommand("synapse.chooseModel", async () => {
       if (await chooseModel()) await refreshAi();
     }),

@@ -1144,11 +1144,28 @@ def _rebuild_code(
         except Exception:
             raw = {}
             labels = {}
+        # A saved name belongs to the members it was given for: drop it when the
+        # community's membership changed since naming (signatures written by
+        # cluster-only / label), so it is renamed instead of silently going stale.
+        sig_file = labels_file.parent / (labels_file.name + ".sig")
+        if labels and sig_file.exists():
+            from graphify.cluster import community_member_sigs
+
+            try:
+                saved_sigs = json.loads(sig_file.read_text(encoding="utf-8"))
+            except Exception:
+                saved_sigs = {}
+            current_sigs = community_member_sigs(communities)
+            labels = {
+                cid: name
+                for cid, name in labels.items()
+                if saved_sigs.get(str(cid)) in (None, current_sigs.get(cid))
+            }
         missing = {cid: members for cid, members in communities.items() if cid not in labels}
         if missing:
-            from graphify.cluster import label_communities_by_hub
+            from graphify.cluster import label_communities_by_content
 
-            labels.update(label_communities_by_hub(G, missing))
+            labels.update(label_communities_by_content(G, missing))
         questions = suggest_questions(G, communities, labels)
         from graphify.report import load_learning_for_report as _llfr
 
