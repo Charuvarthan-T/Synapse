@@ -4,6 +4,11 @@ Status on 2026-10-26: the software is complete. Synapse for VS Code V4 (0.4.0) i
 released, and every extension test suite passes on Windows, macOS and Linux. What
 remains is evaluation evidence (A) and updating the project material (B).
 
+**Evaluation model: DeepSeek Flash** (`deepseek-flash`, non-thinking mode), chosen
+2026-10-26. All conditions are re-run on it; the September Groq numbers stay in the
+reports as historical results. **To run A4 and A5, follow
+[`docs/eval/DEEPSEEK_EVAL_RUNBOOK.md`](eval/DEEPSEEK_EVAL_RUNBOOK.md)** step by step.
+
 Status column: **Can start now** means nothing blocks the task (no key, person or
 other task needed); it is not done yet. **Blocked** names what is missing. **After …**
 means it waits for other tasks.
@@ -15,9 +20,9 @@ means it waits for other tasks.
 | A1 | [ ] Fresh run of original Graphify on the frozen seven-file corpus (`tools/eval/run_graphify_comparison.py`) | Can start now | Upstream checkout at `%TEMP%/graphify-upstream` |
 | A2 | [ ] Re-run the grep baseline on the same 20 questions | Can start now | Nothing |
 | A3 | [ ] Graph-only vs graph+code benchmark for Ask: fixed question set, answer scoring, token and latency cost | Can start now | Claude Code (uses the Claude plan's usage limits) |
-| A4 | [ ] CrossCodeEval: the original-Graphify condition is missing 28 of the 47 tasks (Groq's daily cap ran out). Run them so all four conditions have n=47, or widen to about 100–150 tasks and re-run all four conditions on one task set | Blocked | Groq or OpenAI API key |
-| A5 | [ ] Agent-efficiency run for the full Synapse configuration | Blocked | Groq API key (daily token cap: about one configuration per day) |
-| A6 | [ ] Record all results in `docs/eval/FINAL_BENCHMARK_SUMMARY.md` and the accuracy report, and state that the 20 retrieval labels were written by the team with no second annotator | After A1–A5 | |
+| A4 | [ ] CrossCodeEval on DeepSeek Flash: 6 repositories × 25 tasks (the two earlier repositories plus the four largest), all four conditions (no context, BM25, original Graphify, Synapse) on the same tasks. Replaces the old 47/19-task tables | Can start now | DeepSeek key with balance; runbook section A4 (~$0.30–0.70) |
+| A5 | [ ] Agent-efficiency on DeepSeek Flash: all four setups (no graph, original Graphify, Synapse default, Synapse full) × 20 questions | Can start now | DeepSeek key with balance; runbook section A5 (under $0.50) |
+| A6 | [ ] Record all results in `docs/eval/FINAL_BENCHMARK_SUMMARY.md` and the accuracy report: the DeepSeek tables, the model version and spend, the September Groq numbers as historical, and that the 20 retrieval labels were written by the team with no second annotator | After A1–A5 | |
 
 ## B. Project material
 
@@ -32,7 +37,7 @@ means it waits for other tasks.
 
 ## C. Waiting on decisions
 
-- [ ] Groq API key for A4 and A5
+- [x] API provider for A4 and A5: DeepSeek Flash; key created, $5 top-up (2026-10-26)
 - [ ] Whether B6 is required, and its deadline
 
 ## Dropped
