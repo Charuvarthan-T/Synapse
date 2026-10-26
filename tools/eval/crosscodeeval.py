@@ -247,6 +247,14 @@ class Model:
                 raise SystemExit(f"{cfg['key_env']} is not set. No request was sent.")
             self.client = OpenAI(api_key=key, base_url=cfg["base_url"])
 
+    def peak_cost(self) -> float:
+        """Spend so far at the provider's peak price (an upper bound), in USD."""
+        price = PROVIDERS[self.provider]["price"]
+        if not price:
+            return 0.0
+        p_in, p_out = price["peak"]
+        return self.usage["input_tokens"] / 1e6 * p_in + self.usage["output_tokens"] / 1e6 * p_out
+
     def complete(self, messages: list[dict], attempts: int = 4) -> tuple[str | None, str | None]:
         if self.dry_run:
             last = messages[-1]["content"].rstrip().splitlines()[-1]
@@ -353,8 +361,11 @@ def cmd_run(args) -> None:
     progress = Path(str(args.out) + ".progress.jsonl")
     rows = [json.loads(line) for line in progress.read_text(encoding="utf-8").splitlines() if line.strip()] if progress.exists() else []
     done = {r["task_id"] for r in rows}
+    for r in rows:  # spend from earlier sessions counts toward --max-cost
+        for key, value in (r.get("usage") or {}).items():
+            model.usage[key] = model.usage.get(key, 0) + value
     if done:
-        print(f"Resuming: {len(done)} tasks already done.")
+        print(f"Resuming: {len(done)} tasks already done (${model.peak_cost():.2f} spent, peak-price estimate).")
 
     selected = []
     for repo_id in args.repos:
@@ -362,11 +373,16 @@ def cmd_run(args) -> None:
         selected.extend(group.head(args.n_per_repo).iterrows())
     print(f"{len(selected)} tasks x {len(CONDITIONS)} conditions, model {model.model} ({args.provider}).")
 
+    stopped = None
     with progress.open("a", encoding="utf-8") as log:
         for n, (_, r) in enumerate(selected, 1):
             task_id = r["metadata"]["task_id"]
             if task_id in done:
                 continue
+            if args.max_cost is not None and model.peak_cost() >= args.max_cost:
+                stopped = f"spending limit reached: ${model.peak_cost():.2f} (peak-price estimate) >= --max-cost ${args.max_cost:.2f}"
+                print(f"\nSTOPPED: {stopped}. Run the same command again later to continue.")
+                break
             repo_id = repository(r)
             repo_dir = args.repos_dir / repo_map.get(repo_id, repo_id)
             prompt, gold, own_file = r["prompt"], r["groundtruth"], task_file(r)
@@ -377,11 +393,13 @@ def cmd_run(args) -> None:
                 "synapse_context": engines["synapse_context"](repo_dir, prompt, own_file),
             }
             row = {"task_id": task_id, "repo": repo_id, "gold": gold}
+            before = dict(model.usage)
             for cond in CONDITIONS:
                 pred, error = model.complete(build_messages(prompt, contexts[cond]))
                 row[cond] = {"pred": pred, "error": error, "context_found": bool(contexts[cond])}
                 if pred is not None:
                     row[cond].update(score(pred, gold))
+            row["usage"] = {k: model.usage[k] - before.get(k, 0) for k in model.usage}
             log.write(json.dumps(row) + "\n")
             log.flush()
             rows.append(row)
@@ -390,10 +408,10 @@ def cmd_run(args) -> None:
             )
             print(f"[{n}/{len(selected)}] {task_id}: {marks}")
 
-    write_summary(args, model, rows)
+    write_summary(args, model, rows, stopped)
 
 
-def write_summary(args, model: Model, rows: list[dict]) -> None:
+def write_summary(args, model: Model, rows: list[dict], stopped: str | None = None) -> None:
     complete = [r for r in rows if all(r[c].get("error") is None and r[c].get("pred") is not None for c in CONDITIONS)]
     summary: dict = {
         "n_tasks_total": len(rows),
@@ -428,6 +446,8 @@ def write_summary(args, model: Model, rows: list[dict]) -> None:
         "repos": args.repos,
         "n_per_repo": args.n_per_repo,
         "dry_run": args.dry_run,
+        "max_cost_usd": args.max_cost,
+        "stopped": stopped,
         "usage": usage,
     }
     print("\n=== Summary ===")
@@ -465,6 +485,10 @@ def main() -> None:
     run.add_argument("--model", default=None, help="override the provider's default model")
     run.add_argument("--out", type=Path, default=HERE / "crosscodeeval_results_deepseek.json")
     run.add_argument("--dry-run", action="store_true", help="no API calls: echo the last prompt line (pipeline check)")
+    run.add_argument(
+        "--max-cost", type=float, default=None,
+        help="stop once this session's spend, estimated at peak prices, reaches this many USD (resume later)",
+    )
 
     args = ap.parse_args()
     {"list-repos": cmd_list_repos, "prepare": cmd_prepare, "run": cmd_run}[args.command](args)

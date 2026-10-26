@@ -9,10 +9,21 @@ order. Everything runs on your own machine; only the model calls go to DeepSeek.
 Every condition is re-run on this one model, so the September Groq numbers stay
 in the reports as historical results; don't mix the two in one table.
 
-**Expected cost:** about $0.45 for everything off-peak, about $0.90 at peak
-(CrossCodeEval ~$0.30 / $0.60, agent runs up to ~$0.15 / $0.30). The account has
-a **$2 balance**: enough for everything once at any time, or twice off-peak. Check
-the spend on DeepSeek's **Usage** page after A4, before starting A5.
+**Budget: $2, and that is the hard limit** (the account is prepaid and holds only
+$2; nothing more will be added). Expected cost is about $0.45 for everything
+off-peak and about $0.90 at peak (CrossCodeEval ~$0.30 / $0.60, agent runs up to
+~$0.15 / $0.30). To stay safe:
+
+| Step | Spending limit | How |
+|---|---|---|
+| A4 smoke test | $0.10 | `--max-cost 0.10` (already in the command) |
+| A4 full run | $1.40 | `--max-cost 1.40` (already in the command) |
+| A5 (pilot + full) | the rest, ~$0.50 | Check the balance on DeepSeek's **Usage** page first; start A5 only if at least $0.40 is left |
+
+`--max-cost` counts spend at the **peak** price, so off-peak it stops well before
+the money is actually spent. The count carries over when a run is resumed. If a run
+stops with `STOPPED: spending limit reached`, the budget for that step is used up:
+don't raise the limit; tell the project owner how far it got.
 
 **Run off-peak** (half price): DeepSeek's peak hours are 01:00–04:00 and
 06:00–10:00 UTC, Monday–Friday, which is **6:30–9:30 and 11:30–15:30 IST**.
@@ -107,7 +118,7 @@ run the command again (finished repositories are skipped).
 ### 4. Smoke test (a few cents): 1 task per repository
 
 ```powershell
-cceval run --parquet cceval_python.parquet --repos-dir "$env:TEMP\cceval-repos" --repos @REPOS --n-per-repo 1 --out tools/eval/cceval_smoke.json
+cceval run --parquet cceval_python.parquet --repos-dir "$env:TEMP\cceval-repos" --repos @REPOS --n-per-repo 1 --max-cost 0.10 --out tools/eval/cceval_smoke.json
 ```
 
 Check the output:
@@ -130,7 +141,7 @@ Remove-Item tools/eval/cceval_smoke.json, tools/eval/cceval_smoke.json.progress.
 ### 5. The full run (off-peak)
 
 ```powershell
-cceval run --parquet cceval_python.parquet --repos-dir "$env:TEMP\cceval-repos" --repos @REPOS --n-per-repo 25 --out tools/eval/crosscodeeval_results_deepseek.json
+cceval run --parquet cceval_python.parquet --repos-dir "$env:TEMP\cceval-repos" --repos @REPOS --n-per-repo 25 --max-cost 1.40 --out tools/eval/crosscodeeval_results_deepseek.json
 ```
 
 - About 150 tasks × 4 calls = 600 calls; roughly 20–40 minutes.
@@ -148,6 +159,10 @@ environment (model, commits, token usage, estimated cost) and every task.
 ## A5. Agent efficiency: 4 setups × 20 questions
 
 The four setups are no graph, original Graphify, Synapse default, and Synapse full.
+
+**Before you start:** open DeepSeek's **Usage** page and check the remaining balance.
+Continue only if at least **$0.40** is left (A5 costs about $0.15 off-peak, $0.30
+at peak). Run it off-peak.
 
 1. Build the frozen corpus and its graph (local, free; also re-runs the retrieval
    benchmark):
@@ -203,7 +218,8 @@ containing the API key.
 | Symptom | Fix |
 |---|---|
 | `DEEPSEEK_API_KEY is not set` | Run `setx` again and open a **new** PowerShell window. |
-| Errors mentioning balance or HTTP 402 | Top up the DeepSeek account. |
+| Errors mentioning balance or HTTP 402 | The $2 is used up. Stop and tell the project owner; don't top up. The finished tasks are saved. |
+| `STOPPED: spending limit reached` | That step's budget is used up. Don't raise `--max-cost`; tell the project owner how far it got. |
 | `Original Graphify checkout missing` | Do step 0.4, or set `$env:GRAPHIFY_UPSTREAM`. |
 | `No graph for [...]` | Run the `prepare` command (step A4.3) for those repositories. |
 | `context_found_rate` is 0 for a graph condition | The graph for that repository is empty or broken: `cceval prepare ... --rebuild`. |
