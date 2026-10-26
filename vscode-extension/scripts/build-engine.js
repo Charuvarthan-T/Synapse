@@ -28,6 +28,7 @@ const SYNAPSE_MODULES = [
   "graphify/semantic_graph.py",
   "graphify/claims.py",
   "graphify/graph_checks.py",
+  "graphify/code_context.py",
 ];
 const ROOT_FILES = ["pyproject.toml", "README.md", "LICENSE", "LICENSE-MIT", "NOTICE"];
 const SKIP_DIRS = new Set(["__pycache__", "graphify-out", ".pytest_cache"]);

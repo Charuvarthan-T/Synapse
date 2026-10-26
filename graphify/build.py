@@ -1095,6 +1095,12 @@ def build_merge(
 
         existing_nodes = [n for n in existing_nodes if _kept(n)]
         existing_edges = [e for e in existing_edges if _kept(e)]
+    # Semantic edges are re-applied by restore_semantic_layer below. Merging them
+    # here would let a multigraph's parallel semantic edge overwrite the
+    # structural edge on the same pair in the (simple) rebuilt graph.
+    from graphify.semantic_relations import SEMANTIC_ORIGIN
+
+    existing_edges = [e for e in existing_edges if e.get("_origin") != SEMANTIC_ORIGIN]
 
     base = [{"nodes": existing_nodes, "edges": existing_edges}] if had_graph else []
 

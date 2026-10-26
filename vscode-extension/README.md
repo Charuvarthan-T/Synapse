@@ -14,7 +14,7 @@ graphify package.
 
 | | Feature | Uses AI? |
 |---|---|---|
-| **Ask** | Ask anything about the codebase. Synapse retrieves context from the graph, your AI drafts an answer with explicit claims, and every claim is **validated against the graph**. Contradicted claims are fed back and the answer is revised. You see which claims are supported, unverified or contradicted. | Yes, your own |
+| **Ask** | Ask anything about the codebase. Synapse retrieves context from the graph, adds the **source code of the most relevant symbols** (like an AI code editor does), your AI drafts an answer with explicit claims, and every claim is **validated against the graph**. Contradicted claims are fed back and the answer is revised. You see which claims are supported, unverified or contradicted. | Yes, your own |
 | **Search** | Find the symbols and relationships relevant to a question with relationship-weighted, community-aware graph traversal. | No |
 | **Verify code** | Select code (for example something an AI just wrote) and check its imports, calls and methods against the graph. Flags APIs that don't exist in your repo. | No |
 | **Explain symbol** | Right-click a symbol to see where it's defined, what it calls, what calls it, what it imports. | No |
@@ -95,6 +95,8 @@ The graph refreshes incrementally a moment after you save a source file.
 |---|---|---|
 | `synapse.ai.provider` | `auto` | `auto`, `copilot`, `claude-code` or `codex` |
 | `synapse.ai.model` | empty | Model for the provider; empty uses the provider's default |
+| `synapse.ai.includeCode` | `true` | Ask also sends the source of the top-ranked symbols; turn off to send the graph only |
+| `synapse.ai.codeBudget` | `3000` | Max tokens of source code per Ask |
 | `synapse.autoBuildOnOpen` | `true` | Build when a workspace with source code opens |
 | `synapse.autoUpdateOnSave` | `true` | Refresh the graph after saving a source file |
 | `synapse.queryBudget` | `2000` | Max tokens of graph context per search (also for Copilot's tools) |
@@ -105,9 +107,16 @@ The graph refreshes incrementally a moment after you save a source file.
 
 - The graph lives in `graphify-out/` inside your workspace. Add it to `.gitignore`
   if you don't want to commit it.
-- **Ask** sends your question and the retrieved graph context (symbol names, file
-  paths, line numbers and relationships, not source code) to the AI you chose.
-  **Enrich** sends symbol names and locations. Nothing else leaves your machine.
+- **Ask** sends your question, the retrieved graph context (symbol names, file
+  paths, line numbers and relationships) and, by default, source excerpts of the
+  top-ranked symbols (up to `synapse.ai.codeBudget` tokens, read only from files
+  inside the workspace) to the AI you chose. Each answer lists exactly which code
+  was sent. Set `synapse.ai.includeCode` to `false` to send the graph only.
+  **Enrich** sends symbol names and locations, never source code. Nothing else
+  leaves your machine.
+- Source excerpts are marked as untrusted data in the prompt, so instructions
+  hidden in code comments are not followed, and every claim in the answer is
+  still checked against the graph.
 - Synapse talks to its engine over a loopback-only connection protected by a
   random per-run token, open only while a request runs.
 - The engine runs in its own environment (`~/.synapse/vscode-venv`), isolated from

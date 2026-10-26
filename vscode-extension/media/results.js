@@ -93,6 +93,26 @@
     );
   }
 
+  function codeItem(c) {
+    const range = `${c.file}:${c.line}${c.endLine > c.line ? `-${c.endLine}` : ""}`;
+    return h(
+      "li",
+      { class: "item" },
+      icon("file-code"),
+      h(
+        "div",
+        { class: "main" },
+        h("div", { class: "title code" }, c.label),
+        h(
+          "div",
+          { class: "refs" },
+          h("button", { class: "loc", title: "Open in editor", onclick: () => send({ type: "open", file: c.file, line: c.line }) }, range),
+          c.truncated ? h("span", { class: "sub" }, " · shortened to fit the budget") : null
+        )
+      )
+    );
+  }
+
   function group(title, count, items, open) {
     return h(
       "details",
@@ -160,8 +180,13 @@
       if (target && target.matches("code.symbol")) send({ type: "openSymbol", label: target.textContent });
     });
     const claims = v.claims || [];
+    const code = v.code || [];
+    const grounding = code.length ? "Grounded in your code graph and source" : "Grounded in your code graph";
+    const context = code.length
+      ? `Context: ${v.contextChars.toLocaleString()} characters of graph context retrieved with relationship-weighted, community-aware traversal, plus ${v.codeChars.toLocaleString()} characters of source code from the top-ranked symbols. Each claim was then validated against the graph (Synapse bidirectional reasoning).`
+      : `Context: ${v.contextChars.toLocaleString()} characters retrieved with relationship-weighted, community-aware graph traversal, then each claim was validated against the graph (Synapse bidirectional reasoning).`;
     return [
-      header("ask", v.question, [h("span", {}, icon("sparkle"), v.providerLabel), h("span", {}, icon("type-hierarchy"), "Grounded in your code graph")], { copy: v.answerText }),
+      header("ask", v.question, [h("span", {}, icon("sparkle"), v.providerLabel), h("span", {}, icon("type-hierarchy"), grounding)], { copy: v.answerText }),
       h(
         "main",
         {},
@@ -170,7 +195,8 @@
         claims.length
           ? h("section", {}, group("Claims checked against the graph", claims.length, claims.map(claimItem), claims.some((c) => c.verdict !== "SUPPORTED")))
           : null,
-        h("footer", { class: "foot" }, `Context: ${v.contextChars.toLocaleString()} characters retrieved with relationship-weighted, community-aware graph traversal, then each claim was validated against the graph (Synapse bidirectional reasoning).`)
+        code.length ? h("section", {}, group("Code the AI read", code.length, code.map(codeItem), false)) : null,
+        h("footer", { class: "foot" }, context)
       ),
     ];
   }

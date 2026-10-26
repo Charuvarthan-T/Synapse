@@ -81,9 +81,9 @@ describe("Synapse in VS Code", function () {
   });
 
   it("answers with bidirectional reasoning and reports claim verdicts", async () => {
-    let calls = 0;
-    api.setAiOverride(async () => {
-      calls++;
+    const prompts: string[] = [];
+    api.setAiOverride(async (req) => {
+      prompts.push(req.prompt);
       return {
         text: JSON.stringify({
           answer: "`login()` calls `hash_password()`.",
@@ -94,10 +94,35 @@ describe("Synapse in VS Code", function () {
     await vscode.commands.executeCommand("synapse.ask", "how does login work");
     const v = view();
     assert.strictEqual(v.kind, "answer", JSON.stringify(v));
-    assert.strictEqual(calls, 1);
+    assert.strictEqual(prompts.length, 1);
     assert.strictEqual(v.verdict.level, "ok");
     assert.ok(v.answerHtml.includes('<code class="symbol"'), "graph symbols in the answer are linked");
     assert.ok(v.claims.every((c: { verdict: string }) => c.verdict === "SUPPORTED"));
+    // Source code context is on by default.
+    assert.match(prompts[0], /SOURCE CODE/);
+    assert.match(prompts[0], /def login\(/);
+    assert.ok(v.code.some((c: { label: string; file: string }) => c.label === "login()" && c.file === "app/auth.py"));
+    assert.ok(v.codeChars > 0);
+  });
+
+  it("sends only the graph when code context is turned off", async () => {
+    const cfg = vscode.workspace.getConfiguration("synapse.ai");
+    await cfg.update("includeCode", false, vscode.ConfigurationTarget.Global);
+    const prompts: string[] = [];
+    api.setAiOverride(async (req) => {
+      prompts.push(req.prompt);
+      return { text: JSON.stringify({ answer: "`login()` calls `hash_password()`.", claims: [] }) };
+    });
+    try {
+      await vscode.commands.executeCommand("synapse.ask", "how does login work");
+      const v = view();
+      assert.strictEqual(v.kind, "answer", JSON.stringify(v));
+      assert.match(prompts[0], /GRAPH CONTEXT/);
+      assert.ok(!/SOURCE CODE|def login\(/.test(prompts[0]), "no source code leaves the editor");
+      assert.deepStrictEqual(v.code, []);
+    } finally {
+      await cfg.update("includeCode", undefined, vscode.ConfigurationTarget.Global);
+    }
   });
 
   it("uses a VS Code language model (the GitHub Copilot path) when chosen", async () => {

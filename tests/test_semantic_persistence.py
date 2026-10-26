@@ -152,9 +152,47 @@ def test_restore_semantic_layer_on_graph():
         {"source": "a", "target": "d", "relation": "uses",
          "secondary_relations": [{"relation": "manages"}]},
     ]
-    assert restore_semantic_layer(G, previous) == 3
-    assert G["a"]["b"]["secondary_relations"] == [{"relation": "validates"}]
+    assert restore_semantic_layer(G, previous) == 4
+    # a-b now has a structural edge, so the old semantic edge rides on it.
+    assert G["a"]["b"]["secondary_relations"] == [
+        {"relation": "validates"},
+        {"relation": "related_to", "_origin": "semantic_code"},
+    ]
     assert G["a"]["b"]["relation"] == "references", "structural edge is never replaced"
     assert G["a"]["c"]["relation"] == "handles"
     assert G["a"]["d"]["relation"] == "manages" and G["a"]["d"]["_origin"] == "semantic_code"
     assert "gone" not in G
+
+
+def test_extract_rebuild_keeps_relations_enriched_as_multigraph(tmp_path):
+    """`graphify enrich-semantic` writes a multigraph: a relation on a pair that
+    already has a structural edge is a parallel edge. Build Graph must keep it."""
+    import subprocess
+    import sys
+
+    from graphify.multigraph_store import ensure_multigraph, graph_to_node_link
+
+    corpus = _corpus(tmp_path)
+    run = lambda: subprocess.run(  # noqa: E731
+        [sys.executable, "-m", "graphify", "extract", str(corpus), "--code-only"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    assert run().returncode == 0
+    graph_path = corpus / "graphify-out" / "graph.json"
+    _, G = _load(graph_path)
+    login, hash_pw = _node_id(G, "login()"), _node_id(G, "hash_password()")
+    database = _node_id(G, "Database")
+    M = ensure_multigraph(G)
+    report = apply_semantic_relations(M, SemanticExtractionResult(relations=[
+        SemanticRelation(source=login, relation="validates", target=hash_pw, rationale="checks"),
+        SemanticRelation(source=login, relation="related_to", target=database, rationale="reads"),
+    ]))
+    # Either a parallel edge or, after direction normalisation, a new semantic edge.
+    assert report.edges_augmented + report.edges_added == 2
+    graph_path.write_text(json.dumps(graph_to_node_link(M)), encoding="utf-8")
+
+    assert run().returncode == 0
+    raw, _ = _load(graph_path)
+    secondary, added = _semantic(raw)
+    assert [r for *_, r in secondary] == ["validates"]
+    assert added == ["related_to"]

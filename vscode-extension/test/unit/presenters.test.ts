@@ -57,6 +57,22 @@ describe("presenters", () => {
     assert.ok(!view.answerText.includes("Graph validation"));
     assert.deepStrictEqual(view.claims.map((c) => c.verdict), ["CONTRADICTED", "SUPPORTED"]);
     assert.deepStrictEqual(view.claims[1].refs, [{ label: "login()", file: "app/auth.py", line: 15 }]);
+    assert.deepStrictEqual(view.code, [], "older engines report no code excerpts");
+    assert.strictEqual(view.codeChars, 0);
+  });
+
+  it("lists the source excerpts the AI was given", () => {
+    const view = answerView(
+      {
+        ...reasonResult({ supported: 1, contradicted: 0, unknown: 0 }),
+        code_context_chars: 420,
+        code_excerpts: [{ node_id: "app_auth_login", label: "login()", file: "app/auth.py", start_line: 15, end_line: 19, truncated: false }],
+      },
+      "Test AI",
+      lookup
+    );
+    assert.strictEqual(view.codeChars, 420);
+    assert.deepStrictEqual(view.code, [{ label: "login()", file: "app/auth.py", line: 15, endLine: 19, truncated: false }]);
   });
 
   it("grades verification and removes duplicate checks", () => {

@@ -4,7 +4,7 @@ name: VS Code extension
 # bundles this repo's engine, never the upstream PyPI package), runs its test
 # suites, and on a `vscode-v*` tag attaches the .vsix to a GitHub Release.
 #
-#   git tag vscode-v0.2.0 && git push origin vscode-v0.2.0
+#   git tag vscode-v0.3.0 && git push origin vscode-v0.3.0
 
 on:
   push:
@@ -89,10 +89,17 @@ jobs:
         with:
           name: synapse-vsix
 
+      # Releases are named by generation: 0.3.x is "V3" (0.2.x was V2).
+      - name: Release title
+        id: title
+        run: |
+          version="${GITHUB_REF_NAME#vscode-v}"
+          echo "name=Synapse for VS Code V$(echo "$version" | cut -d. -f2) (v$version)" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Synapse for VS Code ${{ github.ref_name }}
+          name: ${{ steps.title.outputs.name }}
           files: "*.vsix"
           body: |
             **Synapse for VS Code**: graph-grounded answers about your codebase, built on this repository's Synapse engine.

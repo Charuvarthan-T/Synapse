@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.3.0 (V3)
+
+### New
+- **Ask reads your code, not just the graph.** Along with the graph context,
+  Synapse now sends the source of the top-ranked symbols to your AI, the way AI
+  code editors do, so answers can explain *how* code works and not only how it
+  is connected. Excerpts follow the same weighted, community-aware ranking as the
+  graph context, use exact function and class bodies for Python (nearest-symbol
+  ranges for other languages), and stay within a token budget.
+- The answer view lists **Code the AI read** with clickable `file:start-end`
+  ranges, and the footer reports how much graph and code context was used.
+- New settings: `synapse.ai.includeCode` (default on) and `synapse.ai.codeBudget`
+  (default 3000 tokens). Enrich still never sends source code.
+- Claims are still validated against the graph, and contradicted drafts are revised.
+
+### Engine (in `graphify/`)
+- `graphify reason --with-code [--code-budget TOKENS] [--root PATH]` adds source
+  excerpts (`graphify/code_context.py`). Files are read only inside the project
+  root, and excerpts are wrapped as untrusted data with injection sentinels
+  neutralised. Without the flag the prompt is unchanged.
+- Fixed: AI relations added by Enrich (stored as parallel multigraph edges) were
+  lost, and could overwrite the structural edge on the same pair, when the graph
+  was rebuilt with Build Graph.
+
 ## 0.2.0
 
 Synapse now runs **the Synapse engine from this repository** instead of the

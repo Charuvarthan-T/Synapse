@@ -151,6 +151,24 @@ def _promote(secondary: list[dict]) -> dict:
     return attrs
 
 
+_EDGE_KEYS = ("source", "target", "key", "_src", "_tgt")
+
+
+def _attach_secondary(carrier: dict, edge: dict) -> bool:
+    """Record a semantic edge as an annotation on the structural edge that now
+    joins its pair. Multigraph files store such relations as parallel edges, and
+    a rebuilt (simple) graph has only one edge per pair to carry them."""
+    secondary: list[dict] = carrier.setdefault(SECONDARY_RELATIONS_KEY, [])
+    if carrier.get("relation") == edge.get("relation") or any(
+        item.get("relation") == edge.get("relation") for item in secondary
+    ):
+        return False
+    if len(secondary) >= _MAX_SECONDARY_RELATIONS_PER_EDGE:
+        return False
+    secondary.append({k: v for k, v in edge.items() if k not in _EDGE_KEYS})
+    return True
+
+
 def restore_semantic_edges(
     previous_edges: Iterable[dict], edges: list[dict], node_ids: set
 ) -> list[dict]:
@@ -177,6 +195,8 @@ def restore_semantic_edges(
             if pair not in by_pair:
                 extra.append(dict(edge))
                 by_pair[pair] = [extra[-1]]
+            elif not any(c.get("_origin") == SEMANTIC_ORIGIN and c.get("relation") == edge.get("relation") for c in by_pair[pair]):
+                _attach_secondary(by_pair[pair][0], edge)
             continue
         secondary = edge.get(SECONDARY_RELATIONS_KEY)
         if not secondary:
@@ -184,8 +204,8 @@ def restore_semantic_edges(
         carriers = by_pair.get(pair)
         if carriers:
             for carrier in carriers:
-                if not carrier.get(SECONDARY_RELATIONS_KEY):
-                    carrier[SECONDARY_RELATIONS_KEY] = [dict(item) for item in secondary]
+                for item in secondary:
+                    _attach_secondary(carrier, item)
         else:
             extra.append({"source": u, "target": v, **_promote(secondary)})
             by_pair[pair] = [extra[-1]]
@@ -204,7 +224,9 @@ def restore_semantic_layer(G: nx.Graph, previous_edges: Iterable[dict]) -> int:
         ends = (u, v) if G.has_edge(u, v) else (v, u) if G.has_edge(v, u) else None
         if edge.get("_origin") == SEMANTIC_ORIGIN:
             if ends is None:
-                G.add_edge(u, v, **{k: val for k, val in edge.items() if k not in ("source", "target")})
+                G.add_edge(u, v, **{k: val for k, val in edge.items() if k not in _EDGE_KEYS})
+                restored += 1
+            elif not G.is_multigraph() and _attach_secondary(_edge_attrs(G, *ends), edge):
                 restored += 1
             continue
         secondary = edge.get(SECONDARY_RELATIONS_KEY)
@@ -215,7 +237,5 @@ def restore_semantic_layer(G: nx.Graph, previous_edges: Iterable[dict]) -> int:
             restored += len(secondary)
             continue
         data = _edge_attrs(G, *ends)
-        if not data.get(SECONDARY_RELATIONS_KEY):
-            data[SECONDARY_RELATIONS_KEY] = [dict(item) for item in secondary]
-            restored += len(secondary)
+        restored += sum(_attach_secondary(data, item) for item in secondary)
     return restored

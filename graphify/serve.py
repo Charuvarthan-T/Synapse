@@ -824,8 +824,12 @@ def _subgraph_to_text(
     reach_importance: dict[str, float] | None = None,
     distance: dict[str, int] | None = None,
     registry: RelationWeightRegistry | None = None,
+    ranked_out: list[str] | None = None,
 ) -> str:
     """Render subgraph as text, cutting at token_budget (approx 3 chars/token).
+
+    ranked_out: if given, receives the node ids in rendered (relevance) order,
+    so callers such as code-context selection can follow the same ranking.
 
     seeds: exact-match nodes rendered first before the degree-sorted expansion,
     so the queried symbol always appears at the top of the output.
@@ -865,6 +869,8 @@ def _subgraph_to_text(
         degree_of=G.degree,
         weighted=weighted,
     )
+    if ranked_out is not None:
+        ranked_out.extend(ordered)
     render_edges = rank_edges_for_retrieval(list(edges), G, weighted=weighted, registry=registry)
     for nid in ordered:
         d = G.nodes[nid]
@@ -980,6 +986,7 @@ def _query_graph_text(
     community_min_confidence: float = 0.55,
     retrieval: str = "traversal",
     learned: bool = False,
+    ranked_out: list[str] | None = None,
 ) -> str:
     terms = _query_terms(question)
     qs = _score_query(G, terms, collect_per_term_seeds=True)
@@ -1051,6 +1058,7 @@ def _query_graph_text(
         reach_importance=traversal.reach_importance,
         distance=traversal.distance,
         registry=registry,
+        ranked_out=ranked_out,
     )
 
 
