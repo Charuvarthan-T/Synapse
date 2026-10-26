@@ -14,6 +14,16 @@ export interface GraphNode {
   source_file?: string;
   source_location?: string;
   community?: number;
+  /** Readable community name written by the engine. */
+  community_name?: string;
+}
+
+export interface CommunitySummary {
+  id: number;
+  name: string;
+  size: number;
+  /** Most connected member, opened when the community is clicked. */
+  hubId?: string;
 }
 
 export interface GraphEdge {
@@ -49,6 +59,8 @@ export interface GraphStats {
   /** Code symbols eligible for AI enrichment. */
   codeUnits: number;
   keySymbols: KeySymbol[];
+  /** Largest communities, with their names. */
+  topCommunities: CommunitySummary[];
 }
 
 const MAX_GRAPH_BYTES = 200 * 1024 * 1024; // don't JSON.parse absurd files on the extension host
@@ -127,7 +139,7 @@ export function lineOf(location: string | undefined): number | undefined {
   return m ? Number(m[1]) : undefined;
 }
 
-export function computeStats(graph: GraphData, keySymbolLimit = 8): GraphStats {
+export function computeStats(graph: GraphData, keySymbolLimit = 8, communityLimit = 6): GraphStats {
   const degree = degreeByNode(graph);
   const files = new Set<string>();
   let codeUnits = 0;
@@ -141,10 +153,21 @@ export function computeStats(graph: GraphData, keySymbolLimit = 8): GraphStats {
     .sort((a, b) => b.d - a.d || a.n.label.localeCompare(b.n.label))
     .slice(0, keySymbolLimit)
     .map(({ n, d }) => ({ id: n.id, label: n.label, file: n.source_file, line: lineOf(n.source_location), degree: d }));
+  const groups = [...groupByCommunity(graph).entries()].filter(([cid]) => cid >= 0);
+  const topCommunities = groups
+    .sort((a, b) => b[1].length - a[1].length || a[0] - b[0])
+    .slice(0, communityLimit)
+    .map(([cid, members]) => {
+      const hub = members
+        .filter((n) => n.source_file)
+        .sort((a, b) => (degree.get(b.id) ?? 0) - (degree.get(a.id) ?? 0) || a.label.localeCompare(b.label))[0];
+      const name = members.find((n) => n.community_name)?.community_name ?? `Community ${cid}`;
+      return { id: cid, name, size: members.length, hubId: hub?.id };
+    });
   return {
     nodes: graph.nodes.length,
     edges: graph.edges.length,
-    communities: [...groupByCommunity(graph).keys()].filter((c) => c >= 0).length,
+    communities: groups.length,
     files: files.size,
     semanticRelations: graph.edges.reduce(
       (sum, e) => sum + (e.origin === SEMANTIC_ORIGIN ? 1 : 0) + (e.secondary ?? 0),
@@ -152,6 +175,7 @@ export function computeStats(graph: GraphData, keySymbolLimit = 8): GraphStats {
     ),
     codeUnits,
     keySymbols,
+    topCommunities,
   };
 }
 

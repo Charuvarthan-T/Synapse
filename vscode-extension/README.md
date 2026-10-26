@@ -18,8 +18,9 @@ graphify package.
 | **Search** | Find the symbols and relationships relevant to a question with relationship-weighted, community-aware graph traversal. | No |
 | **Verify code** | Select code (for example something an AI just wrote) and check its imports, calls and methods against the graph. Flags APIs that don't exist in your repo. | No |
 | **Explain symbol** | Right-click a symbol to see where it's defined, what it calls, what calls it, what it imports. | No |
-| **Enrich with AI** | Add intent relations (`handles`, `validates`, `manages`…) between code units. Enriched relations are used by retrieval and survive later rebuilds. | Yes, your own |
-| **Graph map** | Explore the whole codebase as an interactive graph. Double-click a node to open its source. | No |
+| **Enrich with AI** | Add intent relations (`handles`, `validates`, `manages`…) between code units, and name the communities. Enriched relations are used by retrieval and survive later rebuilds. | Yes, your own |
+| **Named communities** | Clusters of closely related code get names from what they contain (`app/auth.py · login`) on every build, with no AI. **Name Communities with AI** turns them into readable titles ("Authentication and Sessions"), kept until a community's members change. Names appear in search results, Explain, the sidebar and the graph map, and help community-aware retrieval pick the right part of the codebase. | Optional, your own |
+| **Graph map** | Explore the whole codebase as an interactive graph, with a legend of named communities. Double-click a node to open its source. | No |
 | **Copilot agent tools** | In GitHub Copilot's agent mode, Copilot can call `#synapseSearch`, `#synapseExplain` and `#synapseVerify` on its own. | Copilot's |
 
 Synapse indexes 25+ languages (Python, TypeScript/JavaScript, Java, Go, Rust,
@@ -83,7 +84,8 @@ The graph refreshes incrementally a moment after you save a source file.
 | Synapse: Search Graph | Local, weighted and community-aware retrieval |
 | Synapse: Explain Symbol | Definition and direct relationships of the symbol at the cursor |
 | Synapse: Verify Code Against Graph | Hallucination check of the selection (or whole file) |
-| Synapse: Enrich Graph with AI Relations | Add AI-inferred intent relations to the graph |
+| Synapse: Enrich Graph with AI Relations | Add AI-inferred intent relations to the graph and name its communities |
+| Synapse: Name Communities with AI | Give communities readable titles with your AI |
 | Synapse: Open Graph Map | Interactive map of the codebase |
 | Synapse: Build Graph | Rebuild the graph |
 | Synapse: Choose AI Model | Pick GitHub Copilot, Claude Code or Codex, and a model |
@@ -112,7 +114,7 @@ The graph refreshes incrementally a moment after you save a source file.
   top-ranked symbols (up to `synapse.ai.codeBudget` tokens, read only from files
   inside the workspace) to the AI you chose. Each answer lists exactly which code
   was sent. Set `synapse.ai.includeCode` to `false` to send the graph only.
-  **Enrich** sends symbol names and locations, never source code. Nothing else
+  **Enrich** and **Name Communities** send symbol names and locations, never source code. Nothing else
   leaves your machine.
 - Source excerpts are marked as untrusted data in the prompt, so instructions
   hidden in code comments are not followed, and every claim in the answer is

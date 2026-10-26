@@ -74,7 +74,7 @@ describe("Synapse engine (end to end)", function () {
   it("searches with weighted, community-aware retrieval", async () => {
     const r = await engine.search(ws, "how does login work", 1500);
     assert.match(r.strategy ?? "", /Weighted/);
-    assert.match(r.strategy ?? "", /Community/i);
+    assert.match(r.strategy ?? "", /Communit/i); // "Communities=[...]" or "Community fallback"
     const labels = r.nodes.map((n) => n.label);
     assert.ok(labels.includes("login()"), labels.join(", "));
     assert.ok(r.edges.some((e) => e.from === "login()" && e.relation === "calls" && e.to === "hash_password()"));
@@ -191,6 +191,25 @@ describe("Synapse engine (end to end)", function () {
     await engine.build(ws);
     const rebuilt = computeStats(loadGraph(graphPath(ws))!);
     assert.strictEqual(rebuilt.semanticRelations, before, "AI relations must survive Build Graph too");
+  });
+
+  it("names communities by content on Build, and with the AI on request", async () => {
+    await engine.build(ws);
+    const names = () => new Set(loadGraph(graphPath(ws))!.nodes.filter((n) => n.community !== undefined).map((n) => n.community_name));
+    const structural = names();
+    assert.ok(structural.size > 0 && ![...structural].some((n) => /^Community \d+$/.test(String(n))), [...structural].join(", "));
+
+    const fakeAi: CompletionHandler = async (req) => {
+      const ids = [...req.prompt.matchAll(/^Community (\d+):/gm)].map((m) => m[1]);
+      return { text: JSON.stringify(Object.fromEntries(ids.map((id) => [id, `Area ${id}`]))) };
+    };
+    const res = await engine.nameCommunities(ws, fakeAi);
+    assert.ok(res.requests >= 1 && res.failedRequests === 0);
+    assert.ok([...names()].every((n) => /^Area \d+$/.test(String(n))), [...names()].join(", "));
+
+    // Titles survive a rebuild while the communities' members are unchanged.
+    await engine.build(ws);
+    assert.ok([...names()].every((n) => /^Area \d+$/.test(String(n))), [...names()].join(", "));
   });
 
   it("runs the installed engine even when the workspace has its own graphify/ folder", async () => {

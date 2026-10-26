@@ -83,6 +83,11 @@
         "category": "Synapse"
       },
       {
+        "command": "synapse.nameCommunities",
+        "title": "Name Communities with AI",
+        "category": "Synapse"
+      },
+      {
         "command": "synapse.openGraphMap",
         "title": "Open Graph Map",
         "category": "Synapse",
@@ -146,6 +151,11 @@
           "group": "1_ai@2"
         },
         {
+          "command": "synapse.nameCommunities",
+          "when": "view == synapse.dashboard && synapse.hasGraph",
+          "group": "1_ai@3"
+        },
+        {
           "command": "synapse.showLog",
           "when": "view == synapse.dashboard",
           "group": "2_log@1"
@@ -178,6 +188,10 @@
         },
         {
           "command": "synapse.enrichGraph",
+          "when": "synapse.hasGraph"
+        },
+        {
+          "command": "synapse.nameCommunities",
           "when": "synapse.hasGraph"
         },
         {

@@ -104,6 +104,91 @@ def label_communities_by_hub(G: nx.Graph, communities: dict[int, list[str]]) -> 
     return labels
 
 
+def _short_path(path: str) -> str:
+    """The last two segments of a project-relative path: ``extractors/resolution.py``."""
+    parts = [p for p in path.replace("\\", "/").split("/") if p]
+    return "/".join(parts[-2:])
+
+
+def _hub_name(G: nx.Graph, node: str) -> str:
+    name = str(G.nodes[node].get("label") or node).strip()
+    return name[:-2] if name.endswith("()") else name
+
+
+def label_communities_by_content(G: nx.Graph, communities: dict[int, list[str]]) -> dict[int, str]:
+    """Deterministic, LLM-free names that say what a community contains: where its
+    code lives and its most connected symbol, e.g. ``extractors/resolution.py ·
+    resolve_imports`` or ``tests · patch``.
+
+    The scope is the file that holds most (>= 60%) of the members, otherwise the
+    folder most members share. The symbol is the member with the most connections
+    inside the community (file nodes only as a last resort), so the name reflects
+    the group rather than one globally popular node. Names are made unique; a
+    community with no members in ``G`` keeps ``Community {cid}``.
+    """
+    from collections import Counter
+
+    from graphify.build import _is_file_node_label
+    from pathlib import Path
+
+    labels: dict[int, str] = {}
+    used: set[str] = set()
+    for cid in sorted(communities):
+        present = [n for n in communities[cid] if n in G]
+        if not present:
+            labels[cid] = f"Community {cid}"
+            continue
+        files = Counter(
+            str(G.nodes[n].get("source_file")).replace("\\", "/")
+            for n in present
+            if G.nodes[n].get("source_file")
+        )
+        scope = ""
+        if files:
+            top_file, count = files.most_common(1)[0]
+            if count >= 0.6 * sum(files.values()):
+                scope = _short_path(top_file)
+            else:
+                dirs: Counter = Counter()
+                for f, c in files.items():
+                    dirs[f.rsplit("/", 1)[0] if "/" in f else ""] += c
+                top_dir = dirs.most_common(1)[0][0]
+                scope = _short_path(top_dir) if top_dir else ""
+
+        members = set(present)
+
+        def inside(n: str) -> int:
+            near = set(G.predecessors(n)) | set(G.successors(n)) if G.is_directed() else set(G.neighbors(n))
+            return len(near & members)
+
+        def is_file(n: str) -> bool:
+            d = G.nodes[n]
+            return _is_file_node_label(d.get("label"), d.get("source_file"))
+
+        # Symbols defined in the repository first: external references (imported
+        # library names such as ``Path``) carry no source_file.
+        ranked = sorted(
+            present,
+            key=lambda n: (not G.nodes[n].get("source_file"), is_file(n), -inside(n), -G.degree(n), str(n)),
+        )
+        name = ""
+        for hub in ranked[:3]:
+            symbol = _hub_name(G, hub)
+            if is_file(hub) or not symbol or (scope and Path(scope).stem.lower() == symbol.lower()):
+                candidate = scope or symbol
+            else:
+                candidate = f"{scope} · {symbol}" if scope else symbol
+            if candidate and candidate not in used:
+                name = candidate
+                break
+        if not name:
+            base = (f"{scope} · {_hub_name(G, ranked[0])}" if scope else _hub_name(G, ranked[0])) or "Community"
+            name = f"{base} ({cid})"
+        used.add(name)
+        labels[cid] = name
+    return labels
+
+
 def community_member_sigs(communities: dict[int, list[str]]) -> dict[int, str]:
     """Per-community membership fingerprints: ``{cid: sha256(sorted member ids)}``.
 

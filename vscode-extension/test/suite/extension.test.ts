@@ -70,6 +70,34 @@ describe("Synapse in VS Code", function () {
     assert.ok(state.stats!.nodes >= 15);
     assert.ok(state.stats!.keySymbols.length > 0);
     assert.strictEqual(state.task, null);
+    // Communities are named by their contents, not "Community N".
+    const names = state.stats!.topCommunities.map((c) => c.name);
+    assert.ok(names.length > 0);
+    assert.ok(names.every((n) => !/^Community \d+$/.test(n)), names.join(", "));
+  });
+
+  it("names communities with the AI and keeps the titles", async () => {
+    const prompts: string[] = [];
+    api.setAiOverride(async (req) => {
+      prompts.push(req.prompt);
+      const ids = [...req.prompt.matchAll(/^Community (\d+):/gm)].map((m) => m[1]);
+      return { text: JSON.stringify(Object.fromEntries(ids.map((id) => [id, `Area ${id} flow`]))) };
+    });
+    const ask = vscode.window.showInformationMessage;
+    (vscode.window as any).showInformationMessage = async (message: string, ...rest: unknown[]) =>
+      /Name the graph's/.test(message) ? "Name Communities" : (ask as any)(message, ...rest);
+    try {
+      await vscode.commands.executeCommand("synapse.nameCommunities");
+    } finally {
+      (vscode.window as any).showInformationMessage = ask;
+    }
+    assert.ok(prompts.length >= 1);
+    assert.match(prompts[0], /naming clusters/);
+    assert.ok(!/def login\(/.test(prompts[0]), "only names and paths are sent, not source code");
+    await waitFor("AI titles", () => (api.state().stats?.topCommunities ?? []).every((c) => /^Area \d+ flow$/.test(c.name)), 30_000);
+    // Search results report the community by its title.
+    await vscode.commands.executeCommand("synapse.search", "how does login work");
+    assert.ok(view().nodes.some((n: { community?: string }) => /^Area \d+ flow$/.test(n.community ?? "")));
   });
 
   it("searches the graph (weighted, community-aware)", async () => {

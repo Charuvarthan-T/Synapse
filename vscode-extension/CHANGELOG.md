@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### New
+- **Named communities.** Communities are no longer called "Community 0", "Community 1"…
+  Every Build names each one after what it contains: the file (or folder) that holds
+  most of its members and its most connected symbol, e.g. `app/auth.py · login`. No AI
+  is used, and names stay stable across builds and incremental updates.
+- **Synapse: Name Communities with AI** (also in the sidebar's Tools) gives communities
+  readable titles such as "Authentication and Sessions" using your AI. Only symbol names
+  and file paths are sent. Titles are kept until a community's members change; changed
+  communities fall back to their content-based name. **Enrich Graph** now names
+  communities as its last step.
+- The sidebar lists the largest communities by name (click to open the most connected
+  symbol); search results, Explain and the graph map legend show the names.
+- Community names now help community-aware retrieval: they are matched against the
+  question, which "Community N" never could be.
+
+### Engine (in `graphify/`)
+- `label_communities_by_content` in `graphify/cluster.py`; `graphify cluster-only
+  --structural-labels`. `graphify update` drops a saved name when its community's
+  membership changed since naming, instead of keeping a stale name.
+
 ## 0.3.1 (V3)
 
 ### Fixed
