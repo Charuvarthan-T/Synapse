@@ -1,0 +1,5798 @@
+{
+  "summary": {
+    "n_tasks_total": 147,
+    "n_tasks_scored": 147,
+    "n_tasks_with_errors": 0,
+    "note": "Tasks where any condition failed after retries are excluded from every condition, so all conditions are scored on the same tasks.",
+    "no_context": {
+      "exact_match": 0.11564625850340136,
+      "edit_sim": 0.5781034526850295,
+      "context_found_rate": 0.0
+    },
+    "bm25_context": {
+      "exact_match": 0.17006802721088435,
+      "edit_sim": 0.6488844927130392,
+      "context_found_rate": 1.0
+    },
+    "original_graphify_context": {
+      "exact_match": 0.1564625850340136,
+      "edit_sim": 0.6354949267878065,
+      "context_found_rate": 0.9931972789115646
+    },
+    "synapse_context": {
+      "exact_match": 0.16326530612244897,
+      "edit_sim": 0.6380228981563664,
+      "context_found_rate": 0.9931972789115646
+    }
+  },
+  "environment": {
+    "generated_at": "2026-10-26T12:23:13.802224+00:00",
+    "provider": "deepseek",
+    "model_requested": "deepseek-flash",
+    "models_served": [
+      "deepseek-flash"
+    ],
+    "thinking": "disabled",
+    "max_output_tokens": 300,
+    "synapse_query_flags": [
+      "--community-aware"
+    ],
+    "synapse_commit": "2815872d81709877789995f8e993f516282dedb1",
+    "upstream_commit": "a9860f70dc3cc2e9c2d8cb923484cfa0592b9067",
+    "repos": [
+      "nccgroup-libslub-7732a54",
+      "vladkens-twscrape-4f2ee7f",
+      "ortursucceeh-Project-PhotoShare-1942d61",
+      "hq0709-Depth-NeuS-49d93d4",
+      "Quantomatic-zxlive-c7b5c28",
+      "briandelmsft-STAT-Function-f91d421"
+    ],
+    "n_per_repo": 25,
+    "dry_run": false,
+    "max_cost_usd": 1.4,
+    "stopped": null,
+    "usage": {
+      "calls": 588,
+      "input_tokens": 501563,
+      "output_tokens": 10040,
+      "cache_hit_tokens": 26235,
+      "est_cost_usd_off_peak": 0.0813,
+      "est_cost_usd_peak": 0.1625
+    }
+  },
+  "rows": [
+    {
+      "task_id": "project_cc_python/5981",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "pydbg(debugger)",
+      "no_context": {
+        "pred": "debugger(debugger)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.7878787878787878
+      },
+      "bm25_context": {
+        "pred": "(self.dbg = d.debugger())",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6
+      },
+      "original_graphify_context": {
+        "pred": "debugger(self, debugger)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6666666666666666
+      },
+      "synapse_context": {
+        "pred": "debugger(debugger)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7878787878787878
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2237,
+        "output_tokens": 27,
+        "cache_hit_tokens": 1408
+      }
+    },
+    {
+      "task_id": "project_cc_python/5984",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "sbcache(sb))",
+      "no_context": {
+        "pred": "sbcache(sb))",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "sbcache(sb))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "sbcmd(sb))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7272727272727273
+      },
+      "synapse_context": {
+        "pred": "cmds.append(sbcache.sbcache(sb))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5454545454545454
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3220,
+        "output_tokens": 29,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5983",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "frontend_gdb(self.sb)",
+      "no_context": {
+        "pred": "self.dbg.sb = self.sb",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.47619047619047616
+      },
+      "bm25_context": {
+        "pred": "fg.register_commands(self.sb)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6
+      },
+      "original_graphify_context": {
+        "pred": "frontend_gdb(self.sb)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "gdb_register_commands(self.sb)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.47058823529411764
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2410,
+        "output_tokens": 35,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5997",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "clear_existing_breakpoints(\"kmem_cache_alloc\")",
+      "no_context": {
+        "pred": "super(KmemCacheAlloc, self).__init__(command, internal=self.sb.bps_hidden)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.25
+      },
+      "bm25_context": {
+        "pred": "super(KmemCacheAlloc, self).__init__(\"kmem_cache_alloc\", internal=sb.bps_hidden)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3968253968253968
+      },
+      "original_graphify_context": {
+        "pred": "super(KmemCacheAlloc, self).__init__(\"kmem_cache_alloc\", internal=command.sb.bps_hidden)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.373134328358209
+      },
+      "synapse_context": {
+        "pred": "super(KmemCacheAlloc, self).__init__(\"kmem_cache_alloc\", internal=command.sb.bps_hidden)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.373134328358209
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3123,
+        "output_tokens": 108,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5980",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "pygdbpython()",
+      "no_context": {
+        "pred": "PyGDBPythonDebugger()",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.47058823529411764
+      },
+      "bm25_context": {
+        "pred": "pygdbpython()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "debugger = pgp.pygdbpython()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6341463414634146
+      },
+      "synapse_context": {
+        "pred": "gdb_debugger = pgp.pygdbpython()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5777777777777777
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2197,
+        "output_tokens": 35,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5982",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "sb(debugger=self.dbg, breakpoints_enabled=breakpoints_enabled)",
+      "no_context": {
+        "pred": "sb(debugger, breakpoints_enabled)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.6947368421052632
+      },
+      "bm25_context": {
+        "pred": "sb(breakpoints_enabled=breakpoints_enabled)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.819047619047619
+      },
+      "original_graphify_context": {
+        "pred": "sb(breakpoints_enabled=breakpoints_enabled)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.819047619047619
+      },
+      "synapse_context": {
+        "pred": "Slub(self.dbg, breakpoints_enabled)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6597938144329897
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2584,
+        "output_tokens": 45,
+        "cache_hit_tokens": 256
+      }
+    },
+    {
+      "task_id": "project_cc_python/6003",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "KmemCacheAllocReturned(self.sb)",
+      "no_context": {
+        "pred": "obj_alloc.KmemCacheAlloc(self.sb)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.71875
+      },
+      "bm25_context": {
+        "pred": "self.obj_alloc_bp = obj_alloc.KmemCacheAllocFinish(self.sb, name)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5
+      },
+      "original_graphify_context": {
+        "pred": "KmemCacheAlloc(self.sb)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8518518518518519
+      },
+      "synapse_context": {
+        "pred": "KmemCacheAllocFinish(self.sb)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3195,
+        "output_tokens": 54,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/6016",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "clear_existing_breakpoints(\"kmem_cache_free\")",
+      "no_context": {
+        "pred": "super(KmemCacheFree, self).__init__(\"kmem_cache_free\", internal=sb.bps_hidden)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.4065040650406504
+      },
+      "bm25_context": {
+        "pred": "super(KmemCacheFree, self).__init__(\"kmem_cache_free\", internal=sb.bps_hidden)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4065040650406504
+      },
+      "original_graphify_context": {
+        "pred": "super(KmemCacheFree, self).__init__(\"kmem_cache_free\", internal=sb.bps_hidden)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4065040650406504
+      },
+      "synapse_context": {
+        "pred": "super(KmemCacheFree, self).__init__(\"kmem_cache_free\", internal=sb.bps_hidden)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4065040650406504
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3022,
+        "output_tokens": 100,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/6020",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "print_error(\"Please specify a debugger\")",
+      "no_context": {
+        "pred": "self.sb.dbg = gdb.selected_inferior()",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.2077922077922078
+      },
+      "bm25_context": {
+        "pred": "print_error(\"Not attached to a target\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5569620253164557
+      },
+      "original_graphify_context": {
+        "pred": "print_error(\"Please run in debugger.\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8205128205128205
+      },
+      "synapse_context": {
+        "pred": "super(sbcmd, self).__init__(name, gdb.COMMAND_USER)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.10989010989010989
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2644,
+        "output_tokens": 51,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/6011",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "clear_existing_breakpoints(\"new_slab\")",
+      "no_context": {
+        "pred": "super(NewSlab, self).__init__(\"new_slab\", gdb.BP_BREAKPOINT, internal=sb.bps_hidden)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.2786885245901639
+      },
+      "bm25_context": {
+        "pred": "clear_existing_breakpoints(\"new_slab\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "super(NewSlab, self).__init__(\"new_slab\", internal=sb.bps_hidden)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3300970873786408
+      },
+      "synapse_context": {
+        "pred": "Here is the single line to complete the code:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3373493975903614
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3221,
+        "output_tokens": 121,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/6006",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "DiscardSlab(self.sb)",
+      "no_context": {
+        "pred": "slab_free.DiscardSlab(self.sb)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8
+      },
+      "bm25_context": {
+        "pred": "self.slab_free_bp = slab_free.",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.28
+      },
+      "original_graphify_context": {
+        "pred": "self.slab_free_bp = slab_free.KmemCacheFreeReturned(self.sb)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.325
+      },
+      "synapse_context": {
+        "pred": "slab_free_bp = slab_free.KmemCacheFreeReturned(self.sb)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3466666666666667
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3718,
+        "output_tokens": 59,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/6021",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "COMMAND_DATA, gdb.COMPLETE_NONE)",
+      "no_context": {
+        "pred": "COMMAND_USER)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.4444444444444444
+      },
+      "bm25_context": {
+        "pred": "COMMAND_USER)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4444444444444444
+      },
+      "original_graphify_context": {
+        "pred": "COMMAND_USER)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4444444444444444
+      },
+      "synapse_context": {
+        "pred": "COMMAND_USER, prefix=False)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3728813559322034
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2834,
+        "output_tokens": 19,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/6030",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "kmem_cache_node(self.sb, node_id, kmem_cache=self, value=node_value)",
+      "no_context": {
+        "pred": "kmem_cache_node(self.sb, node_id, self, node_value)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8571428571428571
+      },
+      "bm25_context": {
+        "pred": "kmem_cache_node(self.sb, self, node_value, node_id)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7058823529411765
+      },
+      "original_graphify_context": {
+        "pred": "kmem_cache_node(self.sb, node_id, self, node_value)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8571428571428571
+      },
+      "synapse_context": {
+        "pred": "kmem_cache_node(self.sb, node_id, self, node_value)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8571428571428571
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4092,
+        "output_tokens": 64,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/6032",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "SlabType.FULL_SLAB, index=slab_index+1, count=slab_count, value=full_slab_value)",
+      "no_context": {
+        "pred": "p.get_slab_page_type(self.value), full_slab_value)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.49230769230769234
+      },
+      "bm25_context": {
+        "pred": "`self.sb.dev, None, full_slab_value)`",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4444444444444444
+      },
+      "original_graphify_context": {
+        "pred": "p.SLAB, index=slab_index, count=slab_count, is_main_slab=False, value=full_slab_value)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7951807228915663
+      },
+      "synapse_context": {
+        "pred": "full_slab = p.page(self.sb, self, None, None, sb.SLAB_FULL, index=slab_index, count=slab_count, value=full_slab_value)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.696969696969697
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4340,
+        "output_tokens": 97,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/6024",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "print_error(\"GDB is not running.\")",
+      "no_context": {
+        "pred": "print(\"[-] GDB is not running\")",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8307692307692308
+      },
+      "bm25_context": {
+        "pred": "print_error(\"GDB is not running\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9850746268656716
+      },
+      "original_graphify_context": {
+        "pred": "print(\"Please start the target program first (e.g. `target remote :1234`, `run`, etc.)\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.29508196721311475
+      },
+      "synapse_context": {
+        "pred": "print(\"GDB is not running\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8852459016393442
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2417,
+        "output_tokens": 52,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/6023",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "selected_thread() is not None:",
+      "no_context": {
+        "pred": "selected_thread() is None:",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.9285714285714286
+      },
+      "bm25_context": {
+        "pred": "selected_thread() is None:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9285714285714286
+      },
+      "original_graphify_context": {
+        "pred": "inferior is None:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.46808510638297873
+      },
+      "synapse_context": {
+        "pred": "selected_thread() is None:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9285714285714286
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2262,
+        "output_tokens": 112,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/6038",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "print_error(\"Invalid kmem_caches type passed to is_object_address_in_slab_cache(), should not happen\")",
+      "no_context": {
+        "pred": "raise Exception(\"is_object_address_in_slab_caches: invalid type for kmem_caches\")",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.5245901639344263
+      },
+      "bm25_context": {
+        "pred": "if address in kmem_caches:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.234375
+      },
+      "original_graphify_context": {
+        "pred": "perror(\"is_object_address_in_slab_caches: kmem_caches must be a kmem_cache or a list of kmem_cache\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.45544554455445546
+      },
+      "synapse_context": {
+        "pred": "raise TypeError(\"kmem_caches must be a kmem_cache or list of kmem_cache\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4685714285714286
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3098,
+        "output_tokens": 78,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/6034",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "color_value(\"{:s}\".format(self.name))",
+      "no_context": {
+        "pred": "if self.value[\"name\"]:",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.3389830508474576
+      },
+      "bm25_context": {
+        "pred": "txt += \"{:s}\".format(self.name) + \"\\n\"",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.64
+      },
+      "original_graphify_context": {
+        "pred": "colorize('\"{}\"'.format(self.name), pu.BLUE)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.75
+      },
+      "synapse_context": {
+        "pred": "color_value(self.name)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7457627118644068
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4005,
+        "output_tokens": 69,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/6029",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "kmem_cache_cpu(self.sb, cpu_id, self, cache_cpu_value)",
+      "no_context": {
+        "pred": "self.kmem_cache_cpu_list.append(kcc.kmem_cache_cpu(self.sb, cache_cpu_value))",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.6106870229007634
+      },
+      "bm25_context": {
+        "pred": "kcc = kmem_cache_cpu(self.sb, self, cpu_id, value=cache_cpu_value)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8166666666666667
+      },
+      "original_graphify_context": {
+        "pred": "kmem_cache_cpu(sb, cpu_id, self, value=cache_cpu_value)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8990825688073395
+      },
+      "synapse_context": {
+        "pred": "kmem_cache_cpu(self.sb, cpu_id, self, value=cache_cpu_value)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9473684210526315
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4046,
+        "output_tokens": 91,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/6036",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "SlabType.MAIN_SLAB:",
+      "no_context": {
+        "pred": "txt += f\"page_type={self.page.type}\"",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.18181818181818182
+      },
+      "bm25_context": {
+        "pred": "page_type.INUSE:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5142857142857142
+      },
+      "original_graphify_context": {
+        "pred": "\"\"\"",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.0
+      },
+      "synapse_context": {
+        "pred": "PAGE_SLAB:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4827586206896552
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3209,
+        "output_tokens": 23,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/6046",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "kmem_cache(self.sb, value=slab_cache)",
+      "no_context": {
+        "pred": "kmem_cache(self.sb, slab_cache)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.9117647058823529
+      },
+      "bm25_context": {
+        "pred": "kmem_cache(self.sb, slab_cache)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9117647058823529
+      },
+      "original_graphify_context": {
+        "pred": "kmem_cache(sb.sb, slab_cache)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8484848484848485
+      },
+      "synapse_context": {
+        "pred": "(sb=sb.sb, slab_cache=slab_cache)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3054,
+        "output_tokens": 45,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/6047",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "hms_string(end_time-start_time))",
+      "no_context": {
+        "pred": "from . import helper as h",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.21052631578947367
+      },
+      "bm25_context": {
+        "pred": ") if False else print(f\"Elapsed: {end_time - start_time:.2f}s\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5473684210526316
+      },
+      "original_graphify_context": {
+        "pred": "uman_time(end_time - start_time))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7384615384615385
+      },
+      "synapse_context": {
+        "pred": ".format_time(end_time - start_time))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7058823529411765
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3226,
+        "output_tokens": 43,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/6043",
+      "repo": "nccgroup-libslub-7732a54",
+      "gold": "SlabType.NODE_SLAB, index=slab_index+1, count=slab_count, value=slab_value)",
+      "no_context": {
+        "pred": "sb.sb.page_from_kmem_cache_node(slab_value, self)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.3064516129032258
+      },
+      "bm25_context": {
+        "pred": "partial_slabs.append(partial_slab)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.25688073394495414
+      },
+      "original_graphify_context": {
+        "pred": ".partial_slabs.append(p.page(self.sb, self.kmem_cache, None, self, sb.page.PAGE_TYPE_PARTIAL, index=slab_index, value=slab_value, is_main_slab=(slab_index == 0)))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.39662447257383965
+      },
+      "synapse_context": {
+        "pred": "page_type, slab_index, slab_count, slab_value, is_main_slab=False)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5815602836879432
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3884,
+        "output_tokens": 100,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4399",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "debug if rep.status_code == 200 else logger.warning",
+      "no_context": {
+        "pred": "await self.pool.mark_banned(username, msg)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.12903225806451613
+      },
+      "bm25_context": {
+        "pred": "await self.pool.mark_banned(ctx.acc.username, msg)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.1188118811881188
+      },
+      "original_graphify_context": {
+        "pred": "await self.pool.mark_active(username, True)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.10638297872340426
+      },
+      "synapse_context": {
+        "pred": "if rep.status_code != 200:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6233766233766234
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2700,
+        "output_tokens": 59,
+        "cache_hit_tokens": 2048
+      }
+    },
+    {
+      "task_id": "project_cc_python/4394",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "info(f\"Account {username} added successfully (active={account.active})\")",
+      "no_context": {
+        "pred": "info(f\"Account {username} added successfully\")",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.7796610169491526
+      },
+      "bm25_context": {
+        "pred": "info(f\"Account {username} added\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6285714285714286
+      },
+      "original_graphify_context": {
+        "pred": "info(f\"Account {username} added\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6285714285714286
+      },
+      "synapse_context": {
+        "pred": "logger.info(f\"Account {username} added successfully\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.736
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2421,
+        "output_tokens": 39,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4397",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "error(f\"Error in {task_id}: {e}\")",
+      "no_context": {
+        "pred": "logger.exception(f\"login_step={task_id} err={e}\")",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.5853658536585366
+      },
+      "bm25_context": {
+        "pred": "logger.error(f\"login_step={task_id} err={e}\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6666666666666666
+      },
+      "original_graphify_context": {
+        "pred": "logger.warning(f\"Login failed for {acc.username} at {task_id}: {e}\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5346534653465347
+      },
+      "synapse_context": {
+        "pred": "error(f\"login_step={task_id} err={e}\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7323943661971831
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3213,
+        "output_tokens": 66,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4398",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "info(f\"account already active {log_id}\")",
+      "no_context": {
+        "pred": "return acc",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.2
+      },
+      "bm25_context": {
+        "pred": "raise EmailLoginError(f\"Account is already active: {log_id}\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7524752475247525
+      },
+      "original_graphify_context": {
+        "pred": "info(f\"{log_id} - already active\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6756756756756757
+      },
+      "synapse_context": {
+        "pred": "debug(f\"Account {log_id} is already active\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6190476190476191
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2908,
+        "output_tokens": 40,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4401",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "error(f\"Invalid request: {msg}\")",
+      "no_context": {
+        "pred": "logger.warning(f\"Missing features in request: {msg}\")",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.5647058823529412
+      },
+      "bm25_context": {
+        "pred": "raise Exception(msg)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.34615384615384615
+      },
+      "original_graphify_context": {
+        "pred": "raise Exception(f\"Please update GQL_FEATURES in api.py by adding: {msg}\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.34285714285714286
+      },
+      "synapse_context": {
+        "pred": "fn = logger.debug if rep.status_code == 200 else logger.warning",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.21052631578947367
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3085,
+        "output_tokens": 55,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4396",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "error(f\"Error logging in to {account.username}: {e}\")",
+      "no_context": {
+        "pred": "error(f\"Failed to login to {account.username}: {e}\")",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8380952380952381
+      },
+      "bm25_context": {
+        "pred": "error(f\"Failed to login to {account.username}: {e}\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8380952380952381
+      },
+      "original_graphify_context": {
+        "pred": "error(f\"Failed to login to {account.username}: {e}\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8380952380952381
+      },
+      "synapse_context": {
+        "pred": "error(f\"Failed to login to {account.username}: {e}\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8380952380952381
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2867,
+        "output_tokens": 66,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4395",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "from_rs(rs)",
+      "no_context": {
+        "pred": "return Account.from_row(rs)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.5263157894736842
+      },
+      "bm25_context": {
+        "pred": "from_row(rs)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8695652173913043
+      },
+      "original_graphify_context": {
+        "pred": "_from_row(rs)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8333333333333334
+      },
+      "synapse_context": {
+        "pred": "_from_row(rs)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8333333333333334
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2687,
+        "output_tokens": 22,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4402",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "info(f\"({i} of {count}) {msg_from} - {msg_time} - {msg_subj}\")",
+      "no_context": {
+        "pred": "if min_t is not None and msg_time < min_t:",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.36538461538461536
+      },
+      "bm25_context": {
+        "pred": "The next line is likely `debug(f\"Got email from {msg_from} with subject {msg_subj}\")` based on the `logger.debug` pattern, but the actual line is:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3269230769230769
+      },
+      "original_graphify_context": {
+        "pred": "msg_subj = str(msg.get(\"Subject\", \"\")).lower()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.18518518518518517
+      },
+      "synapse_context": {
+        "pred": "debug(f\"Checking email {i}: from={msg_from}, subject={msg_subj}, time={msg_time}\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4722222222222222
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3127,
+        "output_tokens": 168,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4404",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "info(f\"Running migration to v{i}\")",
+      "no_context": {
+        "pred": "info(f\"Migrating to v{i}\")",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8
+      },
+      "bm25_context": {
+        "pred": "debug(f\"Applying migration v{i}\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6865671641791045
+      },
+      "original_graphify_context": {
+        "pred": "debug(f\"Migrating to v{i}\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6557377049180327
+      },
+      "synapse_context": {
+        "pred": "debug(f\"Migrating to v{i}...\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.625
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2719,
+        "output_tokens": 65,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4413",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "reset_locks()",
+      "no_context": {
+        "pred": "reset_locks(force=args.force)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.6190476190476191
+      },
+      "bm25_context": {
+        "pred": "reset_locks()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "reset_locks()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "reset_locks()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2817,
+        "output_tokens": 24,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/4415",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "search(\"elon musk lang:en\", limit=20))",
+      "no_context": {
+        "pred": "search_raw(\"test\"))",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.38596491228070173
+      },
+      "bm25_context": {
+        "pred": "search(\"test\"), limit=2)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6774193548387096
+      },
+      "original_graphify_context": {
+        "pred": "search(\"test\", limit=2))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7096774193548387
+      },
+      "synapse_context": {
+        "pred": "search_raw(\"test\", limit=2))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6666666666666666
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2726,
+        "output_tokens": 30,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4410",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "login_all(email_first=args.email_first)",
+      "no_context": {
+        "pred": "login_all(api)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.49056603773584906
+      },
+      "bm25_context": {
+        "pred": "login_all(api)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.49056603773584906
+      },
+      "original_graphify_context": {
+        "pred": "login_all(email_first=args.email_first)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "stats()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.21739130434782608
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2845,
+        "output_tokens": 26,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4421",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "retweeters(1649191520250245121))",
+      "no_context": {
+        "pred": "retweeters(1649191520250245121))",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "retweeters(1649191520250245121))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "retweeters(1649191520250245121))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "retweeters(1649191520250245121))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2512,
+        "output_tokens": 48,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4408",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "load_from_file(args.file_path, args.line_format)",
+      "no_context": {
+        "pred": "login_all()",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.2711864406779661
+      },
+      "bm25_context": {
+        "pred": "await pool.add_accounts(args.accounts_file)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3516483516483517
+      },
+      "original_graphify_context": {
+        "pred": "load_from_file(args.file, args.line_format)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.945054945054945
+      },
+      "synapse_context": {
+        "pred": "load_from_file(args.accounts)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6233766233766234
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2790,
+        "output_tokens": 30,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4412",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "relogin(args.usernames, email_first=args.email_first)",
+      "no_context": {
+        "pred": "relogin(args.usernames, email_first=args.email_first)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "relogin(args.usernames, email_first=args.email_first)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "relogin(args.usernames, email_first=args.email_first)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "relogin(args.usernames, email_first=args.email_first)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2804,
+        "output_tokens": 64,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4411",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "relogin_failed(email_first=args.email_first)",
+      "no_context": {
+        "pred": "relogin_failed(args.usernames, args.password)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.4943820224719101
+      },
+      "bm25_context": {
+        "pred": "relogin_failed(email_first=args.email_first)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "relogin_failed(email_first=args.email_first)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "relogin_failed(email_first=args.email_first)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2828,
+        "output_tokens": 49,
+        "cache_hit_tokens": 256
+      }
+    },
+    {
+      "task_id": "project_cc_python/4416",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "user_by_id(2244994945)",
+      "no_context": {
+        "pred": "user_by_id(12)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.7222222222222222
+      },
+      "bm25_context": {
+        "pred": "user_by_id(2244994945)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "user_by_id(2244994945)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "user_by_id(2244994945)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2319,
+        "output_tokens": 33,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4418",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "tweet_details(1649191520250245121)",
+      "no_context": {
+        "pred": "tweet_details(1516646137496408064)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.5588235294117647
+      },
+      "bm25_context": {
+        "pred": "tweet_details(1629308711899443200)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6764705882352942
+      },
+      "original_graphify_context": {
+        "pred": "tweet_details(20)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6666666666666666
+      },
+      "synapse_context": {
+        "pred": "tweet_details(1629309548853895169)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6764705882352942
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2636,
+        "output_tokens": 42,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4405",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "error(f\"Missing argument: {names}\")",
+      "no_context": {
+        "pred": "if \"tweet_id\" in args:",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.2807017543859649
+      },
+      "bm25_context": {
+        "pred": "raise ValueError(\"Missing argument\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.704225352112676
+      },
+      "original_graphify_context": {
+        "pred": "Complete the next line: return None, None",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.18421052631578946
+      },
+      "synapse_context": {
+        "pred": "logger.error(f\"One of the following arguments is required: {', '.join(names)}\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.543859649122807
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2279,
+        "output_tokens": 43,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4409",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "delete_accounts(args.usernames)",
+      "no_context": {
+        "pred": "delete_accounts(args.usernames)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "delete_accounts(args.username)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9836065573770492
+      },
+      "original_graphify_context": {
+        "pred": "delete_accounts(args.usernames)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "delete_accounts(args.usernames)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2746,
+        "output_tokens": 32,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4406",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "accounts_info())",
+      "no_context": {
+        "pred": "accounts_info())",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "get_accounts_info())",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8888888888888888
+      },
+      "original_graphify_context": {
+        "pred": "get_accounts(args.username), hr_after=True)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3728813559322034
+      },
+      "synapse_context": {
+        "pred": "accounts_info())",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2621,
+        "output_tokens": 22,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4425",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "retweetedTweet is not None",
+      "no_context": {
+        "pred": "id == 1665951747842641921",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.11764705882352941
+      },
+      "bm25_context": {
+        "pred": "assert doc.viewCount is not None",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5862068965517241
+      },
+      "original_graphify_context": {
+        "pred": "assert doc.id == 1665951747842641921",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.16129032258064516
+      },
+      "synapse_context": {
+        "pred": "quotedTweet is None",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7111111111111111
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3020,
+        "output_tokens": 34,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/4426",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "rawContent is not None",
+      "no_context": {
+        "pred": "retweetedTweet.id is not None",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.6666666666666666
+      },
+      "bm25_context": {
+        "pred": "assert doc.retweetedTweet.user is not None",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.53125
+      },
+      "original_graphify_context": {
+        "pred": "retweetedTweet.id == 1665913666193780736",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.16129032258064516
+      },
+      "synapse_context": {
+        "pred": "assert doc.retweetedTweet.id == 1665951747842641921",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.1643835616438356
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3035,
+        "output_tokens": 50,
+        "cache_hit_tokens": 512
+      }
+    },
+    {
+      "task_id": "project_cc_python/4414",
+      "repo": "vladkens-twscrape-4f2ee7f",
+      "gold": "delete_inactive()",
+      "no_context": {
+        "pred": "await pool.delete_inactive()",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.7555555555555555
+      },
+      "bm25_context": {
+        "pred": "delete_inactive()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "delete_inactive()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "delete_inactive()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2782,
+        "output_tokens": 20,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/2799",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "user_id == user.id, Post.id == post_id).first()",
+      "no_context": {
+        "pred": "id == post_id, Post.user_id == user.id).first()",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.574468085106383
+      },
+      "bm25_context": {
+        "pred": "id == post_id, Post.user_id == user.id).first()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.574468085106383
+      },
+      "original_graphify_context": {
+        "pred": "id == post_id, Post.user_id == user.id).first()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.574468085106383
+      },
+      "synapse_context": {
+        "pred": "id == post_id).first()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6376811594202898
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2877,
+        "output_tokens": 49,
+        "cache_hit_tokens": 2176
+      }
+    },
+    {
+      "task_id": "project_cc_python/2813",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "admin, UserRoleEnum.moder] or comment.user_id == user.id:",
+      "no_context": {
+        "pred": "comment.text = body.text",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.32098765432098764
+      },
+      "bm25_context": {
+        "pred": "comment.text = body.text",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.32098765432098764
+      },
+      "original_graphify_context": {
+        "pred": "if user.role in [UserRoleEnum.admin, UserRoleEnum.moder] or comment.user_id == user.id:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7916666666666666
+      },
+      "synapse_context": {
+        "pred": "admin, UserRoleEnum.moder] or comment.user_id == user.id:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3520,
+        "output_tokens": 95,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/2816",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "post_id == post_id, Comment.user_id == user_id)).all()",
+      "no_context": {
+        "pred": "user_id == user_id, Comment.post_id == post_id)).all()",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.48148148148148145
+      },
+      "bm25_context": {
+        "pred": "user_id == user_id, Comment.post_id == post_id)).all()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.48148148148148145
+      },
+      "original_graphify_context": {
+        "pred": "user_id == user_id, Comment.post_id == post_id)).all()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.48148148148148145
+      },
+      "synapse_context": {
+        "pred": "user_id == user_id, Comment.post_id == post_id)).all()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.48148148148148145
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3564,
+        "output_tokens": 60,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/2824",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "admin, UserRoleEnum.moder] or rate.user_id == user.id:",
+      "no_context": {
+        "pred": "raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=message.NOT_AUTHORIZED)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.2191780821917808
+      },
+      "bm25_context": {
+        "pred": "admin, UserRoleEnum.moderator] or (rate and rate.user_id == user.id):",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8780487804878049
+      },
+      "original_graphify_context": {
+        "pred": "if user.role in [UserRoleEnum.admin, UserRoleEnum.moder] or rate.user_id == user.id:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.782608695652174
+      },
+      "synapse_context": {
+        "pred": "admin, UserRoleEnum.moder] or rate.user_id == user.id:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3553,
+        "output_tokens": 88,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/2825",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "moder] or rate.user_id == user.id:",
+      "no_context": {
+        "pred": "moderator]:",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.4
+      },
+      "bm25_context": {
+        "pred": "moderator] or rate.user_id == user.id: rate.rate = new_rate; rate.updated_at = func.now(); db.commit(); db.refresh(rate); return rate",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.40718562874251496
+      },
+      "original_graphify_context": {
+        "pred": "moder] or rate.user_id == user.id:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "moder] or rate.user_id == user.id:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3521,
+        "output_tokens": 86,
+        "cache_hit_tokens": 640
+      }
+    },
+    {
+      "task_id": "project_cc_python/2833",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "get_my_tags(skip, limit, current_user, db)",
+      "no_context": {
+        "pred": "get_tags_by_user(skip, limit, current_user, db)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8764044943820225
+      },
+      "bm25_context": {
+        "pred": "get_hashtags_by_user(skip, limit, current_user, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8387096774193549
+      },
+      "original_graphify_context": {
+        "pred": "tags = await repository_tags.get_my_tags(skip, limit, current_user, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7433628318584071
+      },
+      "synapse_context": {
+        "pred": "get_my_tags(skip, limit, current_user, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3829,
+        "output_tokens": 64,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/2841",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "verify_password(body.password, user.password):",
+      "no_context": {
+        "pred": "if not auth_service.verify_password(body.password, user.password):",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8214285714285714
+      },
+      "bm25_context": {
+        "pred": "if not auth_service.verify_password(body.password, user.password):",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8214285714285714
+      },
+      "original_graphify_context": {
+        "pred": "verify_password(body.password, user.password):",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "if not auth_service.verify_password(body.password, user.password):",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8214285714285714
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3733,
+        "output_tokens": 194,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/2832",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "create_tag(body, current_user, db)",
+      "no_context": {
+        "pred": "create_tag(body, db, current_user)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8823529411764706
+      },
+      "bm25_context": {
+        "pred": "create_tag(body, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7407407407407407
+      },
+      "original_graphify_context": {
+        "pred": "return await repository_tags.create_tag(body, current_user, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7010309278350515
+      },
+      "synapse_context": {
+        "pred": "create_tag(body, db, current_user)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8823529411764706
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3584,
+        "output_tokens": 37,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/2805",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "username).like(f'%{username.lower()}%')).all()",
+      "no_context": {
+        "pred": "username) == username.lower()).all()",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.7804878048780488
+      },
+      "bm25_context": {
+        "pred": "username).like(f'%{username.lower()}%')).all()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "username) == username.lower()).all()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7804878048780488
+      },
+      "synapse_context": {
+        "pred": "username) == username.lower()).all()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7804878048780488
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3261,
+        "output_tokens": 38,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/2828",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "transform_metod(post_id, body, current_user, db)",
+      "no_context": {
+        "pred": "transform_post(post_id, body, current_user, db)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.9263157894736842
+      },
+      "bm25_context": {
+        "pred": "transform_post(post_id, body, current_user, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9263157894736842
+      },
+      "original_graphify_context": {
+        "pred": "transform_post(post_id, body, current_user, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9263157894736842
+      },
+      "synapse_context": {
+        "pred": "post = await transform_post.transform_post(post_id, body, current_user, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7154471544715447
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3027,
+        "output_tokens": 117,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/2848",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "get_email_from_token(token)",
+      "no_context": {
+        "pred": "get_email_from_token(token)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "get_email_from_token(token)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "email = await auth_service.get_email_from_token(token)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6666666666666666
+      },
+      "synapse_context": {
+        "pred": "email = await auth_service.get_email_from_token(token)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6666666666666666
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3614,
+        "output_tokens": 116,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/2839",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "get_password_hash(body.password)",
+      "no_context": {
+        "pred": "body.password = auth_service.get_password_hash(body.password)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.6881720430107527
+      },
+      "bm25_context": {
+        "pred": "body.password = auth_service.get_password_hash(body.password)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6881720430107527
+      },
+      "original_graphify_context": {
+        "pred": "body.password = auth_service.pwd_context.hash(body.password)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6086956521739131
+      },
+      "synapse_context": {
+        "pred": "body.password = auth_service.get_password_hash(body.password)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6881720430107527
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3707,
+        "output_tokens": 94,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/2834",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "get_all_tags(skip, limit, db)",
+      "no_context": {
+        "pred": "get_all_tags(skip, limit, db)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "get_all_tags(skip, limit, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "tags = await repository_tags.get_all_tags(skip, limit, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6666666666666666
+      },
+      "synapse_context": {
+        "pred": "tags = await repository_tags.get_all_tags(skip, limit, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6666666666666666
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3620,
+        "output_tokens": 50,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/2814",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "moder] or comment.user_id == user.id:",
+      "no_context": {
+        "pred": "moderator] or comment.user_id == user.id:",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.9487179487179487
+      },
+      "bm25_context": {
+        "pred": "moderator] or comment.user_id == user.id:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9487179487179487
+      },
+      "original_graphify_context": {
+        "pred": "if user.role in [UserRoleEnum.admin, UserRoleEnum.moder] or comment.user_id == user.id:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5967741935483871
+      },
+      "synapse_context": {
+        "pred": "if comment.user_id == user.id:",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.835820895522388
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3513,
+        "output_tokens": 82,
+        "cache_hit_tokens": 1280
+      }
+    },
+    {
+      "task_id": "project_cc_python/2849",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "confirmed_email(email, db)",
+      "no_context": {
+        "pred": "confirmed_email(email, db)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "confirm_email(email, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.96
+      },
+      "original_graphify_context": {
+        "pred": "confirmed_email(email, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "await repository_users.confirmed_email(email, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6933333333333334
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3654,
+        "output_tokens": 48,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/2859",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "show_user_comments(user_id, db)",
+      "no_context": {
+        "pred": "comments_by_user(user_id, db, current_user)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.5675675675675675
+      },
+      "bm25_context": {
+        "pred": "return db.query(Comment).filter(Comment.user_id == user_id).all()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4166666666666667
+      },
+      "original_graphify_context": {
+        "pred": "show_comments_by_user(user_id, db, current_user)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6582278481012658
+      },
+      "synapse_context": {
+        "pred": "comments_by_user(user_id, db, current_user)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5675675675675675
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3760,
+        "output_tokens": 52,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/2842",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "create_access_token(data={\"sub\": user.email}, expires_delta=7200)",
+      "no_context": {
+        "pred": "create_access_token(data={\"sub\": user.email})",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8181818181818182
+      },
+      "bm25_context": {
+        "pred": "create_access_token(data={\"sub\": user.email})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8181818181818182
+      },
+      "original_graphify_context": {
+        "pred": "create_access_token(data={\"sub\": user.email})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8181818181818182
+      },
+      "synapse_context": {
+        "pred": "create_access_token(data={\"sub\": user.email})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8181818181818182
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3899,
+        "output_tokens": 40,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/2858",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "show_single_comment(comment_id, db, current_user)",
+      "no_context": {
+        "pred": "show_single_comment(comment_id, db)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8333333333333334
+      },
+      "bm25_context": {
+        "pred": "comment = await repository_comments.show_single_comment(comment_id, db, current_user)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7313432835820896
+      },
+      "original_graphify_context": {
+        "pred": "get_comment(comment_id, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6842105263157895
+      },
+      "synapse_context": {
+        "pred": "comment = await repository_comments.get_comment_by_id(comment_id, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4745762711864407
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3778,
+        "output_tokens": 92,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/2882",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "get_users_with_username(\"artur\", session)",
+      "no_context": {
+        "pred": "get_users_with_username(\"artur\", session)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "get_users_with_username(\"artur\", session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "response = await repository_users.get_posts_by_username(user_name, db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.43243243243243246
+      },
+      "synapse_context": {
+        "pred": "get_users_with_username(\"artur\", session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3295,
+        "output_tokens": 49,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/2880",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "get_me(new_user, session)",
+      "no_context": {
+        "pred": "get_me(new_user.username, session)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.847457627118644
+      },
+      "bm25_context": {
+        "pred": "response = await repository_users.get_me(new_user, session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5952380952380952
+      },
+      "original_graphify_context": {
+        "pred": "response = await repository_users.get_me(new_user.username, session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5376344086021505
+      },
+      "synapse_context": {
+        "pred": "get_me(new_user.username, session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.847457627118644
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2882,
+        "output_tokens": 45,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/2871",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "show_ratings(db, current_user)",
+      "no_context": {
+        "pred": "get_all_rates(db, current_user)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.7540983606557377
+      },
+      "bm25_context": {
+        "pred": "rates = await repository_ratings.get_all_ratings(db, current_user)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5833333333333334
+      },
+      "original_graphify_context": {
+        "pred": "all_rates(db)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4186046511627907
+      },
+      "synapse_context": {
+        "pred": "return await repository_ratings.get_all_ratings(db, current_user)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5684210526315789
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3527,
+        "output_tokens": 51,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/2886",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "get_user_by_email(\"second_user@example.com\", session)",
+      "no_context": {
+        "pred": "get_user_by_email(new_user.email, session)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.7578947368421053
+      },
+      "bm25_context": {
+        "pred": "get_user_by_email(new_user.email, session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7578947368421053
+      },
+      "original_graphify_context": {
+        "pred": "get_user_by_email(new_user.email, session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7578947368421053
+      },
+      "synapse_context": {
+        "pred": "response = await repository_users.get_user_by_email(new_user.email, session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5581395348837209
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3421,
+        "output_tokens": 66,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/2888",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "confirmed_email(\"second_user@example.com\", session)",
+      "no_context": {
+        "pred": "confirmed_email(user.email, session)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.735632183908046
+      },
+      "bm25_context": {
+        "pred": "confirmed_email(\"test_user@example.com\", session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.92
+      },
+      "original_graphify_context": {
+        "pred": "get_user_by_email(\"test_user@example.com\", session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7450980392156863
+      },
+      "synapse_context": {
+        "pred": "confirmed_email(\"second_user@example.com\", session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3021,
+        "output_tokens": 42,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/2881",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "get_users(0, 100, session)",
+      "no_context": {
+        "pred": "get_users(0, 100, session)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "get_users(100, 0, session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9230769230769231
+      },
+      "original_graphify_context": {
+        "pred": "get_users(0, 100, session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "get_users(100, 0, session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9230769230769231
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3007,
+        "output_tokens": 40,
+        "cache_hit_tokens": 384
+      }
+    },
+    {
+      "task_id": "project_cc_python/2890",
+      "repo": "ortursucceeh-Project-PhotoShare-1942d61",
+      "gold": "make_user_role(\"second_user@example.com\", \"moder\", session)",
+      "no_context": {
+        "pred": "make_user_role(\"second_user@example.com\", \"moder\", session)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "make_user_role(\"second_user@example.com\", session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9174311926605505
+      },
+      "original_graphify_context": {
+        "pred": "response = await repository_users.make_user_role(\"second_user@example.com\", \"moder\", session)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7763157894736842
+      },
+      "synapse_context": {
+        "pred": "assert second_user.role == Role.moder",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3101,
+        "output_tokens": 58,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/5533",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "prepare_patches_src(img_ref, pixels_coords_vu, window_size, window_step)",
+      "no_context": {
+        "pred": "extract_patches(img_ref, pixels_coords_vu, window_size)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.7874015748031497
+      },
+      "bm25_context": {
+        "pred": "patches_ref, idx_patch_pixels_ref, mask_idx_inside = PatchMatch.extract_patches_from_image(img_ref, pixels_coords_vu, window_size, window_step)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6232558139534884
+      },
+      "original_graphify_context": {
+        "pred": "patches_from_image(img_ref, pixels_coords_vu, window_size, window_step)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8671328671328671
+      },
+      "synapse_context": {
+        "pred": "extract_patches(img_ref, pixels_coords_vu, window_size=window_size, window_step=window_step)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7682926829268293
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4157,
+        "output_tokens": 99,
+        "cache_hit_tokens": 3328
+      }
+    },
+    {
+      "task_id": "project_cc_python/5539",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "write_image_lis(f'./test/ncc/{idx}_{idx_src}.png', [img_sample_ref, img_sample_src])",
+      "no_context": {
+        "pred": "scores_all_mean /= count_valid_all.clamp(min=1)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.21374045801526717
+      },
+      "bm25_context": {
+        "pred": "img_sample_src = PatchMatch.visualize_sampled_pixels(self.images[idx_src].numpy()*255, corords_src)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.17486338797814208
+      },
+      "original_graphify_context": {
+        "pred": "write_image(cv.cvtColor(np.concatenate((img_sample_ref, img_sample_src), axis=1), cv.COLOR_RGB2BGR), f'{self.debug_dir}/patch_match_{idx}_{idx_src}.png')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4050632911392405
+      },
+      "synapse_context": {
+        "pred": "write_image(f'{self.debug_dir}/debug_patchmatch_src_{idx_src}.png', np.concatenate([img_sample_ref, img_sample_src], axis=1))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6411483253588517
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4819,
+        "output_tokens": 140,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5544",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "get_poses_inverse(self.poses_c2w)  # extrinsics: world to camera",
+      "no_context": {
+        "pred": "invert_poses(self.poses_c2w)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.5217391304347826
+      },
+      "bm25_context": {
+        "pred": "get_pose_inv(self.poses_c2w)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6086956521739131
+      },
+      "original_graphify_context": {
+        "pred": "invert_poses(self.poses_c2w)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5217391304347826
+      },
+      "synapse_context": {
+        "pred": "np.linalg.inv(self.poses_c2w)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.43010752688172044
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4212,
+        "output_tokens": 47,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5536",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "sample_patches(img_src, idx_patch_pixels_src, sampling_mode = 'grid_sample')",
+      "no_context": {
+        "pred": "patches_src = PatchMatch.prepare_patches_src(img_src, idx_patch_pixels_src, window_size, window_step)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.5536723163841808
+      },
+      "bm25_context": {
+        "pred": "patches_src = PatchMatch.extract_patches(img_src, idx_patch_pixels_src, window_size)</br>",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.593939393939394
+      },
+      "original_graphify_context": {
+        "pred": "patches_src = PatchMatch.prepare_patches_src(img_src, idx_patch_pixels_src.reshape(-1, 2), window_size, window_step, given_pixels=True)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.46445497630331756
+      },
+      "synapse_context": {
+        "pred": "prepare_patches_src(img_src, idx_patch_pixels_src, window_size, window_step)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6447368421052632
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4604,
+        "output_tokens": 127,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5531",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "get_world_points( self.depths_np[i], self.intrinsics_all[i], ext_curr)",
+      "no_context": {
+        "pred": "`depth_to_point_cloud(self.depths_np[i], self.intrinsics_all[i].detach().cpu().numpy(), ext_curr)`",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.7142857142857143
+      },
+      "bm25_context": {
+        "pred": "depth_to_cloud(self.depths_np[i], self.intrinsics_all[i].numpy(), ext_curr)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7724137931034483
+      },
+      "original_graphify_context": {
+        "pred": "depth_to_cloud(self.depths_np[i], self.intrinsics_all[i].detach().cpu().numpy(), ext_curr)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7
+      },
+      "synapse_context": {
+        "pred": "pts = GeoUtils.backproject(self.depths_np[i], self.intrinsics_all[i].numpy(), ext_curr)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7133757961783439
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4432,
+        "output_tokens": 118,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5532",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "convert_to_homo(pts_world)[..., None]).squeeze()[:,:3]",
+      "no_context": {
+        "pred": "curr_train_data = self.train_piece[self.small_counter - batch_size: self.small_counter]",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.2127659574468085
+      },
+      "bm25_context": {
+        "pred": "lis_imgs.append((img_gt * 255).astype(np.uint8))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.19607843137254902
+      },
+      "original_graphify_context": {
+        "pred": "idx_vu_norm[..., 0] = (idx_vu_norm[..., 0] / (W - 1)) * 2 - 1",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.2608695652173913
+      },
+      "synapse_context": {
+        "pred": "idx_vu_norm[..., 0] = (idx_vu[..., 0] - W / 2) / (W / 2)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.2727272727272727
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4070,
+        "output_tokens": 109,
+        "cache_hit_tokens": 896
+      }
+    },
+    {
+      "task_id": "project_cc_python/5530",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "checkExistence(f'{self.data_dir}/depth'):",
+      "no_context": {
+        "pred": "if debug_ and IOUtils.",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.15873015873015872
+      },
+      "bm25_context": {
+        "pred": "if debug_ and IOUtils.check_mkdir(os.path.join(self.data_dir, 'debug_normal')):",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4166666666666667
+      },
+      "original_graphify_context": {
+        "pred": "normals_npz, stems_normal = read_images(f'{self.data_dir}/pred_normal', target_img_size=(w_img, h_img), img_ext='.npz')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3625
+      },
+      "synapse_context": {
+        "pred": "ensure_dir_existence(f'{self.data_dir}/pred_normal_world'):",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.64
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4408,
+        "output_tokens": 147,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5528",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "get_angular_error(normals_fine, normals_gt, normal_certain_weight, thres_clip_angle)",
+      "no_context": {
+        "pred": "surf_reg_loss = surf_reg_loss * self.smooth_weight",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.208955223880597
+      },
+      "bm25_context": {
+        "pred": "normal_loss(normals_fine, normals_gt, normal_certain_weight, thres_clip_angle)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8641975308641975
+      },
+      "original_graphify_context": {
+        "pred": "angular_error = TrainingUtils.get_angular_error(normals_fine, normals_gt, mask=normal_certain_weight)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7135135135135136
+      },
+      "synapse_context": {
+        "pred": "normal_certain_weight = normal_certain_weight * (angular_error < thres_clip_angle) if thres_clip_angle > 0 else normal_certain_weight",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4792626728110599
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3934,
+        "output_tokens": 101,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5535",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "warp_patches(idx_patch_pixels_ref, homography)",
+      "no_context": {
+        "pred": "project_patches(img_src, pixels_coords_vu, homography, window_size)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.6017699115044248
+      },
+      "bm25_context": {
+        "pred": "pixels_coords_vu = pixels_coords_vu.to(torch.int64)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.26804123711340205
+      },
+      "original_graphify_context": {
+        "pred": "warp_pixels(homography, idx_patch_pixels_ref)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6593406593406593
+      },
+      "synapse_context": {
+        "pred": "projective_transform_pixels(pixels_coords_vu, homography)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.46601941747572817
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4593,
+        "output_tokens": 67,
+        "cache_hit_tokens": 384
+      }
+    },
+    {
+      "task_id": "project_cc_python/5529",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "reshape(-1, 3), ex_i).reshape(h_img, w_img,3)",
+      "no_context": {
+        "pred": ")",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.043478260869565216
+      },
+      "bm25_context": {
+        "pred": "self.intrinsics_all.append(torch.from_numpy(intrinsics).float())",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.2018348623853211
+      },
+      "original_graphify_context": {
+        "pred": "ex_i, self.intrinsics_all[i])",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.21621621621621623
+      },
+      "synapse_context": {
+        "pred": "self.pose_all[i].numpy()), ex_i.numpy())",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3058823529411765
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4164,
+        "output_tokens": 42,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5538",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "visualize_sampled_pixels(self.images[idx].numpy()*255, pixels_coords_vu.cpu().numpy())",
+      "no_context": {
+        "pred": "scores_all_mean = scores_all_mean / count_valid_all",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.13138686131386862
+      },
+      "bm25_context": {
+        "pred": "idx_neighbors = list(range(idx-3, idx+4)); idx_neighbors.remove(idx)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.15584415584415584
+      },
+      "original_graphify_context": {
+        "pred": "patches_to_img(patches_ref, pixels_coords_vu, window_size)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.375
+      },
+      "synapse_context": {
+        "pred": "count_valid_all = count_valid_all.clamp(min=1)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.19696969696969696
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4698,
+        "output_tokens": 63,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5534",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "compute_homography(pts_ref, normals_ref, K, extrin_ref, extrin_src)",
+      "no_context": {
+        "pred": "homography = PatchMatch.compute_homography(K, extrin_ref, extrin_src, pts_ref, normals_ref)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.569620253164557
+      },
+      "bm25_context": {
+        "pred": "scores_all_mean, diff_patch_all, count_valid_all = PatchMatch.eval_patches_ncc(img_src, patches_ref, idx_patch_pixels_ref, mask_idx_inside, pts_ref, normals_ref, K, extrin_src, window_size, window_step, scores_all_mean, diff_patch_all, count_valid_all)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.26959247648902823
+      },
+      "original_graphify_context": {
+        "pred": "idx_patches, idx_pixels, mask = PatchMatch.compute_homography(pts_ref, normals_ref, K, extrin_ref, extrin_src)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7570621468926554
+      },
+      "synapse_context": {
+        "pred": "compute_homography(pts_ref, normals_ref, K, extrin_ref, extrin_src)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4543,
+        "output_tokens": 161,
+        "cache_hit_tokens": 768
+      }
+    },
+    {
+      "task_id": "project_cc_python/5545",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "ensure_dir_existence(dir_scan_select)",
+      "no_context": {
+        "pred": "mkdir(dir_scan_select)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.6779661016949152
+      },
+      "bm25_context": {
+        "pred": "read_json(os.path.join(dir_scan, 'sensor_data.json'))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4222222222222222
+      },
+      "original_graphify_context": {
+        "pred": "IOUtils.copy_files_by_range(dir_scan, dir_scan_select, start_id, end_id, interval)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.40336134453781514
+      },
+      "synapse_context": {
+        "pred": "I'll analyze the code structure to determine the next line.",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.2708333333333333
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4423,
+        "output_tokens": 184,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5546",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "find_target_file(dir_scan, '_vh_clean_2.ply')",
+      "no_context": {
+        "pred": "IOUtils.ensure_dir_existence(f\"{dir_scan_select}/mesh/\")",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.33663366336633666
+      },
+      "bm25_context": {
+        "pred": "copy_file(f\"{dir_scan}/mesh.ply\", f\"{dir_scan_select}/mesh.ply\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3669724770642202
+      },
+      "original_graphify_context": {
+        "pred": "copyfile(f\"{dir_scan}/mesh_gt.ply\", f\"{dir_scan_select}/mesh_gt.ply\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3508771929824561
+      },
+      "synapse_context": {
+        "pred": "path_src = f\"{dir_scan}/mesh/{idx}.ply\"",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.40476190476190477
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3655,
+        "output_tokens": 83,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5549",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "get_pose_inv(pose) , fmt='%f') # inv: camera to world",
+      "no_context": {
+        "pred": "np.linalg.inv(pose), fmt='%f')",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.5060240963855421
+      },
+      "bm25_context": {
+        "pred": "get_pose_inv(pose), fmt='%f')  # camera to world",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9306930693069307
+      },
+      "original_graphify_context": {
+        "pred": "np.savetxt(f'{dir_pose_norm}/{i:04d}.txt', pose, fmt='%f') # world to camera",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5271317829457365
+      },
+      "synapse_context": {
+        "pred": "inverse_pose(pose), fmt='%f')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5609756097560976
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3495,
+        "output_tokens": 133,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5548",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "fuse_depthmaps(depthmaps_fuse, self.intrinsics_depth, self.poses_w2c[idx_imgs])",
+      "no_context": {
+        "pred": "depth2pointcloud(depthmaps_fuse, self.intrinsic, self.extrinsic)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.6853146853146853
+      },
+      "bm25_context": {
+        "pred": "merge_depth_maps(depthmaps_fuse, self.intrinsics, self.extrinsics)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7586206896551724
+      },
+      "original_graphify_context": {
+        "pred": "fuse_depthmaps(depthmaps_fuse, self.intrinsics, self.extrinsics)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8111888111888111
+      },
+      "synapse_context": {
+        "pred": "depthmap_to_world_coords(depthmaps_fuse, self.intrinsic, self.poses[idx_imgs])",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.802547770700637
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3984,
+        "output_tokens": 83,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5550",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "calculate_normalmap_from_depthmap(self.depthmaps[i], self.intrinsics_depth, self.poses_w2c[i])",
+      "no_context": {
+        "pred": "pts_i, normal_map_i = GeometryUtils.get_normal_map(self.intrin, self.poses_norm[i], self.depth[i])",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.4583333333333333
+      },
+      "bm25_context": {
+        "pred": "num_images = poses.shape[0]",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.2644628099173554
+      },
+      "original_graphify_context": {
+        "pred": "np.savetxt(f'{dir_pose_norm}/{i:04d}.txt', pose, fmt='%f') # world to camera",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.18823529411764706
+      },
+      "synapse_context": {
+        "pred": "projs.append(intrin @ poses[i])",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.368
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3674,
+        "output_tokens": 76,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5555",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "add_file_name_suffix(path_gt_mesh, \"_trans\")",
+      "no_context": {
+        "pred": "path_save = IOUtils.",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.25
+      },
+      "bm25_context": {
+        "pred": "path_save = IOUtils.get_file_name_suffix(path_gt_mesh, '_norm')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6728971962616822
+      },
+      "original_graphify_context": {
+        "pred": "write_mesh(GeometryUtils.transform_mesh(path_gt_mesh, trans_n2w), f'{self.dir_scan}/gt_mesh_norm.ply')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3835616438356164
+      },
+      "synapse_context": {
+        "pred": "join(self.dir_scan, 'mesh_trans.ply')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.41975308641975306
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4027,
+        "output_tokens": 78,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5551",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "read_point_cloud(self.path_cloud_sfm)",
+      "no_context": {
+        "pred": "np.savetxt(f'{dir_pose_norm}/{i:04d}.txt', pose, fmt='%f')",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.29473684210526313
+      },
+      "bm25_context": {
+        "pred": "IOUtils.ensure_dir_existence(self.dir_pose_norm)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.35294117647058826
+      },
+      "original_graphify_context": {
+        "pred": "clean_mesh_points_outside_bbox(os.path.join(self.dir_workspace, 'cloud_clean.ply'), self.path_cloud_sfm, self.path_cloud_sfm, scale_bbox=1.0)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.38202247191011235
+      },
+      "synapse_context": {
+        "pred": "IOUtils.ensure_dir_existence(self.dir_cloud_sfm_normalized)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4375
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4162,
+        "output_tokens": 103,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5553",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "get_norm_matrix_from_point_cloud(cloud_clean, radius_normalize_sphere=radius_normalize_sphere)",
+      "no_context": {
+        "pred": "get_bbox_from_points(cloud_clean, radius_normalize_sphere)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.7236842105263158
+      },
+      "bm25_context": {
+        "pred": "runner.validate_image_nerf(i, resolution_level=1, save_render=True)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.2360248447204969
+      },
+      "original_graphify_context": {
+        "pred": "normalize_point_cloud_into_sphere(cloud_clean, radius_normalize_sphere, self.dir_neus_data)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6702702702702703
+      },
+      "synapse_context": {
+        "pred": "normalize_point_cloud(cloud_clean, radius_normalize_sphere)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7320261437908496
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3657,
+        "output_tokens": 76,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5554",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "get_camera_origins(poses_norm)",
+      "no_context": {
+        "pred": "transform_points(cloud_clean, np.linalg.inv(trans_n2w))",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.21176470588235294
+      },
+      "bm25_context": {
+        "pred": "generate_rays(self.img_size, self.intrinsics_depth, self.poses_w2c[i])",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.38
+      },
+      "original_graphify_context": {
+        "pred": "get_camera_centers_from_poses(poses_norm)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.704225352112676
+      },
+      "synapse_context": {
+        "pred": "get_points_from_cloud(cloud_clean_trans)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3142857142857143
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4177,
+        "output_tokens": 65,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5552",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "save_points(path_point_cloud_scan,  self.pts_sample, self.colors_sample)",
+      "no_context": {
+        "pred": "pose_save_path = os.path.join(self.dir_scan, 'pose')",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.43548387096774194
+      },
+      "bm25_context": {
+        "pred": "self.poses_w2c, self.projs = self.normalize_poses(radius_normalize_sphere)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3424657534246575
+      },
+      "original_graphify_context": {
+        "pred": "np.savetxt(f'{dir_pose_norm}/{i:04d}.txt', pose, fmt='%f')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.27692307692307694
+      },
+      "synapse_context": {
+        "pred": "trans_n2w = np.linalg.inv(trans_n2w)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.2222222222222222
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4171,
+        "output_tokens": 84,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/5547",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "get_path_components(path_gt_mesh)",
+      "no_context": {
+        "pred": "path_target = f\"{dir_scan_select}/mesh/{_stem}{_ext}\"",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.32558139534883723
+      },
+      "bm25_context": {
+        "pred": "IOUtils.copy_file(path_gt_mesh, f\"{dir_scan_select}/{_stem}{_ext}\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.38
+      },
+      "original_graphify_context": {
+        "pred": "get_path_components(path_gt_mesh)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "split_path(path_gt_mesh)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7017543859649122
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3700,
+        "output_tokens": 60,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5557",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "ensure_dir_existence(dir_output)",
+      "no_context": {
+        "pred": "mkdir(dir_output, exist_ok=True)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.46875
+      },
+      "bm25_context": {
+        "pred": "ensure_dir_existence(dir_output)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "ensure_dir_existence(dir_output)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "IOUtils.ensure_dir(dir_output)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7096774193548387
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2404,
+        "output_tokens": 31,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/5556",
+      "repo": "hq0709-Depth-NeuS-49d93d4",
+      "gold": "transform_mesh(path_gt_mesh, trans, path_save) ",
+      "no_context": {
+        "pred": "transform_mesh(path_gt_mesh, path_save, trans)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8478260869565217
+      },
+      "bm25_context": {
+        "pred": "transform_mesh(path_gt_mesh, trans, path_save)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "transform_mesh(path_gt_mesh, trans, path_save)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "transform_mesh(path_gt_mesh, trans, path_save)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4006,
+        "output_tokens": 60,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/359",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "splitter.addWidget(self.sidebar)",
+      "no_context": {
+        "pred": "self.sidebar.addWidget(self._toolbar)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.6666666666666666
+      },
+      "bm25_context": {
+        "pred": "self.sidebar.addWidget(self.graph_view)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5915492957746479
+      },
+      "original_graphify_context": {
+        "pred": "self.sidebar.addWidget(self._create_vertex_panel())",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5060240963855421
+      },
+      "synapse_context": {
+        "pred": "self.sidebar.addWidget(self.graph_scene)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5833333333333334
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3616,
+        "output_tokens": 46,
+        "cache_hit_tokens": 2816
+      }
+    },
+    {
+      "task_id": "project_cc_python/358",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "edge_added.connect(self._add_edge)",
+      "no_context": {
+        "pred": "self.graph_scene.edge_added.connect(self._add_edge)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8
+      },
+      "bm25_context": {
+        "pred": "self.graph_scene.vertex_dropped_onto.connect(self._vert_dropped_onto)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.42718446601941745
+      },
+      "original_graphify_context": {
+        "pred": "self.graph_scene.edge_added.connect(self._add_edge)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8
+      },
+      "synapse_context": {
+        "pred": "super().__init__()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.23076923076923078
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3559,
+        "output_tokens": 54,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/357",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "vertex_added.connect(self._add_vert)",
+      "no_context": {
+        "pred": "`self.graph_scene.vertex_double_clicked.connect(self._vert_double_clicked)`",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.5405405405405406
+      },
+      "bm25_context": {
+        "pred": "self.graph_scene.vertex_dropped_onto.connect(self._vert_dropped_onto)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5714285714285714
+      },
+      "original_graphify_context": {
+        "pred": "self.graph_scene.vertex_added.connect(self._vert_added)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7032967032967034
+      },
+      "synapse_context": {
+        "pred": "self.graph_scene.vertex_added.connect(self._vert_added)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7032967032967034
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3592,
+        "output_tokens": 73,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/364",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "graph_view, selected, vty)",
+      "no_context": {
+        "pred": "self.start_derivation.setIcon(QIcon(get_data(\"icons/tikzit-tool-derive.svg\")))",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.11538461538461539
+      },
+      "bm25_context": {
+        "pred": "graph_view.graph_scene.g, selected, vty)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7878787878787878
+      },
+      "original_graphify_context": {
+        "pred": "graph_scene.g, selected, vty)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8363636363636363
+      },
+      "synapse_context": {
+        "pred": "graph_view, selected, vty)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3690,
+        "output_tokens": 54,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/361",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "VERTEX))",
+      "no_context": {
+        "pred": "VERTEX))",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "VERTEX))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "VERTEX))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "VERTEX))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3774,
+        "output_tokens": 12,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/373",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "set_inputs(tuple(inputs))",
+      "no_context": {
+        "pred": "set_inputs(inputs)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8372093023255814
+      },
+      "bm25_context": {
+        "pred": "set_inputs(inputs); g.set_outputs(outputs)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5671641791044776
+      },
+      "original_graphify_context": {
+        "pred": "set_inputs(inputs)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8372093023255814
+      },
+      "synapse_context": {
+        "pred": "set_inputs(inputs); g.set_outputs(outputs)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.5671641791044776
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2048,
+        "output_tokens": 45,
+        "cache_hit_tokens": 256
+      }
+    },
+    {
+      "task_id": "project_cc_python/371",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "add_vertex(ty[i], qu, rw)",
+      "no_context": {
+        "pred": "add_vertex((i, qu, tp, rw))",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8076923076923077
+      },
+      "bm25_context": {
+        "pred": "add_vertex(qu, rw, tp)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7659574468085106
+      },
+      "original_graphify_context": {
+        "pred": "g.add_vertex(qubit=qu, row=rw, ty=tp)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6129032258064516
+      },
+      "synapse_context": {
+        "pred": "add_vertex(qu, rw, tp)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7659574468085106
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3365,
+        "output_tokens": 53,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/379",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "vertex_dragged.connect(self._vertex_dragged)",
+      "no_context": {
+        "pred": "self.graph_scene.setFocus()",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.2535211267605634
+      },
+      "bm25_context": {
+        "pred": "self.graph_scene.vertex_double_clicked.connect(self._vert_double_clicked)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5811965811965812
+      },
+      "original_graphify_context": {
+        "pred": "self.graph_scene.vertex_double_clicked.connect(self._vert_double_clicked)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5811965811965812
+      },
+      "synapse_context": {
+        "pred": "self.graph_scene.",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.26229508196721313
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3499,
+        "output_tokens": 54,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/372",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "add_edges(es1, EdgeType.SIMPLE)",
+      "no_context": {
+        "pred": "add_edges(es1, EdgeType.SIMPLE)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "add_edges(es1, EdgeType.SIMPLE)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "add_edges(es1, EdgeType.SIMPLE)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "add_edges(es1)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6222222222222222
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3198,
+        "output_tokens": 62,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/378",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "graph_view.wand_trace_finished.connect(self._wand_trace_finished)",
+      "no_context": {
+        "pred": "self.graph_view = GraphView(self.graph_scene)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.4909090909090909
+      },
+      "bm25_context": {
+        "pred": "self.sidebar = QSplitter(self)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.16842105263157894
+      },
+      "original_graphify_context": {
+        "pred": "self.proof_model = ProofModel(self.graph)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.2830188679245283
+      },
+      "synapse_context": {
+        "pred": "self.graph_scene.vertex_double_clicked.connect(self._vert_double_clicked)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4927536231884058
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3563,
+        "output_tokens": 52,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/380",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "vertex_dropped_onto.connect(self._vertex_dropped_onto)",
+      "no_context": {
+        "pred": "self.graph_scene.vertex_dragged.connect(self._vertex_dragged)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.6608695652173913
+      },
+      "bm25_context": {
+        "pred": "self.graph_scene.vertex_dragged.connect(self._vertex_dragged)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6608695652173913
+      },
+      "original_graphify_context": {
+        "pred": "self.graph_scene.vertex_dropped.connect(self._vertex_dropped)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7652173913043478
+      },
+      "synapse_context": {
+        "pred": "self.graph_scene.vertex_dragged.connect(self._vertex_dragged)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6608695652173913
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3519,
+        "output_tokens": 79,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/369",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "select_vertices(new_verts)",
+      "no_context": {
+        "pred": "self.graph_scene.select_vertices(new_verts)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.7536231884057971
+      },
+      "bm25_context": {
+        "pred": "select_new_vertices(new_verts)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9285714285714286
+      },
+      "original_graphify_context": {
+        "pred": "select_vertices(new_verts)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "select(new_verts)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7906976744186046
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3360,
+        "output_tokens": 31,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/385",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "layout().insertWidget(1, widget)",
+      "no_context": {
+        "pred": "splitter.addWidget(widget)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.5862068965517241
+      },
+      "bm25_context": {
+        "pred": "splitter.addWidget(widget)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5862068965517241
+      },
+      "original_graphify_context": {
+        "pred": "self.step_view = QListView(self)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.25
+      },
+      "synapse_context": {
+        "pred": "self.vertex.setToolTip(\"Add Vertex (v)\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3055555555555556
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3576,
+        "output_tokens": 36,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/384",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "rewrites).copy()]",
+      "no_context": {
+        "pred": "self.proof_model.load_proof())",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.2127659574468085
+      },
+      "bm25_context": {
+        "pred": "self.action_groups = [proof_actions.ProofActionGroup(*proof_actions.action_group(self)]",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.15384615384615385
+      },
+      "original_graphify_context": {
+        "pred": "proof_actions.ProofAction(self.proof_model))]",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.12903225806451613
+      },
+      "synapse_context": {
+        "pred": "self.vertex.setToolTip(\"Add Vertex (v)\")",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3157894736842105
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3814,
+        "output_tokens": 54,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/383",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "ProofActionGroup(*proof_actions.rewrites).copy()]",
+      "no_context": {
+        "pred": "self.action_groups = [proof_actions.",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.5647058823529412
+      },
+      "bm25_context": {
+        "pred": "self.proof_model = ProofModel(self.graph_view.graph_scene.g)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.25688073394495414
+      },
+      "original_graphify_context": {
+        "pred": "self.action_groups = [proof_actions.ProofActionGroup(self)]",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3888888888888889
+      },
+      "synapse_context": {
+        "pred": "vertices_to_remove.append(v)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.2597402597402597
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3835,
+        "output_tokens": 47,
+        "cache_hit_tokens": 1408
+      }
+    },
+    {
+      "task_id": "project_cc_python/398",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "strong_comp(self.graph, g, w, self.graph_scene)",
+      "no_context": {
+        "pred": "strong_comp(self.graph_scene.vertex_map[v], self.graph_scene.vertex_map[w])",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.6721311475409836
+      },
+      "bm25_context": {
+        "pred": "strong_comp(self.graph, g, verts[0], panel.graph_scene)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8627450980392157
+      },
+      "original_graphify_context": {
+        "pred": "strong_comp(self.graph, g, w, self.graph_scene)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "strong_comp(self.graph, g, w, self.graph_scene)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3757,
+        "output_tokens": 106,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/392",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "graph, v, w):",
+      "no_context": {
+        "pred": "graph_scene.g, v, w):",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.7647058823529411
+      },
+      "bm25_context": {
+        "pred": "self.graph_scene.g, v, w):",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6666666666666666
+      },
+      "original_graphify_context": {
+        "pred": "graph_scene.g, v, w):",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7647058823529411
+      },
+      "synapse_context": {
+        "pred": "graph_scene.g, v, w):",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7647058823529411
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3083,
+        "output_tokens": 62,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/382",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "splitter.addWidget(self.step_view)",
+      "no_context": {
+        "pred": "self.step_view.setMinimumWidth(200)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.43478260869565216
+      },
+      "bm25_context": {
+        "pred": "self.step_view.setMinimumWidth(200)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.43478260869565216
+      },
+      "original_graphify_context": {
+        "pred": "self.proof_model.dataChanged.connect(self._proof_model_changed)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.35051546391752575
+      },
+      "synapse_context": {
+        "pred": "self.step_view.setMinimumWidth(200)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.43478260869565216
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3385,
+        "output_tokens": 44,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/393",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "anticipate_fuse(self.graph_scene.vertex_map[w])",
+      "no_context": {
+        "pred": "cmd = FuseNode(self.graph_view, v, w)  # type: ignore[abstract]",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.36363636363636365
+      },
+      "bm25_context": {
+        "pred": "cmd = FuseVertices(self.graph_view, v, w, self.step_view)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4423076923076923
+      },
+      "original_graphify_context": {
+        "pred": "fuse(self.graph_scene.vertices[v], self.graph_scene.vertices[w]).start()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5546218487394958
+      },
+      "synapse_context": {
+        "pred": "self._fuse(v, w)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.31746031746031744
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3310,
+        "output_tokens": 68,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/397",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "fuse(self.graph_scene.vertex_map[v], self.graph_scene.vertex_map[w])",
+      "no_context": {
+        "pred": "anims.create_fuse_anim(self.graph_scene, w, v)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.43859649122807015
+      },
+      "bm25_context": {
+        "pred": "fuse(self.graph, w, v, self.graph_scene)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6481481481481481
+      },
+      "original_graphify_context": {
+        "pred": "fuse(self.graph_scene.vertex_map[v], self.graph_scene.vertex_map[w])",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "fuse(self.graph_scene.vertex_map[v], self.graph_scene.vertex_map[w])",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3555,
+        "output_tokens": 70,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/394",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "vertex_map[w])",
+      "no_context": {
+        "pred": "self.graph_scene.",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.25806451612903225
+      },
+      "bm25_context": {
+        "pred": "self.graph_scene.vertex_item(v), self.graph_scene.vertex_item(w))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3037974683544304
+      },
+      "original_graphify_context": {
+        "pred": "vertex_item(w))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6896551724137931
+      },
+      "synapse_context": {
+        "pred": "self.graph_scene.vertex_map[w])",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6222222222222222
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3283,
+        "output_tokens": 61,
+        "cache_hit_tokens": 384
+      }
+    },
+    {
+      "task_id": "project_cc_python/404",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "setStartValue(start or it.scale())",
+      "no_context": {
+        "pred": "setEasingCurve(ease)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.3333333333333333
+      },
+      "bm25_context": {
+        "pred": "setEasingCurve(ease)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3333333333333333
+      },
+      "original_graphify_context": {
+        "pred": "setStartValue(it.scale() if start is None else start)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5747126436781609
+      },
+      "synapse_context": {
+        "pred": "setStartValue(it.scale() if start is None else start)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5747126436781609
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2632,
+        "output_tokens": 44,
+        "cache_hit_tokens": 384
+      }
+    },
+    {
+      "task_id": "project_cc_python/400",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "remove_id(self.graph_scene.vertex_map[v])",
+      "no_context": {
+        "pred": "anim = anims.GraphInterpolateAnim(self.graph, new_g)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.34408602150537637
+      },
+      "bm25_context": {
+        "pred": "id_removal(self.graph, new_g, v, self.graph_scene)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5054945054945055
+      },
+      "original_graphify_context": {
+        "pred": "self._remove_id_anim(v)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.40625
+      },
+      "synapse_context": {
+        "pred": "self.graph_scene.remove_vertex(v)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6756756756756757
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3473,
+        "output_tokens": 50,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/414",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "update_graph(self.g, select_new)",
+      "no_context": {
+        "pred": "update_graph_scene(select_new)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8064516129032258
+      },
+      "bm25_context": {
+        "pred": "update_graph(self.g, select_new)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "graph_scene.update_graph(self.g, select_new)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8421052631578947
+      },
+      "synapse_context": {
+        "pred": "update_graph(self.g, select_new=select_new)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8533333333333334
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3117,
+        "output_tokens": 38,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/405",
+      "repo": "Quantomatic-zxlive-c7b5c28",
+      "gold": "setEndValue(float(target))",
+      "no_context": {
+        "pred": "setEndValue(float(target))",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "setEndValue(float(target))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "anim.setEndValue(float(target))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9122807017543859
+      },
+      "synapse_context": {
+        "pred": "setEndValue(float(target))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3027,
+        "output_tokens": 25,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9576",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "Alerts.append(alert_result)",
+      "no_context": {
+        "pred": "load_alert_trigger(alert_result)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.6440677966101694
+      },
+      "bm25_context": {
+        "pred": "base_object.AlertProductNames = alert_result['properties'].get('productName', [])",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.35185185185185186
+      },
+      "original_graphify_context": {
+        "pred": "base_object.load_from_input(process_incident_trigger(req_body))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.17777777777777778
+      },
+      "synapse_context": {
+        "pred": "RelatedAnalyticRuleIds.append(alert_result['properties']['alertRule'])",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5154639175257731
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3686,
+        "output_tokens": 58,
+        "cache_hit_tokens": 2939
+      }
+    },
+    {
+      "task_id": "project_cc_python/9580",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "Domains.append({'Domain': domain_name, 'RawEntity': raw_entity})",
+      "no_context": {
+        "pred": "DomainEntities.append(raw_entity)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.5360824742268041
+      },
+      "bm25_context": {
+        "pred": "DomainList.append({'Domain': domain_name, 'RawEntity': raw_entity})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9770992366412213
+      },
+      "original_graphify_context": {
+        "pred": "add_domain_entity(domain_name, raw_entity)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6037735849056604
+      },
+      "synapse_context": {
+        "pred": "Domains.append(domain_name)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5934065934065934
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3825,
+        "output_tokens": 44,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9573",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "load_incident_trigger(req_body['Body'])",
+      "no_context": {
+        "pred": "get_account_comment()",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.2
+      },
+      "bm25_context": {
+        "pred": "def process_incident_trigger (req_body):",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7088607594936709
+      },
+      "original_graphify_context": {
+        "pred": "base_object = IncidentTriggerBaseModule(req_body.get('BaseModuleBody', {}))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.543859649122807
+      },
+      "synapse_context": {
+        "pred": "base_object = BaseModule()",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.12307692307692308
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4066,
+        "output_tokens": 52,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9579",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "add_ip_entity(address=current_ip, geo_data={}, rawentity=raw_entity)",
+      "no_context": {
+        "pred": "logging.warning(f\"Unable to get geodata for IP {current_ip}\")",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.26356589147286824
+      },
+      "bm25_context": {
+        "pred": "IPs.append({'Address': current_ip, 'GeoData': {}})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5254237288135594
+      },
+      "original_graphify_context": {
+        "pred": "response.statuscode = response.status_code",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.2727272727272727
+      },
+      "synapse_context": {
+        "pred": "logging.warning(f'Failed to get geodata for IP {current_ip}')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.26356589147286824
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3727,
+        "output_tokens": 58,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9577",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "coalesce(ip.get('properties', {}).get('address'), ip.get('Address'))",
+      "no_context": {
+        "pred": "base_object.IPs.append(ip)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.14893617021276595
+      },
+      "bm25_context": {
+        "pred": "current_ip = data.get_ip_info(ip['properties']['address'], get_geo)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5481481481481482
+      },
+      "original_graphify_context": {
+        "pred": "ip(ip['properties']['address'])",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5050505050505051
+      },
+      "synapse_context": {
+        "pred": "coalesce(ip['properties'].get('address'), '')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7610619469026548
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3679,
+        "output_tokens": 49,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9583",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "URLs.append({'Url': url_data, 'RawEntity': raw_entity})",
+      "no_context": {
+        "pred": "URLs.append({'Url': url_data, 'RawEntity': raw_entity})",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "URLs.append({'Url': url_data, 'RawEntity': raw_entity})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "URLs.append({'Url': url_data, 'RawEntity': raw_entity})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "URLs.append({'Url': url_data, 'RawEntity': raw_entity})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3683,
+        "output_tokens": 68,
+        "cache_hit_tokens": 384
+      }
+    },
+    {
+      "task_id": "project_cc_python/9571",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "add_incident_comment(base_object, 'The Microsoft Sentinel Triage AssistanT failed to analyze this incident. This error was due to no incident entities being available at the time the incident was processed.')",
+      "no_context": {
+        "pred": "rest.",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.018779342723004695
+      },
+      "bm25_context": {
+        "pred": "add_incident_comment(base_object, 'No entities found in the trigger.')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.2949640287769784
+      },
+      "original_graphify_context": {
+        "pred": "SendResponse(Response(body=str(base_object.IncidentAvailable), statuscode=200, contenttype='text/plain'))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.04472843450479233
+      },
+      "synapse_context": {
+        "pred": "rest_call_post(base_object, 'arm', f\"/subscriptions/{base_object.MultiTenantConfig.get('SubscriptionId')}/resourceGroups/{base_object.MultiTenantConfig.get('ResourceGroupName')}/providers/Microsoft.OperationalInsights/workspaces/{base_object.MultiTenantConfig.get('WorkspaceName')}/providers/Microsoft.SecurityInsights/incidents/{req_body['Body'].get('IncidentArmId')}/comments?api-version=2023-02-01\", {'properties': {'message': 'No entities found in incident.'}})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.017830609212481426
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2207,
+        "output_tokens": 167,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9572",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "rest_call_get(base_object, api='msgraph', path='/v1.0/organization').content)",
+      "no_context": {
+        "pred": "org_info = json.loads(rest.get_organization_info(base_object))",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.34532374100719426
+      },
+      "bm25_context": {
+        "pred": "rest_call_get(base_object, 'graph', '/organization').content)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8840579710144928
+      },
+      "original_graphify_context": {
+        "pred": "get_organization_info().content)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.47706422018348627
+      },
+      "synapse_context": {
+        "pred": "rest_call_get(base_object, 'arm', '/providers/Microsoft.ResourceGraph/queries?api-version=2021-03-01').text)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.518918918918919
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3501,
+        "output_tokens": 68,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9585",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "add_account_entity({'RawEntity': properties})",
+      "no_context": {
+        "pred": "ReturnContent = False",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.24242424242424243
+      },
+      "bm25_context": {
+        "pred": "get_account_by_id(account, attributes, properties)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5473684210526316
+      },
+      "original_graphify_context": {
+        "pred": "Logs.append({'Account': account, 'Properties': properties})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5192307692307693
+      },
+      "synapse_context": {
+        "pred": "CommentsCount = 0",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.16129032258064516
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3376,
+        "output_tokens": 33,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9578",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "SentinelRGARMId + \"/providers/Microsoft.SecurityInsights/enrichment/ip/geodata/?api-version=2023-04-01-preview&ipAddress=\" + current_ip",
+      "no_context": {
+        "pred": "path = base_object.WorkspaceARMId + '/providers/Microsoft.SecurityInsights/entities/' + current_ip + '?api-version=2023-05-01-preview'",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.6468401486988847
+      },
+      "bm25_context": {
+        "pred": "alert_result.get('properties', {}).get('tactics', [])",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.10638297872340426
+      },
+      "original_graphify_context": {
+        "pred": "current_ip + '?api-version=2018-02-01'",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3352601156069364
+      },
+      "synapse_context": {
+        "pred": "rest_path + '/providers/Microsoft.SecurityInsights/enrichment/ip/geodata/?api-version=2023-05-01-preview'",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7916666666666666
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3445,
+        "output_tokens": 106,
+        "cache_hit_tokens": 384
+      }
+    },
+    {
+      "task_id": "project_cc_python/9584",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "OtherEntities.append({'RawEntity': raw_entity})",
+      "no_context": {
+        "pred": "OtherEntities.append({'RawEntity': raw_entity})",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "OtherEntities.append({'RawEntity': raw_entity})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "OtherEntities.append(raw_entity)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.810126582278481
+      },
+      "synapse_context": {
+        "pred": "OtherEntities.append({'RawEntity': raw_entity})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3870,
+        "output_tokens": 40,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9591",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "version_check(stat_version, available_version, version_check_type)",
+      "no_context": {
+        "pred": "version_check(stat_version, available_version, version_check_type)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "bm25_context": {
+        "pred": "version_check(version_check_type, stat_version, available_version)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.696969696969697
+      },
+      "original_graphify_context": {
+        "pred": "version_check(stat_version, available_version, version_check_type)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "synapse_context": {
+        "pred": "version_check(stat_version, available_version, version_check_type)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4397,
+        "output_tokens": 52,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/9587",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "add_host_entity(fqdn=host_name + '.' + domain_name, hostname=host_name, dnsdomain=domain_name, mdedeviceid=mde_device_id, rawentity=raw_entity)",
+      "no_context": {
+        "pred": "add_host_entity(host_name, domain_name, mde_device_id, raw_entity)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.6220095693779905
+      },
+      "bm25_context": {
+        "pred": "add_host_entity(host_name, domain_name, mde_device_id, raw_entity)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6220095693779905
+      },
+      "original_graphify_context": {
+        "pred": "add_host_entity(host_name, host_name, domain_name, mde_device_id, raw_entity)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6
+      },
+      "synapse_context": {
+        "pred": "add_host_entity(host_name, domain_name, mde_device_id, raw_entity)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6220095693779905
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3757,
+        "output_tokens": 83,
+        "cache_hit_tokens": 384
+      }
+    },
+    {
+      "task_id": "project_cc_python/9589",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "list_to_html_table(account_list, 20, 20, escape_html=False)",
+      "no_context": {
+        "pred": "return data.json.dumps(account_list, indent=4)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.41904761904761906
+      },
+      "bm25_context": {
+        "pred": "return data.coalesce(stack.todynamic(account_list), [])",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3684210526315789
+      },
+      "original_graphify_context": {
+        "pred": "to_markdown(account_list)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.4523809523809524
+      },
+      "synapse_context": {
+        "pred": "data.create_markdown_table(account_list)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.48484848484848486
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4224,
+        "output_tokens": 45,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9575",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "RelatedAnalyticRuleIds.append(alert_rule_id)",
+      "no_context": {
+        "pred": "base_object.WorkspaceARMId = filter_workspace[0]['id'] if filter_workspace else None",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.09375
+      },
+      "bm25_context": {
+        "pred": "AlertARMId = alert_rule_id",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5142857142857142
+      },
+      "original_graphify_context": {
+        "pred": "base_object.AlertRuleId = alert_rule_id",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5301204819277109
+      },
+      "synapse_context": {
+        "pred": "base_object.AlertRuleId = alert_rule_id",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5301204819277109
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3547,
+        "output_tokens": 54,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9582",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "FileHashes.append({'FileHash': file_hash, 'Algorithm': hash_alg, 'RawEntity': raw_entity})",
+      "no_context": {
+        "pred": "FileHashes.append({'Hash': file_hash, 'Algorithm': hash_alg, 'RawEntity': raw_entity})",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.9772727272727273
+      },
+      "bm25_context": {
+        "pred": "FileHashes.append({'FileHash': file_hash, 'Algorithm': hash_alg, 'RawEntity': raw_entity})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "FileHashes.append({'HashValue': file_hash, 'Algorithm': hash_alg, 'RawEntity': raw_entity})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9502762430939227
+      },
+      "synapse_context": {
+        "pred": "FileHashes.append({'Hash': file_hash, 'Algorithm': hash_alg, 'RawEntity': raw_entity})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9772727272727273
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3530,
+        "output_tokens": 102,
+        "cache_hit_tokens": 384
+      }
+    },
+    {
+      "task_id": "project_cc_python/9593",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "execute_la_query(base_object, watchlist_check, 7)",
+      "no_context": {
+        "pred": "Let me analyze the code carefully.",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.21686746987951808
+      },
+      "bm25_context": {
+        "pred": "check_watchlist = rest.execute_advanced_hunting_query(base_object, watchlist_check)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6818181818181818
+      },
+      "original_graphify_context": {
+        "pred": "execute_query(api='AzureSentinel', query=watchlist_check, tenant=base_object.TenantId)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.562962962962963
+      },
+      "synapse_context": {
+        "pred": "execute_la_query(base_object, watchlist_check, 1)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9795918367346939
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2450,
+        "output_tokens": 291,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9611",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "DetailedResults['Accounts'] = detailed_accounts",
+      "no_context": {
+        "pred": "DetailedAccounts = detailed_accounts",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.8674698795180723
+      },
+      "bm25_context": {
+        "pred": "mde_object.DetailedResults = detailed_accounts",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.7526881720430108
+      },
+      "original_graphify_context": {
+        "pred": "DetailedAccounts = detailed_accounts",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8674698795180723
+      },
+      "synapse_context": {
+        "pred": "add_stat_entity({'DetailedAccounts': detailed_accounts})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6796116504854369
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4461,
+        "output_tokens": 35,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9616",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "list_to_html_table(linked_accounts_list, escape_html=False)",
+      "no_context": {
+        "pred": "html_table(linked_accounts_list)",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.7032967032967034
+      },
+      "bm25_context": {
+        "pred": "list_to_html_table(linked_accounts_list, escape_html=False)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "html_table_accounts = data.format_html_table(linked_accounts_list)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.592
+      },
+      "synapse_context": {
+        "pred": "html_table_accounts = data.generate_html_table(linked_accounts_list, 'Accounts')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.60431654676259
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4823,
+        "output_tokens": 55,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9610",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "return_highest_value(current_account['UserDevices'],'exposureLevel')",
+      "no_context": {
+        "pred": "current_account['UserHighestExposureLevel'] = data.get('highestExposureLevel', 'Unknown')",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.4840764331210191
+      },
+      "bm25_context": {
+        "pred": "get_max_value(current_account['UserDevices'], 'exposureLevel')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8769230769230769
+      },
+      "original_graphify_context": {
+        "pred": "return_highest_value(current_account['UserDevices'], 'exposureLevel')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.9927007299270073
+      },
+      "synapse_context": {
+        "pred": "return_highest_value(current_account['UserDevices'], 'exposureLevel', ['High', 'Medium', 'Low', 'None', 'Unknown']) if current_account['UserDevices'] else 'Unknown'",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5862068965517241
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4032,
+        "output_tokens": 98,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9609",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "rest_call_get(base_object, 'mde', f'{pathwithfilter}').content)",
+      "no_context": {
+        "pred": "devicedata = json.loads(rest.execute_m365d_request(base_object, pathwithfilter))",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.5034965034965035
+      },
+      "bm25_context": {
+        "pred": "devicedata = json.loads(rest.execute_m365d_query(base_object, pathwithfilter)) if isinstance(devicedata, str) else devicedata",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.3829787234042553
+      },
+      "original_graphify_context": {
+        "pred": "devices = json.loads(rest.execute_m365d_query(base_object, pathwithfilter))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5217391304347826
+      },
+      "synapse_context": {
+        "pred": "rest_call('GET', 'mde', pathwithfilter, base_object))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6206896551724138
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3759,
+        "output_tokens": 91,
+        "cache_hit_tokens": 128
+      }
+    },
+    {
+      "task_id": "project_cc_python/9605",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "rest_call_put(base_object, 'arm', create.IncidentARMId + '?api-version=2023-02-01', incident_data).content)",
+      "no_context": {
+        "pred": "rest.put(f\"{create.IncidentARMId}?api-version=2023-02-01\", json=incident_data))",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.7311827956989247
+      },
+      "bm25_context": {
+        "pred": "rest_call_put(base_object, 'arm', create.IncidentARMId + '?api-version=2023-04-01-preview', json.dumps(incident_data)).content)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.905982905982906
+      },
+      "original_graphify_context": {
+        "pred": "put(create.IncidentARMId, body=incident_data))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.5359477124183006
+      },
+      "synapse_context": {
+        "pred": "rest.put(create.IncidentARMId, json=incident_data))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.6075949367088608
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2660,
+        "output_tokens": 102,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9600",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "add_incident_task(base_object, 'Review Watchlist Matches', req_body.get('IncidentTaskInstructions'))",
+      "no_context": {
+        "pred": "task_result = rest.add_incident_task(base_object, f'Investigate entities on watchlist {watchlist_object.WatchlistName}', 'Completed', '')",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.4978902953586498
+      },
+      "bm25_context": {
+        "pred": "add_incident_task(base_object, 'Review Watchlist Matches', req_body.get('IncidentTaskInstructions'))",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "add_incident_task(base_object, 'Watchlist Matches Found', f'{watchlist_object.EntitiesOnWatchlistCount} entities were found on the {watchlist_object.WatchlistName} watchlist.', 'New')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.45936395759717313
+      },
+      "synapse_context": {
+        "pred": "task_result = rest.add_incident_task(base_object, f'{watchlist_object.WatchlistName} Watchlist Match', f'{watchlist_object.EntitiesOnWatchlistCount} entities were found on the {watchlist_object.WatchlistName} watchlist.')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.40498442367601245
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 4068,
+        "output_tokens": 159,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9608",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "execute_m365d_query(base_object, get_devices)",
+      "no_context": {
+        "pred": "execute_query(base_object.workspace_id, 'MDE', get_devices)['Results']",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.6782608695652174
+      },
+      "bm25_context": {
+        "pred": "execute_m365d_query(base_object, get_devices)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 1,
+        "edit_sim": 1.0
+      },
+      "original_graphify_context": {
+        "pred": "execute_query(base_object, 'mde', get_devices)",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.8571428571428571
+      },
+      "synapse_context": {
+        "pred": "rest_call_get(base_object, 'mde', '/advancedhunting/run', headers={'Content-Type': 'application/json'})",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.2972972972972973
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 3076,
+        "output_tokens": 72,
+        "cache_hit_tokens": 0
+      }
+    },
+    {
+      "task_id": "project_cc_python/9604",
+      "repo": "briandelmsft-STAT-Function-f91d421",
+      "gold": "WorkspaceARMId + '/providers/Microsoft.SecurityInsights/incidents/' + str(uuid.uuid4())",
+      "no_context": {
+        "pred": "IncidentARMId = base_object.Alerts[0]['properties'].get('incidentArmId', '')",
+        "error": null,
+        "context_found": false,
+        "exact_match": 0,
+        "edit_sim": 0.3803680981595092
+      },
+      "bm25_context": {
+        "pred": "IncidentARMId",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.18
+      },
+      "original_graphify_context": {
+        "pred": "create.IncidentARMId = base_object.Alerts[0]['properties'].get('incidentArmId', '')",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.36470588235294116
+      },
+      "synapse_context": {
+        "pred": "IncidentARMId = base_object.IncidentARMId",
+        "error": null,
+        "context_found": true,
+        "exact_match": 0,
+        "edit_sim": 0.234375
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 2122,
+        "output_tokens": 64,
+        "cache_hit_tokens": 0
+      }
+    }
+  ]
+}
