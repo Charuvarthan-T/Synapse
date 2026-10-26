@@ -2,7 +2,7 @@
   "name": "synapse",
   "displayName": "Synapse",
   "description": "Graph-grounded answers about your codebase. A local knowledge graph with graph-validated reasoning and hallucination checks, using the AI you already have (GitHub Copilot, Claude Code or Codex).",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "publisher": "synapse-labs",
   "license": "Apache-2.0",
   "icon": "media/icon.png",

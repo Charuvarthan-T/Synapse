@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 (V4)
 
 ### New
 - **Named communities.** Communities are no longer called "Community 0", "Community 1"…
