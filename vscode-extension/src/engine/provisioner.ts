@@ -25,7 +25,7 @@ export interface ProvisionOptions {
 export type ProvisionFailure = "no-python" | "venv" | "install" | "engine-missing" | "cancelled";
 
 export type ProvisionResult =
-  | { ok: true; graphify: string }
+  | { ok: true; python: string }
   | { ok: false; kind: ProvisionFailure; message: string };
 
 const MIN_PYTHON: [number, number] = [3, 10];
@@ -55,11 +55,12 @@ export function venvPython(home: string): string {
   return venvBin(home, "python");
 }
 
-/** The engine's console script. Preferred over `python -m graphify`, which would
- * import a `graphify/` folder in the user's workspace instead of the engine. */
-export function graphifyExecutable(home: string): string {
-  return venvBin(home, "graphify");
-}
+/** Arguments that run the engine through the venv's interpreter. The pip-generated
+ * `graphify.exe` launcher is unsigned and unique per install, so Windows Smart App
+ * Control blocks it; the interpreter is signed. Isolated mode (-I) keeps the working
+ * directory off sys.path, so a `graphify/` folder in the user's workspace can't
+ * shadow the engine, and -X utf8 replaces PYTHONIOENCODING, which -I ignores. */
+export const ENGINE_ARGS = ["-I", "-X", "utf8", "-m", "graphify"];
 
 function markerPath(home: string): string {
   return path.join(venvDir(home), "synapse-engine.json");
@@ -133,7 +134,7 @@ async function findSystemPython(
 
 async function probe(opts: ProvisionOptions): Promise<boolean> {
   const py = venvPython(opts.home);
-  if (!fs.existsSync(py) || !fs.existsSync(graphifyExecutable(opts.home))) return false;
+  if (!fs.existsSync(py)) return false;
   const r = await runProcess(py, ["-c", PROBE], {
     cwd: venvDir(opts.home),
     env: engineEnv(),
@@ -232,7 +233,7 @@ export async function ensureEngine(opts: ProvisionOptions): Promise<ProvisionRes
     installed = undefined;
   }
   if (installed === wanted && (await probe(opts))) {
-    return { ok: true, graphify: graphifyExecutable(opts.home) };
+    return { ok: true, python: venvPython(opts.home) };
   }
   if (opts.signal?.aborted) return cancelled();
 
@@ -259,7 +260,7 @@ export async function ensureEngine(opts: ProvisionOptions): Promise<ProvisionRes
     if (result.ok && (await probe(opts))) {
       fs.writeFileSync(markerPath(opts.home), JSON.stringify({ engine: wanted, source: manifest?.source ?? "dev" }));
       opts.log(`engine ready (${manifest ? `${manifest.wheel}, source ${manifest.source}` : wanted})`);
-      return { ok: true, graphify: graphifyExecutable(opts.home) };
+      return { ok: true, python: venvPython(opts.home) };
     }
     opts.log(`engine install ${fresh ? "failed" : "in place failed, rebuilding the environment"}: ${result.detail}`);
     if (fresh) {
