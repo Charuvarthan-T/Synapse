@@ -193,6 +193,21 @@ describe("Synapse engine (end to end)", function () {
     assert.strictEqual(rebuilt.semanticRelations, before, "AI relations must survive Build Graph too");
   });
 
+  it("runs the installed engine even when the workspace has its own graphify/ folder", async () => {
+    // The engine is started as `python -I -m graphify` (Smart App Control blocks the
+    // generated graphify.exe); isolated mode must keep this folder off sys.path.
+    const shadow = path.join(ws, "graphify");
+    fs.mkdirSync(shadow);
+    fs.writeFileSync(path.join(shadow, "__init__.py"), "raise SystemExit('workspace graphify/ shadowed the engine')\n");
+    fs.writeFileSync(path.join(shadow, "__main__.py"), "raise SystemExit('workspace graphify/ shadowed the engine')\n");
+    try {
+      const r = await engine.search(ws, "how does login work", 2000);
+      assert.ok(r.nodes.some((n) => n.label === "login()"));
+    } finally {
+      fs.rmSync(shadow, { recursive: true, force: true });
+    }
+  });
+
   it("reports an empty workspace clearly", async () => {
     const empty = fs.mkdtempSync(path.join(os.tmpdir(), "synapse-empty-"));
     try {

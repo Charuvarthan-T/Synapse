@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.1 (V3)
+
+### Fixed
+- The engine failed to start on Windows with Smart App Control on ("An Application
+  Control policy has blocked this file"). Synapse now runs the engine through the
+  signed Python interpreter in its private environment (`python -I -m graphify`)
+  instead of the unsigned `graphify.exe` launcher that pip generates. Isolated mode
+  keeps a `graphify/` folder in your workspace from shadowing the engine.
+
 ## 0.3.0 (V3)
 
 ### New

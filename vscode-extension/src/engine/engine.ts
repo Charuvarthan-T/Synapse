@@ -1,6 +1,6 @@
 import * as path from "path";
 import { runProcess, tailOf } from "./proc";
-import { engineEnv, ensureEngine, ProvisionResult } from "./provisioner";
+import { ENGINE_ARGS, engineEnv, ensureEngine, ProvisionResult } from "./provisioner";
 import { parseExplainOutput, parseSearchOutput, ExplainResult, SearchResult } from "./parsers";
 import { CompletionHandler, startBridge } from "../ai/bridgeServer";
 
@@ -126,7 +126,7 @@ export class Engine {
       this.ready = undefined; // retry on the next call
       throw new EngineError(result.message, "", result.kind);
     }
-    return result.graphify;
+    return result.python;
   }
 
   private async run(root: string, args: string[], opts: RunOpts = {}) {
@@ -134,7 +134,7 @@ export class Engine {
     const exe = await this.ensure(opts.signal);
     const log = this.config().log;
     log(`$ graphify ${args.map((a) => (a.length > 80 ? `${a.slice(0, 77)}...` : a)).join(" ")}`);
-    const r = await runProcess(exe, args, {
+    const r = await runProcess(exe, [...ENGINE_ARGS, ...args], {
       cwd: root,
       env: engineEnv(opts.env),
       input: opts.input,
