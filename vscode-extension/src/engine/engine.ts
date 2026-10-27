@@ -191,11 +191,13 @@ export class Engine {
     question: string,
     budget: number,
     signal?: AbortSignal,
-    options?: { ppr?: boolean; learnedWeights?: boolean }
+    options?: { ppr?: boolean; learnedWeights?: boolean; hybrid?: boolean }
   ): Promise<SearchResult> {
     const args = ["query", asArgument(question), "--graph", graphPath(root), "--budget", String(Math.round(budget)), "--community-aware"];
     if (options?.ppr) args.push("--ppr");
     if (options?.learnedWeights) args.push("--learned-weights");
+    // Fuse the graph ranking with BM25 over each symbol's source code.
+    if (options?.hybrid) args.push("--hybrid", "--root", root);
     const r = await this.run(root, args, { signal });
     if (r.code !== 0) this.fail("Search", r);
     return parseSearchOutput(r.stdout.trim());

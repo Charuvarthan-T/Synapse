@@ -12,6 +12,7 @@ export interface ToolContext {
   /** Workspace root when a graph is available, else a reason it isn't. */
   graphRoot(): { root: string } | { unavailable: string };
   queryBudget(): number;
+  hybridRetrieval(): boolean;
 }
 
 const text = (s: string) => new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(s)]);
@@ -42,7 +43,9 @@ class SearchTool implements vscode.LanguageModelTool<{ question: string }> {
   }
   invoke(options: vscode.LanguageModelToolInvocationOptions<{ question: string }>, token: vscode.CancellationToken) {
     return withGraph(this.ctx, token, async (root, signal) => {
-      const result = await this.ctx.engine.search(root, String(options.input.question ?? ""), this.ctx.queryBudget(), signal);
+      const result = await this.ctx.engine.search(root, String(options.input.question ?? ""), this.ctx.queryBudget(), signal, {
+        hybrid: this.ctx.hybridRetrieval(),
+      });
       log(`tool synapse_query: ${result.nodes.length} nodes`);
       return result.raw || "No matching nodes found.";
     });

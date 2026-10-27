@@ -351,6 +351,7 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
         const result = await engine.search(r, question, config().get<number>("queryBudget", 2000), task.abort.signal, {
           ppr: config().get<string>("retrieval", "weighted") === "ppr",
           learnedWeights: config().get<boolean>("learnedWeights", false),
+          hybrid: config().get<boolean>("hybridRetrieval", true),
         });
         showView(searchView(question, result));
       } catch (err) {
@@ -630,6 +631,7 @@ export function activate(context: vscode.ExtensionContext): SynapseTestApi | und
       return { root: r };
     },
     queryBudget: () => config().get<number>("queryBudget", 2000),
+    hybridRetrieval: () => config().get<boolean>("hybridRetrieval", true),
   });
 
   // --- Events ------------------------------------------------------------------------
