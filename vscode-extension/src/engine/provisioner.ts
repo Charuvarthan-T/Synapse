@@ -35,7 +35,7 @@ const PROBE_TIMEOUT_MS = 60 * 1000;
 /** Modules only the Synapse fork has; their absence means a foreign engine. */
 const PROBE = [
   "import graphify, graphify.bidirectional_reasoner, graphify.preexec_validate",
-  "import graphify.community_retrieval, graphify.weighted_retrieval, graphify.semantic_graph",
+  "import graphify.community_retrieval, graphify.weighted_retrieval, graphify.semantic_graph, graphify.lexical_retrieval",
   "from graphify.llm import BACKENDS",
   "assert 'editor-bridge' in BACKENDS, 'engine lacks the editor-bridge backend'",
   "print(graphify.__file__)",

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0 (V5)
+
+### New
+- **Hybrid search.** Search (and the `synapse_query` tool used by Copilot agent mode)
+  now fuses the graph ranking with BM25 keyword matching over each symbol's source code,
+  using reciprocal rank fusion. Symbols whose names don't match the question but whose
+  code does are now found. On CrossCodeEval (147 tasks, DeepSeek Flash) hybrid context
+  reached 23.1% exact match against 15.6% for BM25 alone.
+- New setting `synapse.hybridRetrieval` (on by default); turn it off for graph-only search.
+
+### Engine (in `graphify/`)
+- New `graphify/lexical_retrieval.py`; `graphify query --hybrid --root PATH`.
+- `--ppr` no longer needs scipy (power-iteration fallback).
+
 ## 0.4.0 (V4)
 
 ### New

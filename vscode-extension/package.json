@@ -2,7 +2,7 @@
   "name": "synapse",
   "displayName": "Synapse",
   "description": "Graph-grounded answers about your codebase. A local knowledge graph with graph-validated reasoning and hallucination checks, using the AI you already have (GitHub Copilot, Claude Code or Codex).",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "synapse-labs",
   "license": "Apache-2.0",
   "icon": "media/icon.png",
@@ -269,7 +269,10 @@
         },
         "synapse.retrieval": {
           "type": "string",
-          "enum": ["weighted", "ppr"],
+          "enum": [
+            "weighted",
+            "ppr"
+          ],
           "default": "weighted",
           "order": 5,
           "markdownDescription": "Search strategy. **weighted** is relationship-weighted traversal. **ppr** is Personalized PageRank over the same relation weights."
@@ -279,6 +282,12 @@
           "default": false,
           "order": 6,
           "markdownDescription": "Use `graphify-out/learned_weights.json` when searching. Missing file keeps the fixed relation weights."
+        },
+        "synapse.hybridRetrieval": {
+          "type": "boolean",
+          "default": true,
+          "order": 7,
+          "markdownDescription": "Hybrid search: fuse the graph ranking with BM25 keyword matching over each symbol's source code (reciprocal rank fusion). Finds symbols whose names don't match the question but whose code does. Turn off for graph-only search."
         },
         "synapse.pythonPath": {
           "type": "string",
